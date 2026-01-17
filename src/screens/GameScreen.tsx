@@ -21,9 +21,11 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle }) => {
   const erasingPuyos = useGameStore((state) => state.erasingPuyos);
   const clearErasingPuyos = useGameStore((state) => state.clearErasingPuyos);
 
-  // セルサイズを画面サイズに基づいて計算（横幅80%）
-  const maxFieldWidth = width * 0.8;
-  const maxFieldHeight = height * 0.7;
+  // セルサイズを画面サイズに基づいて計算（右利き用：右マージン大きめ）
+  const leftMargin = 4;
+  const rightMargin = 20;
+  const maxFieldWidth = width - leftMargin - rightMargin;
+  const maxFieldHeight = height * 0.6; // 操作エリア分の余裕を確保
   const cellSizeByWidth = Math.floor(maxFieldWidth / FIELD_COLS);
   const cellSizeByHeight = Math.floor(maxFieldHeight / FIELD_ROWS);
   const cellSize = Math.min(cellSizeByWidth, cellSizeByHeight);
@@ -43,26 +45,24 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle }) => {
       </View>
 
       {/* メインゲームエリア */}
-      <View style={styles.gameArea}>
-        {/* フィールドとNEXT表示のコンテナ（タッチ操作可能） */}
-        <ControlArea cellSize={cellSize}>
-          <View style={styles.fieldContainer}>
-            {/* フィールド */}
-            <Field
-              field={field}
-              fallingPuyo={fallingPuyo}
-              cellSize={cellSize}
-              erasingPuyos={erasingPuyos}
-              onEffectComplete={clearErasingPuyos}
-            />
+      <ControlArea cellSize={cellSize} rightMargin={rightMargin}>
+        {/* フィールドとNEXT表示のコンテナ */}
+        <View style={styles.fieldContainer}>
+          {/* フィールド */}
+          <Field
+            field={field}
+            fallingPuyo={fallingPuyo}
+            cellSize={cellSize}
+            erasingPuyos={erasingPuyos}
+            onEffectComplete={clearErasingPuyos}
+          />
 
-            {/* NEXT表示（フィールド右上にオーバーレイ） */}
-            <View style={styles.nextOverlay}>
-              <NextDisplay nextQueue={nextQueue} cellSize={cellSize * 0.6} />
-            </View>
+          {/* NEXT表示（フィールド右上にオーバーレイ） */}
+          <View style={styles.nextOverlay}>
+            <NextDisplay nextQueue={nextQueue} cellSize={cellSize * 0.6} />
           </View>
-        </ControlArea>
-      </View>
+        </View>
+      </ControlArea>
 
       {/* ゲームオーバー表示 */}
       {isGameOver && (
@@ -88,11 +88,6 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: 50,
     paddingBottom: 4,
-    alignItems: 'center',
-  },
-  gameArea: {
-    flex: 1,
-    justifyContent: 'flex-start',
     alignItems: 'center',
   },
   fieldContainer: {
