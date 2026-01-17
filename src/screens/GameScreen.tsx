@@ -21,9 +21,9 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle }) => {
   const erasingPuyos = useGameStore((state) => state.erasingPuyos);
   const clearErasingPuyos = useGameStore((state) => state.clearErasingPuyos);
 
-  // セルサイズを画面サイズに基づいて計算（左マージン大きめ、右マージン小さめ）
-  const leftMargin = 20;
-  const rightMargin = 8;
+  // セルサイズを画面サイズに基づいて計算（右利き用：右マージン大きめ）
+  const leftMargin = 8;
+  const rightMargin = 20;
   const maxFieldWidth = width - leftMargin - rightMargin;
   const maxFieldHeight = height * 0.6; // 操作エリア分の余裕を確保
   const cellSizeByWidth = Math.floor(maxFieldWidth / FIELD_COLS);
@@ -45,7 +45,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle }) => {
       </View>
 
       {/* メインゲームエリア */}
-      <ControlArea cellSize={cellSize} leftMargin={leftMargin}>
+      <ControlArea cellSize={cellSize} rightMargin={rightMargin}>
         {/* フィールドとNEXT表示のコンテナ */}
         <View style={styles.fieldContainer}>
           {/* フィールド */}

@@ -18,11 +18,11 @@ type ControlState = 'idle' | 'touching' | 'swiped' | 'cancelPending';
 
 interface ControlAreaProps {
   cellSize: number;
-  leftMargin: number;
+  rightMargin: number;
   children: React.ReactNode;
 }
 
-export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, leftMargin, children }) => {
+export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin, children }) => {
   const dispatch = useGameStore((state) => state.dispatch);
   const phase = useGameStore((state) => state.phase);
 
@@ -149,7 +149,7 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, leftMargin, 
   ).current;
 
   return (
-    <View style={[styles.container, { paddingLeft: leftMargin }]}>
+    <View style={[styles.container, { paddingRight: rightMargin }]}>
       {children}
       <View
         style={[
@@ -168,7 +168,7 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, leftMargin, 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'flex-start',
+    alignItems: 'flex-end',
   },
   controlArea: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
