@@ -1,0 +1,175 @@
+import { create } from 'zustand';
+import {
+  GameState,
+  FallingPuyo,
+  ChainResult,
+} from '../logic/types';
+import {
+  createInitialGameState,
+  startGame,
+  lockFallingPuyo,
+  advancePhase,
+  updateFallingPuyo,
+} from '../logic/game';
+import {
+  movePuyo,
+  rotatePuyo,
+  dropPuyo,
+  hardDropPuyo,
+  isLanded,
+} from '../logic/puyo';
+import { GameAction } from './actions';
+
+interface GameStore extends GameState {
+  // 現在の連鎖結果（エフェクト表示用）
+  currentChainResult: ChainResult | null;
+
+  // アクション
+  dispatch: (action: GameAction) => void;
+
+  // 内部メソッド
+  tick: () => void;
+  startGameLoop: () => void;
+  stopGameLoop: () => void;
+}
+
+// ゲームループのインターバルID
+let gameLoopId: ReturnType<typeof setInterval> | null = null;
+
+// 落下速度（ミリ秒）
+const DROP_INTERVAL = 1000;
+
+export const useGameStore = create<GameStore>((set, get) => ({
+  // 初期状態
+  ...createInitialGameState(),
+  currentChainResult: null,
+
+  // アクションディスパッチャー
+  dispatch: (action: GameAction) => {
+    const state = get();
+
+    switch (action.type) {
+      case 'START_GAME': {
+        if (state.phase === 'ready') {
+          const newState = startGame(state);
+          set(newState);
+          get().startGameLoop();
+        }
+        break;
+      }
+
+      case 'RESTART_GAME': {
+        get().stopGameLoop();
+        const newState = createInitialGameState();
+        set({ ...newState, currentChainResult: null });
+        break;
+      }
+
+      case 'MOVE_LEFT': {
+        if (state.phase === 'falling' && state.fallingPuyo) {
+          const newFallingPuyo = movePuyo(state.field, state.fallingPuyo, 'left');
+          if (newFallingPuyo) {
+            set({ fallingPuyo: newFallingPuyo });
+          }
+        }
+        break;
+      }
+
+      case 'MOVE_RIGHT': {
+        if (state.phase === 'falling' && state.fallingPuyo) {
+          const newFallingPuyo = movePuyo(state.field, state.fallingPuyo, 'right');
+          if (newFallingPuyo) {
+            set({ fallingPuyo: newFallingPuyo });
+          }
+        }
+        break;
+      }
+
+      case 'ROTATE_CW': {
+        if (state.phase === 'falling' && state.fallingPuyo) {
+          const newFallingPuyo = rotatePuyo(state.field, state.fallingPuyo, 'cw');
+          if (newFallingPuyo) {
+            set({ fallingPuyo: newFallingPuyo });
+          }
+        }
+        break;
+      }
+
+      case 'ROTATE_CCW': {
+        if (state.phase === 'falling' && state.fallingPuyo) {
+          const newFallingPuyo = rotatePuyo(state.field, state.fallingPuyo, 'ccw');
+          if (newFallingPuyo) {
+            set({ fallingPuyo: newFallingPuyo });
+          }
+        }
+        break;
+      }
+
+      case 'SOFT_DROP': {
+        if (state.phase === 'falling' && state.fallingPuyo) {
+          const newFallingPuyo = dropPuyo(state.field, state.fallingPuyo);
+          if (newFallingPuyo) {
+            set({ fallingPuyo: newFallingPuyo });
+          }
+        }
+        break;
+      }
+
+      case 'HARD_DROP': {
+        if (state.phase === 'falling' && state.fallingPuyo) {
+          const droppedPuyo = hardDropPuyo(state.field, state.fallingPuyo);
+          const stateWithDroppedPuyo = updateFallingPuyo(state, droppedPuyo);
+          const lockedState = lockFallingPuyo(stateWithDroppedPuyo);
+          const nextState = advancePhase(lockedState);
+          set(nextState);
+        }
+        break;
+      }
+    }
+  },
+
+  // ゲームティック（自動落下）
+  tick: () => {
+    const state = get();
+
+    if (state.phase === 'falling' && state.fallingPuyo) {
+      // 落下を試みる
+      const newFallingPuyo = dropPuyo(state.field, state.fallingPuyo);
+
+      if (newFallingPuyo) {
+        // 落下成功
+        set({ fallingPuyo: newFallingPuyo });
+      } else {
+        // 着地 → 固定 → 次のフェーズへ
+        const lockedState = lockFallingPuyo(state);
+        const nextState = advancePhase(lockedState);
+        set(nextState);
+      }
+    } else if (state.phase === 'dropping' || state.phase === 'chaining') {
+      // 落下中または連鎖中は自動で進める
+      const nextState = advancePhase(state);
+      set(nextState);
+    } else if (state.phase === 'gameover') {
+      // ゲームオーバーでループ停止
+      get().stopGameLoop();
+    }
+  },
+
+  // ゲームループ開始
+  startGameLoop: () => {
+    if (gameLoopId !== null) {
+      return;
+    }
+    gameLoopId = setInterval(() => {
+      get().tick();
+    }, DROP_INTERVAL);
+  },
+
+  // ゲームループ停止
+  stopGameLoop: () => {
+    if (gameLoopId !== null) {
+      clearInterval(gameLoopId);
+      gameLoopId = null;
+    }
+  },
+}));
