@@ -126,8 +126,7 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
       const state = controlStateRef.current;
 
       if (state === 'cancelPending') {
-        // キャンセル：初期位置に戻す
-        dispatch({ type: 'SET_COLUMN', column: 2 }); // 中央に戻す
+        // キャンセル：軸ぷよの位置はそのまま、サテライトだけ上に戻す
         dispatch({ type: 'SET_ROTATION', rotation: 0 });
       } else if (state === 'touching' || state === 'swiped') {
         // 配置確定：ハードドロップ
