@@ -13,13 +13,9 @@ export const ScoreDisplay: React.FC<ScoreDisplayProps> = ({ score, chainCount })
         <Text style={styles.label}>SCORE</Text>
         <Text style={styles.score}>{score.toLocaleString()}</Text>
       </View>
-      <View style={styles.chainContainer}>
-        {chainCount > 0 && (
-          <>
-            <Text style={styles.chainCount}>{chainCount}</Text>
-            <Text style={styles.chainLabel}>連鎖</Text>
-          </>
-        )}
+      <View style={[styles.chainContainer, { opacity: chainCount > 0 ? 1 : 0 }]}>
+        <Text style={styles.chainCount}>{chainCount || 1}</Text>
+        <Text style={styles.chainLabel}>連鎖</Text>
       </View>
     </View>
   );
