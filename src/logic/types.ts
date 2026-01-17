@@ -39,6 +39,7 @@ export type GamePhase =
   | 'ready'      // ゲーム開始前
   | 'falling'    // ぷよ操作中
   | 'dropping'   // ぷよ落下中
+  | 'erasing'    // ぷよ消去アニメーション中
   | 'chaining'   // 連鎖処理中
   | 'gameover';  // ゲームオーバー
 
