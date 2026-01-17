@@ -161,7 +161,23 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
           },
         ]}
         {...panResponder.panHandlers}
-      />
+      >
+        {/* 6列の縦線 */}
+        <View style={styles.columnsContainer}>
+          {Array.from({ length: FIELD_COLS }).map((_, i) => (
+            <View
+              key={i}
+              style={[
+                styles.column,
+                {
+                  width: cellSize,
+                  borderRightWidth: i < FIELD_COLS - 1 ? 1 : 0,
+                },
+              ]}
+            />
+          ))}
+        </View>
+      </View>
     </View>
   );
 };
@@ -172,8 +188,19 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   controlArea: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(26, 26, 46, 0.8)',
     marginTop: 10,
     borderRadius: 8,
+    borderWidth: 3,
+    borderColor: '#4a4a6a',
+    overflow: 'hidden',
+  },
+  columnsContainer: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  column: {
+    height: '100%',
+    borderRightColor: '#2a2a4a',
   },
 });
