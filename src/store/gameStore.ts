@@ -3,6 +3,8 @@ import {
   GameState,
   FallingPuyo,
   ChainResult,
+  ErasingPuyo,
+  PuyoColor,
 } from '../logic/types';
 import {
   createInitialGameState,
@@ -11,6 +13,8 @@ import {
   advancePhase,
   updateFallingPuyo,
 } from '../logic/game';
+import { findErasableGroups, flattenGroups } from '../logic/chain';
+import { getPuyo } from '../logic/field';
 import {
   movePuyo,
   rotatePuyo,
@@ -23,9 +27,12 @@ import { GameAction } from './actions';
 interface GameStore extends GameState {
   // 現在の連鎖結果（エフェクト表示用）
   currentChainResult: ChainResult | null;
+  // 消えているぷよ（エフェクト表示用）
+  erasingPuyos: ErasingPuyo[];
 
   // アクション
   dispatch: (action: GameAction) => void;
+  clearErasingPuyos: () => void;
 
   // 内部メソッド
   tick: () => void;
@@ -43,6 +50,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   // 初期状態
   ...createInitialGameState(),
   currentChainResult: null,
+  erasingPuyos: [],
 
   // アクションディスパッチャー
   dispatch: (action: GameAction) => {
@@ -61,7 +69,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       case 'RESTART_GAME': {
         get().stopGameLoop();
         const newState = createInitialGameState();
-        set({ ...newState, currentChainResult: null });
+        set({ ...newState, currentChainResult: null, erasingPuyos: [] });
         break;
       }
 
@@ -128,6 +136,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
   },
 
+  // 消えているぷよをクリア
+  clearErasingPuyos: () => {
+    set({ erasingPuyos: [] });
+  },
+
   // ゲームティック（自動落下）
   tick: () => {
     const state = get();
@@ -146,6 +159,23 @@ export const useGameStore = create<GameStore>((set, get) => ({
         set(nextState);
       }
     } else if (state.phase === 'dropping' || state.phase === 'chaining') {
+      // 連鎖フェーズの場合、消えるぷよの情報を保存
+      if (state.phase === 'chaining') {
+        const groups = findErasableGroups(state.field);
+        if (groups.length > 0) {
+          const positions = flattenGroups(groups);
+          const erasingPuyos: ErasingPuyo[] = positions
+            .map((pos) => {
+              const color = getPuyo(state.field, pos);
+              if (color !== null) {
+                return { pos, color };
+              }
+              return null;
+            })
+            .filter((p): p is ErasingPuyo => p !== null);
+          set({ erasingPuyos });
+        }
+      }
       // 落下中または連鎖中は自動で進める
       const nextState = advancePhase(state);
       set(nextState);

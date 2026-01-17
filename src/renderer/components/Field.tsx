@@ -1,18 +1,21 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Field as FieldType, FallingPuyo, FIELD_COLS, FIELD_ROWS } from '../../logic/types';
+import { Field as FieldType, FallingPuyo, ErasingPuyo, FIELD_COLS, FIELD_ROWS } from '../../logic/types';
 import { getSatellitePosition } from '../../logic/puyo';
 import { Puyo } from './Puyo';
+import { DisappearEffect } from './DisappearEffect';
 
 interface FieldProps {
   field: FieldType;
   fallingPuyo: FallingPuyo | null;
   cellSize: number;
+  erasingPuyos?: ErasingPuyo[];
+  onEffectComplete?: () => void;
 }
 
 const BORDER_WIDTH = 3;
 
-export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize }) => {
+export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize, erasingPuyos = [], onEffectComplete }) => {
   const fieldWidth = FIELD_COLS * cellSize + BORDER_WIDTH * 2;
   const fieldHeight = FIELD_ROWS * cellSize + BORDER_WIDTH * 2;
 
@@ -99,6 +102,18 @@ export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize }) =>
         >
           <Puyo color={pos.color as any} size={cellSize - 4} />
         </View>
+      ))}
+
+      {/* 消えるエフェクト */}
+      {erasingPuyos.map((puyo, index) => (
+        <DisappearEffect
+          key={`effect-${puyo.pos.x}-${puyo.pos.y}-${index}`}
+          color={puyo.color}
+          x={puyo.pos.x}
+          y={puyo.pos.y}
+          cellSize={cellSize}
+          onComplete={index === 0 ? onEffectComplete : undefined}
+        />
       ))}
     </View>
   );

@@ -60,6 +60,12 @@ export type ChainResult = {
   colors: number; // 同時消し色数
 };
 
+// 消えているぷよ（エフェクト表示用）
+export type ErasingPuyo = {
+  pos: Position;
+  color: PuyoColor;
+};
+
 // 回転方向
 export type RotationDirection = 'cw' | 'ccw'; // clockwise / counter-clockwise
 
