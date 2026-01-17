@@ -1,10 +1,9 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useRef } from 'react';
 import {
   View,
   PanResponder,
   GestureResponderEvent,
   PanResponderGestureState,
-  StyleSheet,
 } from 'react-native';
 import { useGameStore } from '../store';
 import { Rotation, FIELD_COLS } from '../logic/types';
@@ -18,27 +17,22 @@ type ControlState = 'idle' | 'touching' | 'swiped' | 'cancelPending';
 
 interface ControlAreaProps {
   cellSize: number;
-  rightMargin: number;
   children: React.ReactNode;
 }
 
-export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin, children }) => {
+export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, children }) => {
   const dispatch = useGameStore((state) => state.dispatch);
   const phase = useGameStore((state) => state.phase);
 
   const controlStateRef = useRef<ControlState>('idle');
-  const startPosRef = useRef({ x: 0, y: 0 });
   const currentSwipeRef = useRef<{ dx: number; dy: number }>({ dx: 0, dy: 0 });
-  const initialColumnRef = useRef<number | null>(null);
-
-  // 操作エリアの幅（フィールドと同じ幅：6列分 + ボーダー幅）
-  const BORDER_WIDTH = 3;
-  const controlAreaWidth = cellSize * FIELD_COLS + BORDER_WIDTH * 2;
 
   // タッチ位置から列を計算
-  const getColumnFromX = useCallback((x: number, areaStartX: number): number => {
-    const relativeX = x - areaStartX;
-    const column = Math.floor(relativeX / cellSize);
+  const getColumnFromX = useCallback((locationX: number): number => {
+    // ボーダー幅を考慮
+    const BORDER_WIDTH = 3;
+    const adjustedX = locationX - BORDER_WIDTH;
+    const column = Math.floor(adjustedX / cellSize);
     return Math.max(0, Math.min(FIELD_COLS - 1, column));
   }, [cellSize]);
 
@@ -64,22 +58,18 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
     (evt: GestureResponderEvent, _gestureState: PanResponderGestureState) => {
       if (phase !== 'falling') return;
 
-      const { locationX, pageX } = evt.nativeEvent;
-      startPosRef.current = { x: pageX, y: evt.nativeEvent.pageY };
+      const { locationX } = evt.nativeEvent;
       currentSwipeRef.current = { dx: 0, dy: 0 };
       controlStateRef.current = 'touching';
 
       // タッチした列を計算して設定
-      // locationXは操作エリア内の相対位置
-      const column = Math.floor(locationX / cellSize);
-      const clampedColumn = Math.max(0, Math.min(FIELD_COLS - 1, column));
-      initialColumnRef.current = clampedColumn;
+      const column = getColumnFromX(locationX);
 
-      dispatch({ type: 'SET_COLUMN', column: clampedColumn });
+      dispatch({ type: 'SET_COLUMN', column });
       // 初期状態は上向き
       dispatch({ type: 'SET_ROTATION', rotation: 0 });
     },
-    [dispatch, cellSize, phase]
+    [dispatch, getColumnFromX, phase]
   );
 
   const handleTouchMove = useCallback(
@@ -133,7 +123,6 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
       }
 
       controlStateRef.current = 'idle';
-      initialColumnRef.current = null;
     },
     [dispatch, phase]
   );
@@ -150,30 +139,8 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
   ).current;
 
   return (
-    <View style={[styles.container, { paddingRight: rightMargin }]}>
+    <View {...panResponder.panHandlers}>
       {children}
-      <View
-        style={[
-          styles.controlArea,
-          {
-            width: controlAreaWidth,
-            height: cellSize * 2,
-          },
-        ]}
-        {...panResponder.panHandlers}
-      />
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'flex-end',
-  },
-  controlArea: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    marginTop: 10,
-    borderRadius: 8,
-  },
-});
