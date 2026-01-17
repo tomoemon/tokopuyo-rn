@@ -13,12 +13,10 @@ export const ScoreDisplay: React.FC<ScoreDisplayProps> = ({ score, chainCount })
         <Text style={styles.label}>SCORE</Text>
         <Text style={styles.score}>{score.toLocaleString()}</Text>
       </View>
-      {chainCount > 0 && (
-        <View style={styles.chainContainer}>
-          <Text style={styles.chainCount}>{chainCount}</Text>
-          <Text style={styles.chainLabel}>連鎖</Text>
-        </View>
-      )}
+      <View style={[styles.chainContainer, { opacity: chainCount > 0 ? 1 : 0 }]}>
+        <Text style={styles.chainCount}>{chainCount || 1}</Text>
+        <Text style={styles.chainLabel}>連鎖</Text>
+      </View>
     </View>
   );
 };
@@ -43,6 +41,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'baseline',
     marginTop: 8,
+    minHeight: 42, // 連鎖数の表示領域を常に確保してレイアウトのずれを防ぐ
   },
   chainCount: {
     color: '#ffff00',

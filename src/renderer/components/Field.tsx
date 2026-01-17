@@ -10,9 +10,11 @@ interface FieldProps {
   cellSize: number;
 }
 
+const BORDER_WIDTH = 3;
+
 export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize }) => {
-  const fieldWidth = FIELD_COLS * cellSize;
-  const fieldHeight = FIELD_ROWS * cellSize;
+  const fieldWidth = FIELD_COLS * cellSize + BORDER_WIDTH * 2;
+  const fieldHeight = FIELD_ROWS * cellSize + BORDER_WIDTH * 2;
 
   // 操作中のぷよの位置
   const fallingPositions: { x: number; y: number; color: string }[] = [];
@@ -105,7 +107,7 @@ export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize }) =>
 const styles = StyleSheet.create({
   field: {
     backgroundColor: '#1a1a2e',
-    borderWidth: 3,
+    borderWidth: BORDER_WIDTH,
     borderColor: '#4a4a6a',
     position: 'relative',
   },
