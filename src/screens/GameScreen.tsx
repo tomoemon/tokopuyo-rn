@@ -21,12 +21,13 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle }) => {
   const erasingPuyos = useGameStore((state) => state.erasingPuyos);
   const clearErasingPuyos = useGameStore((state) => state.clearErasingPuyos);
 
-  // セルサイズを画面サイズに基づいて計算
-  const maxFieldWidth = width * 0.6;
+  // セルサイズを画面サイズに基づいて計算（横幅いっぱいに使う）
+  const horizontalPadding = 20;
+  const maxFieldWidth = width - horizontalPadding * 2;
   const maxFieldHeight = height * 0.7;
   const cellSizeByWidth = Math.floor(maxFieldWidth / FIELD_COLS);
   const cellSizeByHeight = Math.floor(maxFieldHeight / FIELD_ROWS);
-  const cellSize = Math.min(cellSizeByWidth, cellSizeByHeight, 50);
+  const cellSize = Math.min(cellSizeByWidth, cellSizeByHeight);
 
   const handleRestart = useCallback(() => {
     dispatch({ type: 'RESTART_GAME' });
@@ -45,18 +46,21 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle }) => {
 
         {/* メインゲームエリア */}
         <View style={styles.gameArea}>
-          {/* フィールド */}
-          <Field
-            field={field}
-            fallingPuyo={fallingPuyo}
-            cellSize={cellSize}
-            erasingPuyos={erasingPuyos}
-            onEffectComplete={clearErasingPuyos}
-          />
+          {/* フィールドとNEXT表示のコンテナ */}
+          <View style={styles.fieldContainer}>
+            {/* フィールド */}
+            <Field
+              field={field}
+              fallingPuyo={fallingPuyo}
+              cellSize={cellSize}
+              erasingPuyos={erasingPuyos}
+              onEffectComplete={clearErasingPuyos}
+            />
 
-          {/* NEXT表示 */}
-          <View style={styles.sidePanel}>
-            <NextDisplay nextQueue={nextQueue} cellSize={cellSize} />
+            {/* NEXT表示（フィールド右上にオーバーレイ） */}
+            <View style={styles.nextOverlay}>
+              <NextDisplay nextQueue={nextQueue} cellSize={cellSize * 0.6} />
+            </View>
           </View>
         </View>
 
@@ -89,14 +93,20 @@ const styles = StyleSheet.create({
   },
   gameArea: {
     flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'flex-start',
-    gap: 20,
+    justifyContent: 'flex-start',
+    alignItems: 'center',
     paddingHorizontal: 20,
   },
-  sidePanel: {
-    paddingTop: 20,
+  fieldContainer: {
+    position: 'relative',
+  },
+  nextOverlay: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 8,
+    padding: 4,
   },
   gameOverOverlay: {
     ...StyleSheet.absoluteFillObject,

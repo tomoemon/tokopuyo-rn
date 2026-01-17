@@ -211,39 +211,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
   },
 
-  // ゲームティック（自動落下）
+  // ゲームティック（自動落下はOFF、連鎖処理のみ）
   tick: () => {
     const state = get();
 
-    if (state.phase === 'falling' && state.fallingPuyo) {
-      // 落下を試みる
-      const newFallingPuyo = dropPuyo(state.field, state.fallingPuyo);
-
-      if (newFallingPuyo) {
-        // 落下成功
-        set({ fallingPuyo: newFallingPuyo });
-      } else {
-        // 着地 → 固定 → 次のフェーズへ
-        const lockedState = lockFallingPuyo(state);
-        const nextState = advancePhase(lockedState);
-
-        // chainingフェーズになったら遅延後にerasingへ遷移
-        if (nextState.phase === 'chaining') {
-          set(nextState);
-          erasingDelayId = setTimeout(() => {
-            const currentState = get();
-            if (currentState.phase === 'chaining') {
-              const erasing = detectErasingPuyos(currentState.field);
-              if (erasing) {
-                set(erasing);
-              }
-            }
-          }, ERASING_DELAY);
-          return;
-        }
-        set(nextState);
-      }
-    } else if (state.phase === 'dropping') {
+    // fallingフェーズでは自動落下しない（下スワイプで落下）
+    if (state.phase === 'dropping') {
       // 落下中は自動で進める
       const nextState = advancePhase(state);
 
