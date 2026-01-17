@@ -157,7 +157,7 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
           styles.controlArea,
           {
             width: controlAreaWidth,
-            height: cellSize * 2,
+            height: cellSize * 3,
           },
         ]}
         {...panResponder.panHandlers}
