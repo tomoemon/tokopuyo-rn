@@ -87,8 +87,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#0a0a1a',
   },
   header: {
-    paddingTop: 60,
-    paddingBottom: 20,
+    paddingTop: 20,
+    paddingBottom: 8,
     alignItems: 'center',
   },
   gameArea: {
