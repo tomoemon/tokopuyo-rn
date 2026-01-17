@@ -21,6 +21,8 @@ import {
   dropPuyo,
   hardDropPuyo,
   isLanded,
+  setColumn,
+  setRotation,
 } from '../logic/puyo';
 import { GameAction } from './actions';
 
@@ -178,6 +180,26 @@ export const useGameStore = create<GameStore>((set, get) => ({
             return;
           }
           set(nextState);
+        }
+        break;
+      }
+
+      case 'SET_COLUMN': {
+        if (state.phase === 'falling' && state.fallingPuyo) {
+          const newFallingPuyo = setColumn(state.field, state.fallingPuyo, action.column);
+          if (newFallingPuyo) {
+            set({ fallingPuyo: newFallingPuyo });
+          }
+        }
+        break;
+      }
+
+      case 'SET_ROTATION': {
+        if (state.phase === 'falling' && state.fallingPuyo) {
+          const newFallingPuyo = setRotation(state.field, state.fallingPuyo, action.rotation);
+          if (newFallingPuyo) {
+            set({ fallingPuyo: newFallingPuyo });
+          }
         }
         break;
       }

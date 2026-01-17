@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions } from 'react-native';
 import { useGameStore } from '../store';
-import { SwipeInput } from '../input';
+import { ControlArea } from '../input';
 import { Field, NextDisplay, ScoreDisplay } from '../renderer';
 import { FIELD_COLS, FIELD_ROWS } from '../logic/types';
 
@@ -24,7 +24,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle }) => {
   // セルサイズを画面サイズに基づいて計算（横幅いっぱいに使う）
   const horizontalPadding = 20;
   const maxFieldWidth = width - horizontalPadding * 2;
-  const maxFieldHeight = height * 0.7;
+  const maxFieldHeight = height * 0.6; // 操作エリア分の余裕を確保
   const cellSizeByWidth = Math.floor(maxFieldWidth / FIELD_COLS);
   const cellSizeByHeight = Math.floor(maxFieldHeight / FIELD_ROWS);
   const cellSize = Math.min(cellSizeByWidth, cellSizeByHeight);
@@ -37,47 +37,45 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle }) => {
   const isGameOver = phase === 'gameover';
 
   return (
-    <SwipeInput.InputProvider>
-      <View style={styles.container}>
-        {/* ヘッダー */}
-        <View style={styles.header}>
-          <ScoreDisplay score={score} chainCount={chainCount} />
-        </View>
-
-        {/* メインゲームエリア */}
-        <View style={styles.gameArea}>
-          {/* フィールドとNEXT表示のコンテナ */}
-          <View style={styles.fieldContainer}>
-            {/* フィールド */}
-            <Field
-              field={field}
-              fallingPuyo={fallingPuyo}
-              cellSize={cellSize}
-              erasingPuyos={erasingPuyos}
-              onEffectComplete={clearErasingPuyos}
-            />
-
-            {/* NEXT表示（フィールド右上にオーバーレイ） */}
-            <View style={styles.nextOverlay}>
-              <NextDisplay nextQueue={nextQueue} cellSize={cellSize * 0.6} />
-            </View>
-          </View>
-        </View>
-
-        {/* ゲームオーバー表示 */}
-        {isGameOver && (
-          <View style={styles.gameOverOverlay}>
-            <View style={styles.gameOverContent}>
-              <Text style={styles.gameOverText}>GAME OVER</Text>
-              <Text style={styles.finalScore}>Score: {score.toLocaleString()}</Text>
-              <TouchableOpacity style={styles.restartButton} onPress={handleRestart}>
-                <Text style={styles.restartButtonText}>タイトルへ</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
+    <View style={styles.container}>
+      {/* ヘッダー */}
+      <View style={styles.header}>
+        <ScoreDisplay score={score} chainCount={chainCount} />
       </View>
-    </SwipeInput.InputProvider>
+
+      {/* メインゲームエリア */}
+      <ControlArea cellSize={cellSize}>
+        {/* フィールドとNEXT表示のコンテナ */}
+        <View style={styles.fieldContainer}>
+          {/* フィールド */}
+          <Field
+            field={field}
+            fallingPuyo={fallingPuyo}
+            cellSize={cellSize}
+            erasingPuyos={erasingPuyos}
+            onEffectComplete={clearErasingPuyos}
+          />
+
+          {/* NEXT表示（フィールド右上にオーバーレイ） */}
+          <View style={styles.nextOverlay}>
+            <NextDisplay nextQueue={nextQueue} cellSize={cellSize * 0.6} />
+          </View>
+        </View>
+      </ControlArea>
+
+      {/* ゲームオーバー表示 */}
+      {isGameOver && (
+        <View style={styles.gameOverOverlay}>
+          <View style={styles.gameOverContent}>
+            <Text style={styles.gameOverText}>GAME OVER</Text>
+            <Text style={styles.finalScore}>Score: {score.toLocaleString()}</Text>
+            <TouchableOpacity style={styles.restartButton} onPress={handleRestart}>
+              <Text style={styles.restartButtonText}>タイトルへ</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+    </View>
   );
 };
 
@@ -90,12 +88,6 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: 4,
     alignItems: 'center',
-  },
-  gameArea: {
-    flex: 1,
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    paddingHorizontal: 20,
   },
   fieldContainer: {
     position: 'relative',
