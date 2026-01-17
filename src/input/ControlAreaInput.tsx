@@ -31,8 +31,9 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
   const currentSwipeRef = useRef<{ dx: number; dy: number }>({ dx: 0, dy: 0 });
   const initialColumnRef = useRef<number | null>(null);
 
-  // 操作エリアの幅（6列分）
-  const controlAreaWidth = cellSize * FIELD_COLS;
+  // 操作エリアの幅（フィールドと同じ幅：6列分 + ボーダー幅）
+  const BORDER_WIDTH = 3;
+  const controlAreaWidth = cellSize * FIELD_COLS + BORDER_WIDTH * 2;
 
   // タッチ位置から列を計算
   const getColumnFromX = useCallback((x: number, areaStartX: number): number => {

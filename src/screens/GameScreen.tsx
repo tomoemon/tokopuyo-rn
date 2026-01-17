@@ -22,7 +22,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle }) => {
   const clearErasingPuyos = useGameStore((state) => state.clearErasingPuyos);
 
   // セルサイズを画面サイズに基づいて計算（右利き用：右マージン大きめ）
-  const leftMargin = 8;
+  const leftMargin = 4;
   const rightMargin = 20;
   const maxFieldWidth = width - leftMargin - rightMargin;
   const maxFieldHeight = height * 0.6; // 操作エリア分の余裕を確保
