@@ -70,8 +70,10 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
       controlStateRef.current = 'touching';
 
       // タッチした列を計算して設定
-      // locationXは操作エリア内の相対位置
-      const column = Math.floor(locationX / cellSize);
+      // locationXは操作エリア内の相対位置（ボーダー幅を考慮）
+      const BORDER_WIDTH = 3;
+      const adjustedX = locationX - BORDER_WIDTH;
+      const column = Math.floor(adjustedX / cellSize);
       const clampedColumn = Math.max(0, Math.min(FIELD_COLS - 1, column));
       initialColumnRef.current = clampedColumn;
 
