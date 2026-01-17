@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions } from 'react-native';
 import { useGameStore } from '../store';
-import { SwipeInput } from '../input';
+import { ControlArea } from '../input';
 import { Field, NextDisplay, ScoreDisplay } from '../renderer';
 import { FIELD_COLS, FIELD_ROWS } from '../logic/types';
 
@@ -21,12 +21,14 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle }) => {
   const erasingPuyos = useGameStore((state) => state.erasingPuyos);
   const clearErasingPuyos = useGameStore((state) => state.clearErasingPuyos);
 
-  // セルサイズを画面サイズに基づいて計算
-  const maxFieldWidth = width * 0.6;
-  const maxFieldHeight = height * 0.7;
+  // セルサイズを画面サイズに基づいて計算（右利き用：右マージン大きめ）
+  const leftMargin = 4;
+  const rightMargin = 20;
+  const maxFieldWidth = width - leftMargin - rightMargin;
+  const maxFieldHeight = height * 0.6; // 操作エリア分の余裕を確保
   const cellSizeByWidth = Math.floor(maxFieldWidth / FIELD_COLS);
   const cellSizeByHeight = Math.floor(maxFieldHeight / FIELD_ROWS);
-  const cellSize = Math.min(cellSizeByWidth, cellSizeByHeight, 50);
+  const cellSize = Math.min(cellSizeByWidth, cellSizeByHeight);
 
   const handleRestart = useCallback(() => {
     dispatch({ type: 'RESTART_GAME' });
@@ -36,15 +38,16 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle }) => {
   const isGameOver = phase === 'gameover';
 
   return (
-    <SwipeInput.InputProvider>
-      <View style={styles.container}>
-        {/* ヘッダー */}
-        <View style={styles.header}>
-          <ScoreDisplay score={score} chainCount={chainCount} />
-        </View>
+    <View style={styles.container}>
+      {/* ヘッダー */}
+      <View style={styles.header}>
+        <ScoreDisplay score={score} chainCount={chainCount} />
+      </View>
 
-        {/* メインゲームエリア */}
-        <View style={styles.gameArea}>
+      {/* メインゲームエリア */}
+      <ControlArea cellSize={cellSize} rightMargin={rightMargin}>
+        {/* フィールドとNEXT表示のコンテナ */}
+        <View style={styles.fieldContainer}>
           {/* フィールド */}
           <Field
             field={field}
@@ -54,26 +57,26 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle }) => {
             onEffectComplete={clearErasingPuyos}
           />
 
-          {/* NEXT表示 */}
-          <View style={styles.sidePanel}>
-            <NextDisplay nextQueue={nextQueue} cellSize={cellSize} />
+          {/* NEXT表示（フィールド右上にオーバーレイ） */}
+          <View style={styles.nextOverlay}>
+            <NextDisplay nextQueue={nextQueue} cellSize={cellSize * 0.6} />
           </View>
         </View>
+      </ControlArea>
 
-        {/* ゲームオーバー表示 */}
-        {isGameOver && (
-          <View style={styles.gameOverOverlay}>
-            <View style={styles.gameOverContent}>
-              <Text style={styles.gameOverText}>GAME OVER</Text>
-              <Text style={styles.finalScore}>Score: {score.toLocaleString()}</Text>
-              <TouchableOpacity style={styles.restartButton} onPress={handleRestart}>
-                <Text style={styles.restartButtonText}>タイトルへ</Text>
-              </TouchableOpacity>
-            </View>
+      {/* ゲームオーバー表示 */}
+      {isGameOver && (
+        <View style={styles.gameOverOverlay}>
+          <View style={styles.gameOverContent}>
+            <Text style={styles.gameOverText}>GAME OVER</Text>
+            <Text style={styles.finalScore}>Score: {score.toLocaleString()}</Text>
+            <TouchableOpacity style={styles.restartButton} onPress={handleRestart}>
+              <Text style={styles.restartButtonText}>タイトルへ</Text>
+            </TouchableOpacity>
           </View>
-        )}
-      </View>
-    </SwipeInput.InputProvider>
+        </View>
+      )}
+    </View>
   );
 };
 
@@ -83,20 +86,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#0a0a1a',
   },
   header: {
-    paddingTop: 60,
-    paddingBottom: 20,
+    paddingTop: 50,
+    paddingBottom: 4,
     alignItems: 'center',
   },
-  gameArea: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'flex-start',
-    gap: 20,
-    paddingHorizontal: 20,
+  fieldContainer: {
+    position: 'relative',
   },
-  sidePanel: {
-    paddingTop: 20,
+  nextOverlay: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 8,
+    padding: 4,
   },
   gameOverOverlay: {
     ...StyleSheet.absoluteFillObject,

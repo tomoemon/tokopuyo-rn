@@ -9,10 +9,7 @@ interface ScoreDisplayProps {
 export const ScoreDisplay: React.FC<ScoreDisplayProps> = ({ score, chainCount }) => {
   return (
     <View style={styles.container}>
-      <View style={styles.scoreContainer}>
-        <Text style={styles.label}>SCORE</Text>
-        <Text style={styles.score}>{score.toLocaleString()}</Text>
-      </View>
+      <Text style={styles.score}>{score.toLocaleString()}</Text>
       <View style={[styles.chainContainer, { opacity: chainCount > 0 ? 1 : 0 }]}>
         <Text style={styles.chainCount}>{chainCount || 1}</Text>
         <Text style={styles.chainLabel}>連鎖</Text>
@@ -23,14 +20,9 @@ export const ScoreDisplay: React.FC<ScoreDisplayProps> = ({ score, chainCount })
 
 const styles = StyleSheet.create({
   container: {
-    alignItems: 'center',
-  },
-  scoreContainer: {
-    alignItems: 'center',
-  },
-  label: {
-    color: '#888888',
-    fontSize: 14,
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 12,
   },
   score: {
     color: '#ffffff',
@@ -40,8 +32,7 @@ const styles = StyleSheet.create({
   chainContainer: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    marginTop: 8,
-    minHeight: 42, // 連鎖数の表示領域を常に確保してレイアウトのずれを防ぐ
+    minWidth: 80, // 連鎖数の表示領域を常に確保してレイアウトのずれを防ぐ
   },
   chainCount: {
     color: '#ffff00',

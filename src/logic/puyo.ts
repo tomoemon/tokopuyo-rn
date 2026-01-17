@@ -236,3 +236,49 @@ export function createFallingPuyo(
 export function isLanded(field: Field, fallingPuyo: FallingPuyo): boolean {
   return dropPuyo(field, fallingPuyo) === null;
 }
+
+/**
+ * 軸ぷよの列を直接設定
+ */
+export function setColumn(
+  field: Field,
+  fallingPuyo: FallingPuyo,
+  column: number
+): FallingPuyo | null {
+  const newFallingPuyo: FallingPuyo = {
+    ...fallingPuyo,
+    pivot: {
+      ...fallingPuyo.pivot,
+      pos: {
+        x: column,
+        y: fallingPuyo.pivot.pos.y,
+      },
+    },
+  };
+
+  if (canPlace(field, newFallingPuyo)) {
+    return newFallingPuyo;
+  }
+
+  return null;
+}
+
+/**
+ * 回転状態を直接設定
+ */
+export function setRotation(
+  field: Field,
+  fallingPuyo: FallingPuyo,
+  rotation: Rotation
+): FallingPuyo | null {
+  const newFallingPuyo: FallingPuyo = {
+    ...fallingPuyo,
+    rotation,
+  };
+
+  if (canPlace(field, newFallingPuyo)) {
+    return newFallingPuyo;
+  }
+
+  return null;
+}

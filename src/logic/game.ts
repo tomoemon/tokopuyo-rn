@@ -72,7 +72,7 @@ export function spawnNextPuyo(state: GameState): GameState {
     ...state,
     fallingPuyo,
     nextQueue: newNextQueue,
-    chainCount: 0,
+    // chainCountはリセットしない（前回の連鎖数を表示し続ける）
     phase: 'falling',
   };
 }
@@ -177,7 +177,8 @@ export function advancePhase(state: GameState): GameState {
       // 重力適用後、連鎖チェック
       const afterGravity = applyGravityToState(state);
       if (!isChainFinished(afterGravity)) {
-        return { ...afterGravity, phase: 'chaining' };
+        // 新しい連鎖シーケンスの開始時にchainCountをリセット
+        return { ...afterGravity, phase: 'chaining', chainCount: 0 };
       }
       // 連鎖終了、ゲームオーバーチェック
       if (isGameOver(afterGravity.field)) {
