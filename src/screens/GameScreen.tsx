@@ -18,6 +18,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle }) => {
   const chainCount = useGameStore((state) => state.chainCount);
   const phase = useGameStore((state) => state.phase);
   const dispatch = useGameStore((state) => state.dispatch);
+  const erasingPuyos = useGameStore((state) => state.erasingPuyos);
+  const clearErasingPuyos = useGameStore((state) => state.clearErasingPuyos);
 
   // セルサイズを画面サイズに基づいて計算
   const maxFieldWidth = width * 0.6;
@@ -44,7 +46,13 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle }) => {
         {/* メインゲームエリア */}
         <View style={styles.gameArea}>
           {/* フィールド */}
-          <Field field={field} fallingPuyo={fallingPuyo} cellSize={cellSize} />
+          <Field
+            field={field}
+            fallingPuyo={fallingPuyo}
+            cellSize={cellSize}
+            erasingPuyos={erasingPuyos}
+            onEffectComplete={clearErasingPuyos}
+          />
 
           {/* NEXT表示 */}
           <View style={styles.sidePanel}>

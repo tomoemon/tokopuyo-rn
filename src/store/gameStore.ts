@@ -3,6 +3,8 @@ import {
   GameState,
   FallingPuyo,
   ChainResult,
+  ErasingPuyo,
+  PuyoColor,
 } from '../logic/types';
 import {
   createInitialGameState,
@@ -11,6 +13,8 @@ import {
   advancePhase,
   updateFallingPuyo,
 } from '../logic/game';
+import { findErasableGroups, flattenGroups } from '../logic/chain';
+import { getPuyo } from '../logic/field';
 import {
   movePuyo,
   rotatePuyo,
@@ -23,9 +27,12 @@ import { GameAction } from './actions';
 interface GameStore extends GameState {
   // 現在の連鎖結果（エフェクト表示用）
   currentChainResult: ChainResult | null;
+  // 消えているぷよ（エフェクト表示用）
+  erasingPuyos: ErasingPuyo[];
 
   // アクション
   dispatch: (action: GameAction) => void;
+  clearErasingPuyos: () => void;
 
   // 内部メソッド
   tick: () => void;
@@ -36,13 +43,43 @@ interface GameStore extends GameState {
 // ゲームループのインターバルID
 let gameLoopId: ReturnType<typeof setInterval> | null = null;
 
+// 消去アニメーション開始までの遅延タイマーID
+let erasingDelayId: ReturnType<typeof setTimeout> | null = null;
+
 // 落下速度（ミリ秒）
 const DROP_INTERVAL = 1000;
+
+// 消去アニメーション開始までの遅延（ミリ秒）
+const ERASING_DELAY = 200;
+
+// 消えるぷよを検出してerasingフェーズに遷移する処理
+// 消えるぷよがあればerasingPuyosとphase: 'erasing'を含むオブジェクトを返す
+// なければnullを返す
+function detectErasingPuyos(
+  field: GameState['field']
+): { erasingPuyos: ErasingPuyo[]; phase: 'erasing' } | null {
+  const groups = findErasableGroups(field);
+  if (groups.length === 0) {
+    return null;
+  }
+  const positions = flattenGroups(groups);
+  const erasingPuyos: ErasingPuyo[] = positions
+    .map((pos) => {
+      const color = getPuyo(field, pos);
+      if (color !== null) {
+        return { pos, color };
+      }
+      return null;
+    })
+    .filter((p): p is ErasingPuyo => p !== null);
+  return { erasingPuyos, phase: 'erasing' };
+}
 
 export const useGameStore = create<GameStore>((set, get) => ({
   // 初期状態
   ...createInitialGameState(),
   currentChainResult: null,
+  erasingPuyos: [],
 
   // アクションディスパッチャー
   dispatch: (action: GameAction) => {
@@ -60,8 +97,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
       case 'RESTART_GAME': {
         get().stopGameLoop();
+        if (erasingDelayId !== null) {
+          clearTimeout(erasingDelayId);
+          erasingDelayId = null;
+        }
         const newState = createInitialGameState();
-        set({ ...newState, currentChainResult: null });
+        set({ ...newState, currentChainResult: null, erasingPuyos: [] });
         break;
       }
 
@@ -121,10 +162,52 @@ export const useGameStore = create<GameStore>((set, get) => ({
           const stateWithDroppedPuyo = updateFallingPuyo(state, droppedPuyo);
           const lockedState = lockFallingPuyo(stateWithDroppedPuyo);
           const nextState = advancePhase(lockedState);
+
+          // chainingフェーズになったら遅延後にerasingへ遷移
+          if (nextState.phase === 'chaining') {
+            set(nextState);
+            erasingDelayId = setTimeout(() => {
+              const currentState = get();
+              if (currentState.phase === 'chaining') {
+                const erasing = detectErasingPuyos(currentState.field);
+                if (erasing) {
+                  set(erasing);
+                }
+              }
+            }, ERASING_DELAY);
+            return;
+          }
           set(nextState);
         }
         break;
       }
+    }
+  },
+
+  // 消えているぷよをクリア（アニメーション完了時に呼ばれる）
+  clearErasingPuyos: () => {
+    const state = get();
+    if (state.phase === 'erasing') {
+      // アニメーション完了後、連鎖処理を実行して次のフェーズへ
+      const afterChainState = advancePhase({ ...state, phase: 'chaining' });
+
+      // 次の連鎖があれば遅延後にerasingへ遷移
+      if (afterChainState.phase === 'chaining') {
+        set({ ...afterChainState, erasingPuyos: [] });
+        erasingDelayId = setTimeout(() => {
+          const currentState = get();
+          if (currentState.phase === 'chaining') {
+            const erasing = detectErasingPuyos(currentState.field);
+            if (erasing) {
+              set(erasing);
+            }
+          }
+        }, ERASING_DELAY);
+        return;
+      }
+      set({ ...afterChainState, erasingPuyos: [] });
+    } else {
+      set({ erasingPuyos: [] });
     }
   },
 
@@ -143,12 +226,46 @@ export const useGameStore = create<GameStore>((set, get) => ({
         // 着地 → 固定 → 次のフェーズへ
         const lockedState = lockFallingPuyo(state);
         const nextState = advancePhase(lockedState);
+
+        // chainingフェーズになったら遅延後にerasingへ遷移
+        if (nextState.phase === 'chaining') {
+          set(nextState);
+          erasingDelayId = setTimeout(() => {
+            const currentState = get();
+            if (currentState.phase === 'chaining') {
+              const erasing = detectErasingPuyos(currentState.field);
+              if (erasing) {
+                set(erasing);
+              }
+            }
+          }, ERASING_DELAY);
+          return;
+        }
         set(nextState);
       }
-    } else if (state.phase === 'dropping' || state.phase === 'chaining') {
-      // 落下中または連鎖中は自動で進める
+    } else if (state.phase === 'dropping') {
+      // 落下中は自動で進める
       const nextState = advancePhase(state);
+
+      // chainingフェーズになったら遅延後にerasingへ遷移
+      if (nextState.phase === 'chaining') {
+        set(nextState);
+        erasingDelayId = setTimeout(() => {
+          const currentState = get();
+          if (currentState.phase === 'chaining') {
+            const erasing = detectErasingPuyos(currentState.field);
+            if (erasing) {
+              set(erasing);
+            }
+          }
+        }, ERASING_DELAY);
+        return;
+      }
       set(nextState);
+    } else if (state.phase === 'chaining') {
+      // 連鎖フェーズ：タイマーで処理されるので何もしない
+    } else if (state.phase === 'erasing') {
+      // アニメーション中は何もしない（clearErasingPuyosで進行）
     } else if (state.phase === 'gameover') {
       // ゲームオーバーでループ停止
       get().stopGameLoop();
