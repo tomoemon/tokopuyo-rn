@@ -41,7 +41,7 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
     return Math.max(0, Math.min(FIELD_COLS - 1, column));
   }, [cellSize]);
 
-  // スワイプ方向から回転状態を取得（スワイプと逆方向にサテライトを配置）
+  // スワイプ方向から回転状態を取得
   const getRotationFromSwipe = useCallback((dx: number, dy: number): Rotation | null => {
     const absDx = Math.abs(dx);
     const absDy = Math.abs(dy);
@@ -51,8 +51,8 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
     }
 
     if (absDx > absDy) {
-      // 横方向のスワイプ → 逆方向にサテライト
-      return dx > 0 ? 3 : 1; // 右スワイプ→左:3, 左スワイプ→右:1
+      // 横方向のスワイプ → 同じ方向にサテライト
+      return dx > 0 ? 1 : 3; // 右スワイプ→右:1, 左スワイプ→左:3
     } else {
       // 縦方向のスワイプ → 逆方向にサテライト
       return dy > 0 ? 0 : 2; // 下スワイプ→上:0, 上スワイプ→下:2
