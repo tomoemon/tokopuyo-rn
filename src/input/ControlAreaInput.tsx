@@ -164,8 +164,8 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
         ]}
         {...panResponder.panHandlers}
       >
-        {/* 6列の縦線 */}
-        <View style={styles.columnsContainer}>
+        {/* 6列の縦線（タッチイベントは親に伝播） */}
+        <View style={styles.columnsContainer} pointerEvents="none">
           {Array.from({ length: FIELD_COLS }).map((_, i) => (
             <View
               key={i}
