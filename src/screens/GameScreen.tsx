@@ -55,11 +55,11 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle, onOpenCon
 
   const handleBackToTitleWithConfirm = useCallback(() => {
     Alert.alert(
-      'タイトルに戻る',
-      '現在のゲームを終了してタイトル画面に戻りますか？',
+      'Return to Title',
+      'End the current game and return to title?',
       [
-        { text: 'キャンセル', style: 'cancel' },
-        { text: '戻る', style: 'destructive', onPress: handleBackToTitleDirect },
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Return', style: 'destructive', onPress: handleBackToTitleDirect },
       ]
     );
   }, [handleBackToTitleDirect]);
