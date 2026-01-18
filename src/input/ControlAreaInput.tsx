@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Animated,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { useGameStore } from '../store';
 import { Rotation, FIELD_COLS } from '../logic/types';
 
@@ -118,6 +119,9 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
       setSwipeDirection(null);
       triggerRipple(locationX, locationY);
 
+      // 触覚フィードバック（タッチ）
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
       dispatch({ type: 'SET_COLUMN', column: clampedColumn });
       // 初期状態は上向き
       dispatch({ type: 'SET_ROTATION', rotation: 0 });
@@ -151,10 +155,15 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
       // スワイプとして処理
       const rotation = getRotationFromSwipe(dx, dy);
       if (rotation !== null) {
+        const wasNotSwiped = controlStateRef.current !== 'swiped';
         controlStateRef.current = 'swiped';
         dispatch({ type: 'SET_ROTATION', rotation });
         // 視覚的フィードバック：スワイプ方向を更新
         setSwipeDirection(getSwipeDirectionFromDelta(dx, dy));
+        // 触覚フィードバック（スワイプ認識時のみ）
+        if (wasNotSwiped) {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        }
       }
     },
     [dispatch, getRotationFromSwipe, getSwipeDirectionFromDelta, phase]
