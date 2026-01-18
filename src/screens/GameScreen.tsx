@@ -3,14 +3,15 @@ import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions } from 'r
 import * as Haptics from 'expo-haptics';
 import { useGameStore, useConfigStore } from '../store';
 import { ControlArea } from '../input';
-import { Field, NextDisplay, ScoreDisplay, OperationHistory } from '../renderer';
+import { Field, NextDisplay, OperationHistory } from '../renderer';
 import { FIELD_COLS, VISIBLE_ROWS } from '../logic/types';
 
 interface GameScreenProps {
   onBackToTitle: () => void;
+  onOpenConfig: () => void;
 }
 
-export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle }) => {
+export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle, onOpenConfig }) => {
   const { width, height } = useWindowDimensions();
   const field = useGameStore((state) => state.field);
   const fallingPuyo = useGameStore((state) => state.fallingPuyo);
@@ -42,6 +43,10 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle }) => {
   const cellSizeByWidth = Math.floor(maxFieldWidth / FIELD_COLS);
   const cellSizeByHeight = Math.floor(maxFieldHeight / VISIBLE_ROWS);
   const cellSize = Math.min(cellSizeByWidth, cellSizeByHeight);
+
+  // 操作エリアの幅（フィールドと同じ幅：6列分 + ボーダー幅）
+  const BORDER_WIDTH = 3;
+  const controlAreaWidth = cellSize * FIELD_COLS + BORDER_WIDTH * 2;
 
   const handleRestart = useCallback(() => {
     dispatch({ type: 'RESTART_GAME' });
@@ -82,20 +87,41 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle }) => {
       ]}>
         {/* 左利きモード：ゲームエリアが先 */}
         {!isRightHanded && (
-          <ControlArea cellSize={cellSize} sideMargin={leftMargin} isRightHanded={false}>
-            <View style={styles.fieldContainer}>
-              <Field
-                field={field}
-                fallingPuyo={fallingPuyo}
-                cellSize={cellSize}
-                erasingPuyos={erasingPuyos}
-                onEffectComplete={clearErasingPuyos}
-              />
-              <View style={[styles.nextOverlay, styles.nextOverlayLeft]}>
-                <NextDisplay nextQueue={nextQueue} cellSize={cellSize * 0.6} />
+          <View style={[styles.gameAreaContainer, { paddingLeft: leftMargin }]}>
+            <ControlArea cellSize={cellSize} sideMargin={leftMargin} isRightHanded={false}>
+              <View style={styles.fieldContainer}>
+                <Field
+                  field={field}
+                  fallingPuyo={fallingPuyo}
+                  cellSize={cellSize}
+                  erasingPuyos={erasingPuyos}
+                  onEffectComplete={clearErasingPuyos}
+                />
+                <View style={[styles.nextOverlay, styles.nextOverlayLeft]}>
+                  <NextDisplay nextQueue={nextQueue} cellSize={cellSize * 0.6} />
+                </View>
               </View>
+            </ControlArea>
+
+            {/* スコアと連鎖数（操作エリアの直下） */}
+            <View style={[styles.scoreRow, { width: controlAreaWidth }]}>
+              <View style={[styles.chainContainer, { opacity: chainCount > 0 ? 1 : 0 }]}>
+                <Text style={styles.chainCount}>{chainCount || 1}</Text>
+                <Text style={styles.chainLabel}>連鎖</Text>
+              </View>
+              <Text style={styles.score}>{score.toLocaleString()}</Text>
             </View>
-          </ControlArea>
+
+            {/* ボタン行 */}
+            <View style={[styles.buttonRow, { width: controlAreaWidth }]}>
+              <TouchableOpacity style={styles.smallButton} onPress={handleRestart}>
+                <Text style={styles.smallButtonText}>Title</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.smallButton} onPress={onOpenConfig}>
+                <Text style={styles.smallButtonText}>Config</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         )}
 
         {/* 履歴エリア */}
@@ -109,26 +135,42 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle }) => {
 
         {/* 右利きモード：ゲームエリアが後 */}
         {isRightHanded && (
-          <ControlArea cellSize={cellSize} sideMargin={rightMargin} isRightHanded={true}>
-            <View style={styles.fieldContainer}>
-              <Field
-                field={field}
-                fallingPuyo={fallingPuyo}
-                cellSize={cellSize}
-                erasingPuyos={erasingPuyos}
-                onEffectComplete={clearErasingPuyos}
-              />
-              <View style={[styles.nextOverlay, styles.nextOverlayRight]}>
-                <NextDisplay nextQueue={nextQueue} cellSize={cellSize * 0.6} />
+          <View style={[styles.gameAreaContainer, { paddingRight: rightMargin }]}>
+            <ControlArea cellSize={cellSize} sideMargin={rightMargin} isRightHanded={true}>
+              <View style={styles.fieldContainer}>
+                <Field
+                  field={field}
+                  fallingPuyo={fallingPuyo}
+                  cellSize={cellSize}
+                  erasingPuyos={erasingPuyos}
+                  onEffectComplete={clearErasingPuyos}
+                />
+                <View style={[styles.nextOverlay, styles.nextOverlayRight]}>
+                  <NextDisplay nextQueue={nextQueue} cellSize={cellSize * 0.6} />
+                </View>
               </View>
-            </View>
-          </ControlArea>
-        )}
-      </View>
+            </ControlArea>
 
-      {/* フッター（スコアと連鎖数表示） */}
-      <View style={styles.footer}>
-        <ScoreDisplay score={score} chainCount={chainCount} />
+            {/* スコアと連鎖数（操作エリアの直下） */}
+            <View style={[styles.scoreRow, { width: controlAreaWidth, alignSelf: 'flex-end' }]}>
+              <View style={[styles.chainContainer, { opacity: chainCount > 0 ? 1 : 0 }]}>
+                <Text style={styles.chainCount}>{chainCount || 1}</Text>
+                <Text style={styles.chainLabel}>連鎖</Text>
+              </View>
+              <Text style={styles.score}>{score.toLocaleString()}</Text>
+            </View>
+
+            {/* ボタン行 */}
+            <View style={[styles.buttonRow, { width: controlAreaWidth, alignSelf: 'flex-end' }]}>
+              <TouchableOpacity style={styles.smallButton} onPress={handleRestart}>
+                <Text style={styles.smallButtonText}>Title</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.smallButton} onPress={onOpenConfig}>
+                <Text style={styles.smallButtonText}>Config</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
       </View>
 
       {/* ゲームオーバー表示 */}
@@ -162,12 +204,55 @@ const styles = StyleSheet.create({
   historyContainer: {
     marginRight: 0,
   },
+  gameAreaContainer: {
+    flex: 1,
+  },
   fieldContainer: {
     position: 'relative',
   },
-  footer: {
-    paddingVertical: 12,
-    alignItems: 'center',
+  scoreRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginTop: 8,
+    paddingHorizontal: 4,
+  },
+  score: {
+    color: '#ffffff',
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  chainContainer: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  chainCount: {
+    color: '#ffff00',
+    fontSize: 28,
+    fontWeight: 'bold',
+  },
+  chainLabel: {
+    color: '#ffff00',
+    fontSize: 14,
+    marginLeft: 2,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+    paddingHorizontal: 4,
+  },
+  smallButton: {
+    backgroundColor: 'transparent',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#666666',
+  },
+  smallButtonText: {
+    color: '#888888',
+    fontSize: 14,
   },
   nextOverlay: {
     position: 'absolute',

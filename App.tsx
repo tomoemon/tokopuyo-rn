@@ -29,7 +29,7 @@ export default function App() {
         <TitleScreen onStartGame={handleStartGame} onOpenConfig={handleOpenConfig} />
       )}
       {currentScreen === 'game' && (
-        <GameScreen onBackToTitle={handleBackToTitle} />
+        <GameScreen onBackToTitle={handleBackToTitle} onOpenConfig={handleOpenConfig} />
       )}
       {currentScreen === 'config' && (
         <ConfigScreen onBack={handleBackToTitle} />
