@@ -5,6 +5,7 @@ import {
   GestureResponderEvent,
   PanResponderGestureState,
   StyleSheet,
+  Animated,
 } from 'react-native';
 import { useGameStore } from '../store';
 import { Rotation, FIELD_COLS } from '../logic/types';
@@ -30,6 +31,12 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
   const startPosRef = useRef({ x: 0, y: 0 });
   const currentSwipeRef = useRef<{ dx: number; dy: number }>({ dx: 0, dy: 0 });
   const initialColumnRef = useRef<number | null>(null);
+
+  // 視覚的フィードバック用の状態
+  const [activeColumn, setActiveColumn] = useState<number | null>(null);
+  const [swipeDirection, setSwipeDirection] = useState<'up' | 'down' | 'left' | 'right' | null>(null);
+  const rippleAnim = useRef(new Animated.Value(0)).current;
+  const [ripplePosition, setRipplePosition] = useState<{ x: number; y: number } | null>(null);
 
   // 操作エリアの幅（フィールドと同じ幅：6列分 + ボーダー幅）
   const BORDER_WIDTH = 3;
@@ -60,11 +67,40 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
     }
   }, []);
 
+  // スワイプ方向を視覚的に表示するための変換
+  const getSwipeDirectionFromDelta = useCallback((dx: number, dy: number): 'up' | 'down' | 'left' | 'right' | null => {
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
+
+    if (absDx < SWIPE_THRESHOLD && absDy < SWIPE_THRESHOLD) {
+      return null;
+    }
+
+    if (absDx > absDy) {
+      return dx > 0 ? 'right' : 'left';
+    } else {
+      return dy > 0 ? 'down' : 'up';
+    }
+  }, []);
+
+  // タッチリップルアニメーション
+  const triggerRipple = useCallback((x: number, y: number) => {
+    setRipplePosition({ x, y });
+    rippleAnim.setValue(0);
+    Animated.timing(rippleAnim, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setRipplePosition(null);
+    });
+  }, [rippleAnim]);
+
   const handleTouchStart = useCallback(
     (evt: GestureResponderEvent, _gestureState: PanResponderGestureState) => {
       if (phase !== 'falling') return;
 
-      const { locationX, pageX } = evt.nativeEvent;
+      const { locationX, locationY, pageX } = evt.nativeEvent;
       startPosRef.current = { x: pageX, y: evt.nativeEvent.pageY };
       currentSwipeRef.current = { dx: 0, dy: 0 };
       controlStateRef.current = 'touching';
@@ -77,11 +113,16 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
       const clampedColumn = Math.max(0, Math.min(FIELD_COLS - 1, column));
       initialColumnRef.current = clampedColumn;
 
+      // 視覚的フィードバック
+      setActiveColumn(clampedColumn);
+      setSwipeDirection(null);
+      triggerRipple(locationX, locationY);
+
       dispatch({ type: 'SET_COLUMN', column: clampedColumn });
       // 初期状態は上向き
       dispatch({ type: 'SET_ROTATION', rotation: 0 });
     },
-    [dispatch, cellSize, phase]
+    [dispatch, cellSize, phase, triggerRipple]
   );
 
   const handleTouchMove = useCallback(
@@ -102,6 +143,7 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
           controlStateRef.current = 'cancelPending';
           // 上向きに戻す
           dispatch({ type: 'SET_ROTATION', rotation: 0 });
+          setSwipeDirection(null);
         }
         return;
       }
@@ -111,13 +153,19 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
       if (rotation !== null) {
         controlStateRef.current = 'swiped';
         dispatch({ type: 'SET_ROTATION', rotation });
+        // 視覚的フィードバック：スワイプ方向を更新
+        setSwipeDirection(getSwipeDirectionFromDelta(dx, dy));
       }
     },
-    [dispatch, getRotationFromSwipe, phase]
+    [dispatch, getRotationFromSwipe, getSwipeDirectionFromDelta, phase]
   );
 
   const handleTouchEnd = useCallback(
     (_evt: GestureResponderEvent, _gestureState: PanResponderGestureState) => {
+      // 視覚的フィードバックをリセット
+      setActiveColumn(null);
+      setSwipeDirection(null);
+
       if (phase !== 'falling') {
         controlStateRef.current = 'idle';
         return;
@@ -174,10 +222,56 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
                   width: cellSize,
                   borderRightWidth: i < FIELD_COLS - 1 ? 1 : 0,
                 },
+                // アクティブな列をハイライト
+                activeColumn === i && styles.activeColumn,
               ]}
             />
           ))}
         </View>
+
+        {/* 回転ガイド矢印 */}
+        <View style={styles.swipeGuideContainer} pointerEvents="none">
+          <View style={[styles.swipeArrow, styles.swipeArrowUp, swipeDirection === 'down' && styles.swipeArrowActive]}>
+            <View style={styles.arrowUp} />
+          </View>
+          <View style={styles.swipeArrowRow}>
+            <View style={[styles.swipeArrow, styles.swipeArrowLeft, swipeDirection === 'left' && styles.swipeArrowActive]}>
+              <View style={styles.arrowLeft} />
+            </View>
+            <View style={styles.centerDot} />
+            <View style={[styles.swipeArrow, styles.swipeArrowRight, swipeDirection === 'right' && styles.swipeArrowActive]}>
+              <View style={styles.arrowRight} />
+            </View>
+          </View>
+          <View style={[styles.swipeArrow, styles.swipeArrowDown, swipeDirection === 'up' && styles.swipeArrowActive]}>
+            <View style={styles.arrowDown} />
+          </View>
+        </View>
+
+        {/* タッチリップル効果 */}
+        {ripplePosition && (
+          <Animated.View
+            style={[
+              styles.ripple,
+              {
+                left: ripplePosition.x - 30,
+                top: ripplePosition.y - 30,
+                opacity: rippleAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.5, 0],
+                }),
+                transform: [
+                  {
+                    scale: rippleAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.5, 2],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          />
+        )}
       </View>
     </View>
   );
@@ -199,9 +293,108 @@ const styles = StyleSheet.create({
   columnsContainer: {
     flex: 1,
     flexDirection: 'row',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   column: {
     height: '100%',
     borderRightColor: '#2a2a4a',
+  },
+  activeColumn: {
+    backgroundColor: 'rgba(100, 150, 255, 0.3)',
+  },
+  // 回転ガイド
+  swipeGuideContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  swipeArrowRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  swipeArrow: {
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    opacity: 0.3,
+  },
+  swipeArrowActive: {
+    opacity: 1,
+  },
+  swipeArrowUp: {
+    marginBottom: 2,
+  },
+  swipeArrowDown: {
+    marginTop: 2,
+  },
+  swipeArrowLeft: {
+    marginRight: 4,
+  },
+  swipeArrowRight: {
+    marginLeft: 4,
+  },
+  // 矢印の三角形
+  arrowUp: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 8,
+    borderRightWidth: 8,
+    borderBottomWidth: 12,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderBottomColor: '#8888ff',
+  },
+  arrowDown: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 8,
+    borderRightWidth: 8,
+    borderTopWidth: 12,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: '#8888ff',
+  },
+  arrowLeft: {
+    width: 0,
+    height: 0,
+    borderTopWidth: 8,
+    borderBottomWidth: 8,
+    borderRightWidth: 12,
+    borderTopColor: 'transparent',
+    borderBottomColor: 'transparent',
+    borderRightColor: '#8888ff',
+  },
+  arrowRight: {
+    width: 0,
+    height: 0,
+    borderTopWidth: 8,
+    borderBottomWidth: 8,
+    borderLeftWidth: 12,
+    borderTopColor: 'transparent',
+    borderBottomColor: 'transparent',
+    borderLeftColor: '#8888ff',
+  },
+  centerDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(136, 136, 255, 0.5)',
+  },
+  // タッチリップル
+  ripple: {
+    position: 'absolute',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(100, 150, 255, 0.5)',
   },
 });
