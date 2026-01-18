@@ -7,6 +7,7 @@ import {
   PuyoColor,
   GameSnapshot,
   RngState,
+  Position,
 } from '../logic/types';
 import { cloneField } from '../logic/field';
 import {
@@ -26,6 +27,7 @@ import {
   isLanded,
   setColumn,
   setRotation,
+  getSatellitePosition,
 } from '../logic/puyo';
 import { PuyoRng, generateSeed } from '../logic/random';
 import { GameAction } from './actions';
@@ -89,7 +91,12 @@ function detectErasingPuyos(
 }
 
 // スナップショットを作成するヘルパー関数
-function createSnapshot(state: GameState, id: number, rngState: RngState): GameSnapshot {
+function createSnapshot(
+  state: GameState,
+  id: number,
+  rngState: RngState,
+  droppedPositions: Position[]
+): GameSnapshot {
   return {
     id,
     field: cloneField(state.field),
@@ -97,6 +104,7 @@ function createSnapshot(state: GameState, id: number, rngState: RngState): GameS
     score: state.score,
     chainCount: state.chainCount,
     rngState: [...rngState] as RngState,
+    droppedPositions,
   };
 }
 
@@ -129,9 +137,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     switch (action.type) {
       case 'START_GAME': {
         if (state.phase === 'ready') {
-          // ゲーム開始前のスナップショットを保存
+          // ゲーム開始前のスナップショットを保存（初期状態なので落下位置は空）
           const rngState = rng.getState();
-          const initialSnapshot = createSnapshot(state, state.nextSnapshotId, rngState);
+          const initialSnapshot = createSnapshot(state, state.nextSnapshotId, rngState, []);
 
           const newPair = rng.nextPuyoPair();
           const newState = startGame(state, newPair);
@@ -208,11 +216,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
       case 'HARD_DROP': {
         if (state.phase === 'falling' && state.fallingPuyo) {
-          // HARD_DROP前のスナップショットを保存（乱数状態を保存）
-          const rngStateBeforeDrop = rng.getState();
-          const snapshot = createSnapshot(state, state.nextSnapshotId, rngStateBeforeDrop);
-
           const droppedPuyo = hardDropPuyo(state.field, state.fallingPuyo);
+
+          // 落下位置を記録
+          const pivotPos = droppedPuyo.pivot.pos;
+          const satellitePos = getSatellitePosition(droppedPuyo);
+          const droppedPositions: Position[] = [
+            { x: pivotPos.x, y: pivotPos.y },
+            { x: satellitePos.x, y: satellitePos.y },
+          ];
+
+          // HARD_DROP前のスナップショットを保存（乱数状態と落下位置を保存）
+          const rngStateBeforeDrop = rng.getState();
+          const snapshot = createSnapshot(state, state.nextSnapshotId, rngStateBeforeDrop, droppedPositions);
+
           const stateWithDroppedPuyo = updateFallingPuyo(state, droppedPuyo);
           const lockedState = lockFallingPuyo(stateWithDroppedPuyo);
 

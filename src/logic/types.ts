@@ -86,4 +86,6 @@ export type GameSnapshot = {
   chainCount: number;
   // 乱数系列を再現するための状態
   rngState: RngState;
+  // 落下させたぷよの位置（連鎖で消えた場合も含む）
+  droppedPositions: Position[];
 };

@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import {
-  Field as FieldType,
   GameSnapshot,
   FIELD_COLS,
   VISIBLE_ROWS,
@@ -30,6 +29,13 @@ export const HistoryThumbnail: React.FC<HistoryThumbnailProps> = ({
 }) => {
   const fieldWidth = FIELD_COLS * cellSize;
   const fieldHeight = VISIBLE_ROWS * cellSize;
+
+  // 落下位置かどうかを判定
+  const isDroppedPosition = (x: number, y: number): boolean => {
+    return snapshot.droppedPositions.some(
+      (pos) => pos.x === x && pos.y === y
+    );
+  };
 
   return (
     <TouchableOpacity
@@ -71,6 +77,8 @@ export const HistoryThumbnail: React.FC<HistoryThumbnailProps> = ({
           row.map((color, x) => {
             if (color === null) return null;
             const displayY = y - HIDDEN_ROWS;
+            const isDropped = isDroppedPosition(x, y);
+
             return (
               <View
                 key={`${x}-${y}`}
@@ -90,7 +98,9 @@ export const HistoryThumbnail: React.FC<HistoryThumbnailProps> = ({
                     {
                       width: cellSize - 1,
                       height: cellSize - 1,
-                      backgroundColor: COLOR_MAP[color],
+                      backgroundColor: isDropped ? 'transparent' : COLOR_MAP[color],
+                      borderWidth: isDropped ? 1 : 0,
+                      borderColor: isDropped ? COLOR_MAP[color] : undefined,
                     },
                   ]}
                 />
