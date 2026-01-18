@@ -56,8 +56,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle }) => {
 
   return (
     <View style={styles.container}>
-      {/* 上部スペーサー（ノッチ対策 + 2マス分のマージン） */}
-      <View style={[styles.topSpacer, { height: 50 + cellSize * 2 }]} />
+      {/* 上部スペーサー（ノッチ対策 + 1マス分のマージン） */}
+      <View style={[styles.topSpacer, { height: 50 + cellSize }]} />
 
       {/* メインゲームエリア */}
       <ControlArea cellSize={cellSize} rightMargin={rightMargin}>
