@@ -38,15 +38,16 @@ export const HistoryThumbnail: React.FC<HistoryThumbnailProps> = ({
       activeOpacity={0.7}
     >
       {/* ミニフィールド */}
-      <View
-        style={[
-          styles.field,
-          {
-            width: fieldWidth,
-            height: fieldHeight,
-          },
-        ]}
-      >
+      <View style={styles.fieldBorder}>
+        <View
+          style={[
+            styles.field,
+            {
+              width: fieldWidth,
+              height: fieldHeight,
+            },
+          ]}
+        >
         {/* グリッド背景 */}
         {Array.from({ length: VISIBLE_ROWS }).map((_, y) => (
           <View key={y} style={styles.row}>
@@ -97,6 +98,7 @@ export const HistoryThumbnail: React.FC<HistoryThumbnailProps> = ({
             );
           })
         )}
+        </View>
       </View>
 
       {/* NEXTぷよ表示 */}
@@ -132,6 +134,10 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     borderWidth: 1,
     borderColor: '#3a3a5a',
+  },
+  fieldBorder: {
+    borderWidth: 1,
+    borderColor: '#4a4a6a',
   },
   field: {
     backgroundColor: '#1a1a2e',
