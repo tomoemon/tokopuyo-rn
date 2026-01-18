@@ -19,77 +19,25 @@ export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize, eras
   const fieldWidth = FIELD_COLS * cellSize + BORDER_WIDTH * 2;
   const fieldHeight = VISIBLE_ROWS * cellSize + BORDER_WIDTH * 2;
 
-  // 操作中のぷよの位置
-  const fallingPositions: { x: number; y: number; color: string }[] = [];
   // ゴースト（落下予定位置）の位置
   const ghostPositions: { x: number; y: number; color: string }[] = [];
-  // 落下中ぷよの表示オフセット（上部にいるときは下にずらして表示）
-  let fallingDisplayOffset = 0;
 
   if (fallingPuyo) {
-    const satellitePos = getSatellitePosition(fallingPuyo);
-    const pivotX = fallingPuyo.pivot.pos.x;
-    const satelliteX = satellitePos.x;
-
-    // 軸ぷよの表示位置を最低でもdisplayY=2にするためのオフセットを計算
-    // y=1のとき displayY=0 → オフセット+2で displayY=2
-    // y=3のとき displayY=2 → オフセット0
-    const pivotDisplayY = fallingPuyo.pivot.pos.y - HIDDEN_ROWS;
-    let offset = Math.max(2 - pivotDisplayY, 0);
-
-    // オフセットを調整して、フィールドのぷよと重ならないようにする
-    while (offset > 0) {
-      const pivotDisplayYWithOffset = pivotDisplayY + offset;
-      const satelliteDisplayYWithOffset = (satellitePos.y - HIDDEN_ROWS) + offset;
-
-      // 表示位置に対応するフィールドのロジック位置
-      const pivotFieldY = pivotDisplayYWithOffset + HIDDEN_ROWS;
-      const satelliteFieldY = satelliteDisplayYWithOffset + HIDDEN_ROWS;
-
-      // その位置にフィールドのぷよがあるかチェック
-      const pivotOverlaps = pivotFieldY >= 0 && pivotFieldY < field.length &&
-                            field[pivotFieldY][pivotX] !== null;
-      const satelliteOverlaps = satelliteFieldY >= 0 && satelliteFieldY < field.length &&
-                                field[satelliteFieldY][satelliteX] !== null;
-
-      if (pivotOverlaps || satelliteOverlaps) {
-        offset--;
-      } else {
-        break;
-      }
-    }
-
-    fallingDisplayOffset = offset;
-
-    fallingPositions.push({
-      x: fallingPuyo.pivot.pos.x,
-      y: fallingPuyo.pivot.pos.y,
-      color: fallingPuyo.pivot.color,
-    });
-    fallingPositions.push({
-      x: satellitePos.x,
-      y: satellitePos.y,
-      color: fallingPuyo.satellite.color,
-    });
-
     // ゴースト位置を計算（ハードドロップ後の位置）
     const droppedPuyo = hardDropPuyo(field, fallingPuyo);
     const ghostPivotPos = droppedPuyo.pivot.pos;
     const ghostSatellitePos = getSatellitePosition(droppedPuyo);
 
-    // 現在位置と異なる場合のみゴーストを表示
-    if (ghostPivotPos.y !== fallingPuyo.pivot.pos.y) {
-      ghostPositions.push({
-        x: ghostPivotPos.x,
-        y: ghostPivotPos.y,
-        color: droppedPuyo.pivot.color,
-      });
-      ghostPositions.push({
-        x: ghostSatellitePos.x,
-        y: ghostSatellitePos.y,
-        color: droppedPuyo.satellite.color,
-      });
-    }
+    ghostPositions.push({
+      x: ghostPivotPos.x,
+      y: ghostPivotPos.y,
+      color: droppedPuyo.pivot.color,
+    });
+    ghostPositions.push({
+      x: ghostSatellitePos.x,
+      y: ghostSatellitePos.y,
+      color: droppedPuyo.satellite.color,
+    });
   }
 
   return (
@@ -145,9 +93,8 @@ export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize, eras
         })
       )}
 
-      {/* ゴースト（落下予定位置、隠し行は表示しない） */}
+      {/* ゴースト（落下予定位置） */}
       {ghostPositions.map((pos, index) => {
-        if (pos.y < HIDDEN_ROWS) return null;
         const displayY = pos.y - HIDDEN_ROWS;
         return (
           <View
@@ -167,27 +114,6 @@ export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize, eras
         );
       })}
 
-      {/* 操作中のぷよ（表示オフセット適用） */}
-      {fallingPositions.map((pos, index) => {
-        // 表示位置 = ロジック位置 - 隠し行 + オフセット
-        const displayY = pos.y - HIDDEN_ROWS + fallingDisplayOffset;
-        return (
-          <View
-            key={`falling-${index}`}
-            style={[
-              styles.puyoContainer,
-              {
-                left: pos.x * cellSize,
-                top: displayY * cellSize,
-                width: cellSize,
-                height: cellSize,
-              },
-            ]}
-          >
-            <Puyo color={pos.color as any} size={cellSize - 4} />
-          </View>
-        );
-      })}
 
       {/* 消えるエフェクト（隠し行は表示しない） */}
       {erasingPuyos.map((puyo, index) => {
