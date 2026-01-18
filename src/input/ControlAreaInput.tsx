@@ -27,9 +27,6 @@ interface ControlAreaProps {
 
 export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin, children }) => {
   const dispatch = useGameStore((state) => state.dispatch);
-  const phase = useGameStore((state) => state.phase);
-  const field = useGameStore((state) => state.field);
-  const fallingPuyo = useGameStore((state) => state.fallingPuyo);
 
   const controlStateRef = useRef<ControlState>('idle');
   const startPosRef = useRef({ x: 0, y: 0 });
@@ -103,7 +100,13 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
 
   const handleTouchStart = useCallback(
     (evt: GestureResponderEvent, _gestureState: PanResponderGestureState) => {
-      if (phase !== 'falling' || !fallingPuyo) return;
+      // 最新の状態をストアから直接取得（panResponderのクロージャ問題を回避）
+      const currentState = useGameStore.getState();
+      const currentPhase = currentState.phase;
+      const currentField = currentState.field;
+      const currentFallingPuyo = currentState.fallingPuyo;
+
+      if (currentPhase !== 'falling' || !currentFallingPuyo) return;
 
       const { locationX, locationY, pageX } = evt.nativeEvent;
       startPosRef.current = { x: pageX, y: evt.nativeEvent.pageY };
@@ -118,8 +121,8 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
       initialColumnRef.current = clampedColumn;
 
       // その列に配置可能かチェック（回転0で試す）
-      const testPuyo = { ...fallingPuyo, rotation: 0 as Rotation };
-      const canPlaceInColumn = setColumn(field, testPuyo, clampedColumn) !== null;
+      const testPuyo = { ...currentFallingPuyo, rotation: 0 as Rotation };
+      const canPlaceInColumn = setColumn(currentField, testPuyo, clampedColumn) !== null;
 
       if (!canPlaceInColumn) {
         // 配置不可：長いhaptic feedbackでフィードバック
@@ -147,12 +150,13 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
       // 初期状態は上向き
       dispatch({ type: 'SET_ROTATION', rotation: 0 });
     },
-    [dispatch, cellSize, phase, fallingPuyo, field, triggerRipple]
+    [dispatch, cellSize, triggerRipple]
   );
 
   const handleTouchMove = useCallback(
     (_evt: GestureResponderEvent, gestureState: PanResponderGestureState) => {
-      if (phase !== 'falling') return;
+      const currentPhase = useGameStore.getState().phase;
+      if (currentPhase !== 'falling') return;
       if (controlStateRef.current === 'idle' || controlStateRef.current === 'blocked') return;
 
       const { dx, dy } = gestureState;
@@ -189,7 +193,7 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
         }
       }
     },
-    [dispatch, getRotationFromSwipe, getSwipeDirectionFromDelta, phase]
+    [dispatch, getRotationFromSwipe, getSwipeDirectionFromDelta]
   );
 
   const handleTouchEnd = useCallback(
@@ -199,7 +203,8 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
       setBlockedColumn(null);
       setSwipeDirection(null);
 
-      if (phase !== 'falling') {
+      const currentPhase = useGameStore.getState().phase;
+      if (currentPhase !== 'falling') {
         controlStateRef.current = 'idle';
         return;
       }
@@ -220,7 +225,7 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
       controlStateRef.current = 'idle';
       initialColumnRef.current = null;
     },
-    [dispatch, phase]
+    [dispatch]
   );
 
   const panResponder = useRef(
