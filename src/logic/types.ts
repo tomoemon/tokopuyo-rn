@@ -3,8 +3,9 @@ export type PuyoColor = 'red' | 'blue' | 'green' | 'yellow';
 
 // フィールド定数
 export const FIELD_COLS = 6;
-export const FIELD_ROWS = 12;
-export const HIDDEN_ROWS = 1; // 見えない行（最上部）
+export const FIELD_ROWS = 13; // 隠し行を含む総行数
+export const VISIBLE_ROWS = 12; // 画面に表示される行数
+export const HIDDEN_ROWS = 1; // 見えない行（最上部、y=0）
 export const CONNECT_COUNT = 4; // 消えるのに必要な連結数
 
 // 使用する色

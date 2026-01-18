@@ -119,11 +119,12 @@ export function removePuyos(field: Field, positions: Position[]): Field {
 }
 
 /**
- * ゲームオーバー判定（3列目の最上段にぷよがあるか）
+ * ゲームオーバー判定（表示行の最上段、3列目または4列目にぷよがあるか）
+ * y=1は表示行の最上段（y=0は隠し行）
  */
 export function isGameOver(field: Field): boolean {
-  // 3列目（インデックス2）の最上段（インデックス0）をチェック
-  return field[0][2] !== null;
+  // 3列目（インデックス2）または4列目（インデックス3）の表示最上段（インデックス1）をチェック
+  return field[1][2] !== null || field[1][3] !== null;
 }
 
 /**

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Field as FieldType, FallingPuyo, ErasingPuyo, FIELD_COLS, FIELD_ROWS } from '../../logic/types';
+import { Field as FieldType, FallingPuyo, ErasingPuyo, FIELD_COLS, VISIBLE_ROWS, HIDDEN_ROWS } from '../../logic/types';
 import { getSatellitePosition, hardDropPuyo } from '../../logic/puyo';
 import { Puyo } from './Puyo';
 import { DisappearEffect } from './DisappearEffect';
@@ -17,7 +17,7 @@ const BORDER_WIDTH = 3;
 
 export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize, erasingPuyos = [], onEffectComplete }) => {
   const fieldWidth = FIELD_COLS * cellSize + BORDER_WIDTH * 2;
-  const fieldHeight = FIELD_ROWS * cellSize + BORDER_WIDTH * 2;
+  const fieldHeight = VISIBLE_ROWS * cellSize + BORDER_WIDTH * 2;
 
   // 操作中のぷよの位置
   const fallingPositions: { x: number; y: number; color: string }[] = [];
@@ -67,8 +67,8 @@ export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize, eras
         },
       ]}
     >
-      {/* グリッド背景 */}
-      {Array.from({ length: FIELD_ROWS }).map((_, y) => (
+      {/* グリッド背景（表示行のみ） */}
+      {Array.from({ length: VISIBLE_ROWS }).map((_, y) => (
         <View key={y} style={styles.row}>
           {Array.from({ length: FIELD_COLS }).map((_, x) => (
             <View
@@ -80,15 +80,25 @@ export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize, eras
                   height: cellSize,
                 },
               ]}
-            />
+            >
+              {/* ゲームオーバーゾーンのバツ印（表示行最上段の3列目と4列目） */}
+              {y === 0 && (x === 2 || x === 3) && (
+                <View style={styles.gameOverMark}>
+                  <View style={[styles.xLine, styles.xLine1, { width: cellSize * 0.6 }]} />
+                  <View style={[styles.xLine, styles.xLine2, { width: cellSize * 0.6 }]} />
+                </View>
+              )}
+            </View>
           ))}
         </View>
       ))}
 
-      {/* フィールド上のぷよ */}
+      {/* フィールド上のぷよ（隠し行は表示しない） */}
       {field.map((row, y) =>
         row.map((color, x) => {
-          if (color === null) return null;
+          // 隠し行（y < HIDDEN_ROWS）は表示しない
+          if (color === null || y < HIDDEN_ROWS) return null;
+          const displayY = y - HIDDEN_ROWS;
           return (
             <View
               key={`${x}-${y}`}
@@ -96,7 +106,7 @@ export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize, eras
                 styles.puyoContainer,
                 {
                   left: x * cellSize,
-                  top: y * cellSize,
+                  top: displayY * cellSize,
                   width: cellSize,
                   height: cellSize,
                 },
@@ -108,53 +118,64 @@ export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize, eras
         })
       )}
 
-      {/* ゴースト（落下予定位置） */}
-      {ghostPositions.map((pos, index) => (
-        <View
-          key={`ghost-${index}`}
-          style={[
-            styles.puyoContainer,
-            {
-              left: pos.x * cellSize,
-              top: pos.y * cellSize,
-              width: cellSize,
-              height: cellSize,
-            },
-          ]}
-        >
-          <Puyo color={pos.color as any} size={cellSize - 4} isGhost />
-        </View>
-      ))}
+      {/* ゴースト（落下予定位置、隠し行は表示しない） */}
+      {ghostPositions.map((pos, index) => {
+        if (pos.y < HIDDEN_ROWS) return null;
+        const displayY = pos.y - HIDDEN_ROWS;
+        return (
+          <View
+            key={`ghost-${index}`}
+            style={[
+              styles.puyoContainer,
+              {
+                left: pos.x * cellSize,
+                top: displayY * cellSize,
+                width: cellSize,
+                height: cellSize,
+              },
+            ]}
+          >
+            <Puyo color={pos.color as any} size={cellSize - 4} isGhost />
+          </View>
+        );
+      })}
 
-      {/* 操作中のぷよ */}
-      {fallingPositions.map((pos, index) => (
-        <View
-          key={`falling-${index}`}
-          style={[
-            styles.puyoContainer,
-            {
-              left: pos.x * cellSize,
-              top: pos.y * cellSize,
-              width: cellSize,
-              height: cellSize,
-            },
-          ]}
-        >
-          <Puyo color={pos.color as any} size={cellSize - 4} />
-        </View>
-      ))}
+      {/* 操作中のぷよ（隠し行は表示しない） */}
+      {fallingPositions.map((pos, index) => {
+        if (pos.y < HIDDEN_ROWS) return null;
+        const displayY = pos.y - HIDDEN_ROWS;
+        return (
+          <View
+            key={`falling-${index}`}
+            style={[
+              styles.puyoContainer,
+              {
+                left: pos.x * cellSize,
+                top: displayY * cellSize,
+                width: cellSize,
+                height: cellSize,
+              },
+            ]}
+          >
+            <Puyo color={pos.color as any} size={cellSize - 4} />
+          </View>
+        );
+      })}
 
-      {/* 消えるエフェクト */}
-      {erasingPuyos.map((puyo, index) => (
-        <DisappearEffect
-          key={`effect-${puyo.pos.x}-${puyo.pos.y}-${index}`}
-          color={puyo.color}
-          x={puyo.pos.x}
-          y={puyo.pos.y}
-          cellSize={cellSize}
-          onComplete={index === 0 ? onEffectComplete : undefined}
-        />
-      ))}
+      {/* 消えるエフェクト（隠し行は表示しない） */}
+      {erasingPuyos.map((puyo, index) => {
+        if (puyo.pos.y < HIDDEN_ROWS) return null;
+        return (
+          <DisappearEffect
+            key={`effect-${puyo.pos.x}-${puyo.pos.y}-${index}`}
+            color={puyo.color}
+            x={puyo.pos.x}
+            y={puyo.pos.y - HIDDEN_ROWS}
+            cellSize={cellSize}
+            onComplete={index === 0 ? onEffectComplete : undefined}
+          />
+        );
+      })}
     </View>
   );
 };
@@ -172,10 +193,31 @@ const styles = StyleSheet.create({
   cell: {
     borderWidth: 0.5,
     borderColor: '#2a2a4a',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   puyoContainer: {
     position: 'absolute',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  gameOverMark: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  xLine: {
+    position: 'absolute',
+    height: 2,
+    backgroundColor: 'rgba(255, 100, 100, 0.4)',
+    borderRadius: 1,
+  },
+  xLine1: {
+    transform: [{ rotate: '45deg' }],
+  },
+  xLine2: {
+    transform: [{ rotate: '-45deg' }],
   },
 });
