@@ -216,6 +216,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
       case 'HARD_DROP': {
         if (state.phase === 'falling' && state.fallingPuyo) {
+          // 乱数状態を先に保存（復元用）
+          const rngStateBeforeDrop = rng.getState();
+
           const droppedPuyo = hardDropPuyo(state.field, state.fallingPuyo);
 
           // 落下位置を記録
@@ -226,12 +229,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
             { x: satellitePos.x, y: satellitePos.y },
           ];
 
-          // HARD_DROP前のスナップショットを保存（乱数状態と落下位置を保存）
-          const rngStateBeforeDrop = rng.getState();
-          const snapshot = createSnapshot(state, state.nextSnapshotId, rngStateBeforeDrop, droppedPositions);
-
           const stateWithDroppedPuyo = updateFallingPuyo(state, droppedPuyo);
           const lockedState = lockFallingPuyo(stateWithDroppedPuyo);
+
+          // 落下後のフィールドでスナップショットを作成（落下位置を含む）
+          const snapshot = createSnapshot(lockedState, state.nextSnapshotId, rngStateBeforeDrop, droppedPositions);
 
           // 新しいぷよペアを生成
           const newPair = rng.nextPuyoPair();
