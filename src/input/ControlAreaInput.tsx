@@ -176,11 +176,8 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
           // 上向きに戻す
           dispatch({ type: 'SET_ROTATION', rotation: 0 });
           setSwipeDirection(null);
-          // 触覚フィードバック（キャンセル：「トントン」と2回）
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          setTimeout(() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          }, 150);
+          // 触覚フィードバック（キャンセル：Warning通知パターン）
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
         }
         return;
       }
