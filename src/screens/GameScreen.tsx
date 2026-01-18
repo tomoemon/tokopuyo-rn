@@ -122,7 +122,11 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle, onOpenCon
         )}
 
         {/* 履歴エリア */}
-        <View style={[styles.historyContainer, { width: historyWidth }]}>
+        <View style={[
+          styles.historyContainer,
+          { width: historyWidth },
+          isRightHanded ? { marginLeft: 8 } : { marginRight: 8 }
+        ]}>
           <OperationHistory
             history={history}
             cellSize={historyCellSize}
@@ -190,6 +194,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0a0a1a',
+    paddingBottom: 16,
   },
   topSpacer: {
     // height is set dynamically based on cellSize
@@ -211,7 +216,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'baseline',
-    marginTop: 8,
+    marginTop: 4,
     paddingHorizontal: 4,
   },
   score: {
