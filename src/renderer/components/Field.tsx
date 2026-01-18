@@ -27,18 +27,45 @@ export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize, eras
   let fallingDisplayOffset = 0;
 
   if (fallingPuyo) {
+    const satellitePos = getSatellitePosition(fallingPuyo);
+    const pivotX = fallingPuyo.pivot.pos.x;
+    const satelliteX = satellitePos.x;
+
     // 軸ぷよの表示位置を最低でもdisplayY=2にするためのオフセットを計算
     // y=1のとき displayY=0 → オフセット+2で displayY=2
     // y=3のとき displayY=2 → オフセット0
     const pivotDisplayY = fallingPuyo.pivot.pos.y - HIDDEN_ROWS;
-    fallingDisplayOffset = Math.max(2 - pivotDisplayY, 0);
+    let offset = Math.max(2 - pivotDisplayY, 0);
+
+    // オフセットを調整して、フィールドのぷよと重ならないようにする
+    while (offset > 0) {
+      const pivotDisplayYWithOffset = pivotDisplayY + offset;
+      const satelliteDisplayYWithOffset = (satellitePos.y - HIDDEN_ROWS) + offset;
+
+      // 表示位置に対応するフィールドのロジック位置
+      const pivotFieldY = pivotDisplayYWithOffset + HIDDEN_ROWS;
+      const satelliteFieldY = satelliteDisplayYWithOffset + HIDDEN_ROWS;
+
+      // その位置にフィールドのぷよがあるかチェック
+      const pivotOverlaps = pivotFieldY >= 0 && pivotFieldY < field.length &&
+                            field[pivotFieldY][pivotX] !== null;
+      const satelliteOverlaps = satelliteFieldY >= 0 && satelliteFieldY < field.length &&
+                                field[satelliteFieldY][satelliteX] !== null;
+
+      if (pivotOverlaps || satelliteOverlaps) {
+        offset--;
+      } else {
+        break;
+      }
+    }
+
+    fallingDisplayOffset = offset;
 
     fallingPositions.push({
       x: fallingPuyo.pivot.pos.x,
       y: fallingPuyo.pivot.pos.y,
       color: fallingPuyo.pivot.color,
     });
-    const satellitePos = getSatellitePosition(fallingPuyo);
     fallingPositions.push({
       x: satellitePos.x,
       y: satellitePos.y,
