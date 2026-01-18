@@ -54,13 +54,12 @@ export const OperationHistory: React.FC<OperationHistoryProps> = ({
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={true}
       >
-        {reversedHistory.map((snapshot, index) => (
+        {reversedHistory.map((snapshot) => (
           <HistoryThumbnail
             key={snapshot.id}
             snapshot={snapshot}
             cellSize={cellSize}
             onPress={() => handleThumbnailPress(snapshot.id)}
-            isLatest={index === reversedHistory.length - 1}
           />
         ))}
       </ScrollView>
