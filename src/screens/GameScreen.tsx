@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'baseline',
-    marginTop: 4,
+    marginTop: 0,
     paddingHorizontal: 4,
   },
   score: {
