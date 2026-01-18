@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   View,
   PanResponder,
@@ -228,16 +228,18 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
     [dispatch]
   );
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: handleTouchStart,
-      onPanResponderMove: handleTouchMove,
-      onPanResponderRelease: handleTouchEnd,
-      onPanResponderTerminate: handleTouchEnd,
-    })
-  ).current;
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onPanResponderGrant: handleTouchStart,
+        onPanResponderMove: handleTouchMove,
+        onPanResponderRelease: handleTouchEnd,
+        onPanResponderTerminate: handleTouchEnd,
+      }),
+    [handleTouchStart, handleTouchMove, handleTouchEnd]
+  );
 
   return (
     <View style={[styles.container, { paddingRight: rightMargin }]}>
