@@ -10,13 +10,14 @@ import {
 import * as Haptics from 'expo-haptics';
 import { useGameStore } from '../store';
 import { Rotation, FIELD_COLS } from '../logic/types';
+import { setColumn } from '../logic/puyo';
 
 // スワイプ検出の閾値
 const SWIPE_THRESHOLD = 20;
 // キャンセル判定の閾値（元の位置からの距離）
 const CANCEL_THRESHOLD = 15;
 
-type ControlState = 'idle' | 'touching' | 'swiped' | 'cancelPending';
+type ControlState = 'idle' | 'touching' | 'swiped' | 'cancelPending' | 'blocked';
 
 interface ControlAreaProps {
   cellSize: number;
@@ -27,6 +28,8 @@ interface ControlAreaProps {
 export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin, children }) => {
   const dispatch = useGameStore((state) => state.dispatch);
   const phase = useGameStore((state) => state.phase);
+  const field = useGameStore((state) => state.field);
+  const fallingPuyo = useGameStore((state) => state.fallingPuyo);
 
   const controlStateRef = useRef<ControlState>('idle');
   const startPosRef = useRef({ x: 0, y: 0 });
@@ -35,6 +38,7 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
 
   // 視覚的フィードバック用の状態
   const [activeColumn, setActiveColumn] = useState<number | null>(null);
+  const [blockedColumn, setBlockedColumn] = useState<number | null>(null);
   const [swipeDirection, setSwipeDirection] = useState<'up' | 'down' | 'left' | 'right' | null>(null);
   const rippleAnim = useRef(new Animated.Value(0)).current;
   const [ripplePosition, setRipplePosition] = useState<{ x: number; y: number } | null>(null);
@@ -99,12 +103,11 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
 
   const handleTouchStart = useCallback(
     (evt: GestureResponderEvent, _gestureState: PanResponderGestureState) => {
-      if (phase !== 'falling') return;
+      if (phase !== 'falling' || !fallingPuyo) return;
 
       const { locationX, locationY, pageX } = evt.nativeEvent;
       startPosRef.current = { x: pageX, y: evt.nativeEvent.pageY };
       currentSwipeRef.current = { dx: 0, dy: 0 };
-      controlStateRef.current = 'touching';
 
       // タッチした列を計算して設定
       // locationXは操作エリア内の相対位置（ボーダー幅を考慮）
@@ -114,8 +117,26 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
       const clampedColumn = Math.max(0, Math.min(FIELD_COLS - 1, column));
       initialColumnRef.current = clampedColumn;
 
+      // その列に配置可能かチェック（回転0で試す）
+      const testPuyo = { ...fallingPuyo, rotation: 0 as Rotation };
+      const canPlaceInColumn = setColumn(field, testPuyo, clampedColumn) !== null;
+
+      if (!canPlaceInColumn) {
+        // 配置不可：長いhaptic feedbackでフィードバック
+        controlStateRef.current = 'blocked';
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        // 視覚的フィードバック（エラー表示：赤くハイライト）
+        setActiveColumn(null);
+        setBlockedColumn(clampedColumn);
+        setSwipeDirection(null);
+        return;
+      }
+
+      controlStateRef.current = 'touching';
+
       // 視覚的フィードバック
       setActiveColumn(clampedColumn);
+      setBlockedColumn(null);
       setSwipeDirection(null);
       triggerRipple(locationX, locationY);
 
@@ -126,13 +147,13 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
       // 初期状態は上向き
       dispatch({ type: 'SET_ROTATION', rotation: 0 });
     },
-    [dispatch, cellSize, phase, triggerRipple]
+    [dispatch, cellSize, phase, fallingPuyo, field, triggerRipple]
   );
 
   const handleTouchMove = useCallback(
     (_evt: GestureResponderEvent, gestureState: PanResponderGestureState) => {
       if (phase !== 'falling') return;
-      if (controlStateRef.current === 'idle') return;
+      if (controlStateRef.current === 'idle' || controlStateRef.current === 'blocked') return;
 
       const { dx, dy } = gestureState;
       currentSwipeRef.current = { dx, dy };
@@ -175,6 +196,7 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
     (_evt: GestureResponderEvent, _gestureState: PanResponderGestureState) => {
       // 視覚的フィードバックをリセット
       setActiveColumn(null);
+      setBlockedColumn(null);
       setSwipeDirection(null);
 
       if (phase !== 'falling') {
@@ -184,7 +206,10 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
 
       const state = controlStateRef.current;
 
-      if (state === 'cancelPending') {
+      if (state === 'blocked') {
+        // ブロックされた列：何もしない（キャンセル扱い）
+        // 状態をリセットするだけ
+      } else if (state === 'cancelPending') {
         // キャンセル：軸ぷよの位置はそのまま、サテライトだけ上に戻す
         dispatch({ type: 'SET_ROTATION', rotation: 0 });
       } else if (state === 'touching' || state === 'swiped') {
@@ -235,6 +260,8 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
                 },
                 // アクティブな列をハイライト
                 activeColumn === i && styles.activeColumn,
+                // ブロックされた列を赤くハイライト
+                blockedColumn === i && styles.blockedColumn,
               ]}
             />
           ))}
@@ -316,6 +343,9 @@ const styles = StyleSheet.create({
   },
   activeColumn: {
     backgroundColor: 'rgba(100, 150, 255, 0.3)',
+  },
+  blockedColumn: {
+    backgroundColor: 'rgba(255, 100, 100, 0.4)',
   },
   // 回転ガイド
   swipeGuideContainer: {
