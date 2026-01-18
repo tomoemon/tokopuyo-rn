@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0a0a1a',
-    paddingBottom: 16,
+    paddingBottom: 24,
   },
   topSpacer: {
     // height is set dynamically based on cellSize
