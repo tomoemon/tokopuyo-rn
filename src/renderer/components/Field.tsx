@@ -93,9 +93,8 @@ export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize, eras
         })
       )}
 
-      {/* ゴースト（落下予定位置、隠し行は表示しない） */}
+      {/* ゴースト（落下予定位置） */}
       {ghostPositions.map((pos, index) => {
-        if (pos.y < HIDDEN_ROWS) return null;
         const displayY = pos.y - HIDDEN_ROWS;
         return (
           <View
