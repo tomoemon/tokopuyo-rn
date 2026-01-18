@@ -189,6 +189,11 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
       // スワイプとして処理
       const rotation = getRotationFromSwipe(dx, dy);
       if (rotation !== null) {
+        const column = initialColumnRef.current;
+        // 1列目での左スワイプ、6列目での右スワイプは無効（壁を超える配置は不可）
+        if ((column === 0 && rotation === 3) || (column === FIELD_COLS - 1 && rotation === 1)) {
+          return;
+        }
         const wasNotSwiped = controlStateRef.current !== 'swiped';
         controlStateRef.current = 'swiped';
         dispatch({ type: 'SET_ROTATION', rotation });
