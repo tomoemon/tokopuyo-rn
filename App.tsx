@@ -1,9 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { TitleScreen, GameScreen } from './src/screens';
+import { TitleScreen, GameScreen, ConfigScreen } from './src/screens';
 import { useGameStore } from './src/store';
 
-type Screen = 'title' | 'game';
+type Screen = 'title' | 'game' | 'config';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('title');
@@ -18,13 +18,21 @@ export default function App() {
     setCurrentScreen('title');
   }, []);
 
+  const handleOpenConfig = useCallback(() => {
+    setCurrentScreen('config');
+  }, []);
+
   return (
     <>
       <StatusBar style="light" />
-      {currentScreen === 'title' ? (
-        <TitleScreen onStartGame={handleStartGame} />
-      ) : (
+      {currentScreen === 'title' && (
+        <TitleScreen onStartGame={handleStartGame} onOpenConfig={handleOpenConfig} />
+      )}
+      {currentScreen === 'game' && (
         <GameScreen onBackToTitle={handleBackToTitle} />
+      )}
+      {currentScreen === 'config' && (
+        <ConfigScreen onBack={handleBackToTitle} />
       )}
     </>
   );

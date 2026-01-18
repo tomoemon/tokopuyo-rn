@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { useGameStore } from '../store';
+import { useGameStore, useConfigStore } from '../store';
 import { ControlArea } from '../input';
 import { Field, NextDisplay, ScoreDisplay, OperationHistory } from '../renderer';
 import { FIELD_COLS, VISIBLE_ROWS } from '../logic/types';
@@ -23,14 +23,19 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle }) => {
   const clearErasingPuyos = useGameStore((state) => state.clearErasingPuyos);
   const history = useGameStore((state) => state.history);
   const restoreToSnapshot = useGameStore((state) => state.restoreToSnapshot);
+  const handedness = useConfigStore((state) => state.handedness);
 
   // 履歴エリアの幅
   const historyWidth = 80;
   // 履歴サムネイルのセルサイズ
   const historyCellSize = 6;
-  // セルサイズを画面サイズに基づいて計算（右利き用：右マージン大きめ）
-  const leftMargin = 4;
-  const rightMargin = 20;
+  // セルサイズを画面サイズに基づいて計算
+  // 右利き：右マージン大きめ、左利き：左マージン大きめ
+  const isRightHanded = handedness === 'right';
+  const smallMargin = 4;
+  const largeMargin = 20;
+  const leftMargin = isRightHanded ? smallMargin : largeMargin;
+  const rightMargin = isRightHanded ? largeMargin : smallMargin;
   // 履歴エリアを考慮してフィールドの最大幅を計算
   const maxFieldWidth = width - leftMargin - rightMargin - historyWidth;
   const maxFieldHeight = height * 0.6; // 操作エリア分の余裕を確保
@@ -71,8 +76,29 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle }) => {
       <View style={[styles.topSpacer, { height: 50 + cellSize }]} />
 
       {/* メインエリア（履歴 + ゲームフィールド） */}
-      <View style={styles.mainArea}>
-        {/* 左側：操作履歴 */}
+      <View style={[
+        styles.mainArea,
+        { paddingLeft: leftMargin, paddingRight: rightMargin }
+      ]}>
+        {/* 左利きモード：ゲームエリアが先 */}
+        {!isRightHanded && (
+          <ControlArea cellSize={cellSize} sideMargin={leftMargin} isRightHanded={false}>
+            <View style={styles.fieldContainer}>
+              <Field
+                field={field}
+                fallingPuyo={fallingPuyo}
+                cellSize={cellSize}
+                erasingPuyos={erasingPuyos}
+                onEffectComplete={clearErasingPuyos}
+              />
+              <View style={[styles.nextOverlay, styles.nextOverlayLeft]}>
+                <NextDisplay nextQueue={nextQueue} cellSize={cellSize * 0.6} />
+              </View>
+            </View>
+          </ControlArea>
+        )}
+
+        {/* 履歴エリア */}
         <View style={[styles.historyContainer, { width: historyWidth }]}>
           <OperationHistory
             history={history}
@@ -81,25 +107,23 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle }) => {
           />
         </View>
 
-        {/* 右側：ゲームエリア */}
-        <ControlArea cellSize={cellSize} rightMargin={rightMargin}>
-          {/* フィールドとNEXT表示のコンテナ */}
-          <View style={styles.fieldContainer}>
-            {/* フィールド */}
-            <Field
-              field={field}
-              fallingPuyo={fallingPuyo}
-              cellSize={cellSize}
-              erasingPuyos={erasingPuyos}
-              onEffectComplete={clearErasingPuyos}
-            />
-
-            {/* NEXT表示（フィールド右上にオーバーレイ） */}
-            <View style={styles.nextOverlay}>
-              <NextDisplay nextQueue={nextQueue} cellSize={cellSize * 0.6} />
+        {/* 右利きモード：ゲームエリアが後 */}
+        {isRightHanded && (
+          <ControlArea cellSize={cellSize} sideMargin={rightMargin} isRightHanded={true}>
+            <View style={styles.fieldContainer}>
+              <Field
+                field={field}
+                fallingPuyo={fallingPuyo}
+                cellSize={cellSize}
+                erasingPuyos={erasingPuyos}
+                onEffectComplete={clearErasingPuyos}
+              />
+              <View style={[styles.nextOverlay, styles.nextOverlayRight]}>
+                <NextDisplay nextQueue={nextQueue} cellSize={cellSize * 0.6} />
+              </View>
             </View>
-          </View>
-        </ControlArea>
+          </ControlArea>
+        )}
       </View>
 
       {/* フッター（スコアと連鎖数表示） */}
@@ -134,7 +158,6 @@ const styles = StyleSheet.create({
   mainArea: {
     flex: 1,
     flexDirection: 'row',
-    paddingLeft: 4,
   },
   historyContainer: {
     marginRight: 0,
@@ -149,10 +172,15 @@ const styles = StyleSheet.create({
   nextOverlay: {
     position: 'absolute',
     top: 8,
-    right: 8,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     borderRadius: 8,
     padding: 4,
+  },
+  nextOverlayRight: {
+    right: 8,
+  },
+  nextOverlayLeft: {
+    left: 8,
   },
   gameOverOverlay: {
     ...StyleSheet.absoluteFillObject,
