@@ -96,20 +96,22 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle, onOpenCon
         {/* 左利きモード：ゲームエリアが先 */}
         {!isRightHanded && (
           <View style={styles.gameAreaContainer}>
-            <ControlArea cellSize={cellSize} sideMargin={largeMargin} isRightHanded={false}>
-              <View style={styles.fieldContainer}>
-                <Field
-                  field={field}
-                  fallingPuyo={fallingPuyo}
-                  cellSize={cellSize}
-                  erasingPuyos={erasingPuyos}
-                  onEffectComplete={clearErasingPuyos}
-                />
-                <View style={[styles.nextOverlay, styles.nextOverlayRight]}>
-                  <NextDisplay nextQueue={nextQueue} cellSize={cellSize * 0.6} />
+            <View style={isGameOver ? styles.grayedOut : undefined} pointerEvents={isGameOver ? 'none' : 'auto'}>
+              <ControlArea cellSize={cellSize} sideMargin={largeMargin} isRightHanded={false}>
+                <View style={styles.fieldContainer}>
+                  <Field
+                    field={field}
+                    fallingPuyo={fallingPuyo}
+                    cellSize={cellSize}
+                    erasingPuyos={erasingPuyos}
+                    onEffectComplete={clearErasingPuyos}
+                  />
+                  <View style={[styles.nextOverlay, styles.nextOverlayRight]}>
+                    <NextDisplay nextQueue={nextQueue} cellSize={cellSize * 0.6} />
+                  </View>
                 </View>
-              </View>
-            </ControlArea>
+              </ControlArea>
+            </View>
 
             {/* スコアと連鎖数（操作エリアの直下） */}
             <View style={[styles.scoreRow, { width: controlAreaWidth, marginLeft: largeMargin }]}>
@@ -148,20 +150,22 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle, onOpenCon
         {/* 右利きモード：ゲームエリアが後 */}
         {isRightHanded && (
           <View style={styles.gameAreaContainer}>
-            <ControlArea cellSize={cellSize} sideMargin={largeMargin} isRightHanded={true}>
-              <View style={styles.fieldContainer}>
-                <Field
-                  field={field}
-                  fallingPuyo={fallingPuyo}
-                  cellSize={cellSize}
-                  erasingPuyos={erasingPuyos}
-                  onEffectComplete={clearErasingPuyos}
-                />
-                <View style={[styles.nextOverlay, styles.nextOverlayRight]}>
-                  <NextDisplay nextQueue={nextQueue} cellSize={cellSize * 0.6} />
+            <View style={isGameOver ? styles.grayedOut : undefined} pointerEvents={isGameOver ? 'none' : 'auto'}>
+              <ControlArea cellSize={cellSize} sideMargin={largeMargin} isRightHanded={true}>
+                <View style={styles.fieldContainer}>
+                  <Field
+                    field={field}
+                    fallingPuyo={fallingPuyo}
+                    cellSize={cellSize}
+                    erasingPuyos={erasingPuyos}
+                    onEffectComplete={clearErasingPuyos}
+                  />
+                  <View style={[styles.nextOverlay, styles.nextOverlayRight]}>
+                    <NextDisplay nextQueue={nextQueue} cellSize={cellSize * 0.6} />
+                  </View>
                 </View>
-              </View>
-            </ControlArea>
+              </ControlArea>
+            </View>
 
             {/* スコアと連鎖数（操作エリアの直下） */}
             <View style={[styles.scoreRow, { width: controlAreaWidth, alignSelf: 'flex-end', marginRight: largeMargin }]}>
@@ -185,18 +189,6 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle, onOpenCon
         )}
       </View>
 
-      {/* ゲームオーバー表示 */}
-      {isGameOver && (
-        <View style={styles.gameOverOverlay}>
-          <View style={styles.gameOverContent}>
-            <Text style={styles.gameOverText}>GAME OVER</Text>
-            <Text style={styles.finalScore}>Score: {score.toLocaleString()}</Text>
-            <TouchableOpacity style={styles.restartButton} onPress={handleBackToTitleDirect}>
-              <Text style={styles.restartButtonText}>タイトルへ</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
     </View>
   );
 };
@@ -277,35 +269,7 @@ const styles = StyleSheet.create({
   nextOverlayRight: {
     right: 8,
   },
-  gameOverOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  gameOverContent: {
-    alignItems: 'center',
-  },
-  gameOverText: {
-    color: '#ff4444',
-    fontSize: 40,
-    fontWeight: 'bold',
-    marginBottom: 20,
-  },
-  finalScore: {
-    color: '#ffffff',
-    fontSize: 24,
-    marginBottom: 40,
-  },
-  restartButton: {
-    backgroundColor: '#4444ff',
-    paddingHorizontal: 40,
-    paddingVertical: 12,
-    borderRadius: 25,
-  },
-  restartButtonText: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: 'bold',
+  grayedOut: {
+    opacity: 0.4,
   },
 });
