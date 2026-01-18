@@ -109,6 +109,11 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle, onOpenCon
                   <View style={[styles.nextOverlay, styles.nextOverlayRight]}>
                     <NextDisplay nextQueue={nextQueue} cellSize={cellSize * 0.6} />
                   </View>
+                  {isGameOver && (
+                    <View style={styles.gameOverOverlay}>
+                      <Text style={styles.gameOverText}>GAME OVER</Text>
+                    </View>
+                  )}
                 </View>
               </ControlArea>
             </View>
@@ -163,6 +168,11 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle, onOpenCon
                   <View style={[styles.nextOverlay, styles.nextOverlayRight]}>
                     <NextDisplay nextQueue={nextQueue} cellSize={cellSize * 0.6} />
                   </View>
+                  {isGameOver && (
+                    <View style={styles.gameOverOverlay}>
+                      <Text style={styles.gameOverText}>GAME OVER</Text>
+                    </View>
+                  )}
                 </View>
               </ControlArea>
             </View>
@@ -274,5 +284,23 @@ const styles = StyleSheet.create({
   },
   grayedOut: {
     opacity: 0.4,
+  },
+  gameOverOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 80, 80, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  gameOverText: {
+    color: '#ff4444',
+    fontSize: 28,
+    fontWeight: 'bold',
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 4,
   },
 });
