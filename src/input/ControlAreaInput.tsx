@@ -40,6 +40,7 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
   const [activeColumn, setActiveColumn] = useState<number | null>(null);
   const [blockedColumn, setBlockedColumn] = useState<number | null>(null);
   const [swipeDirection, setSwipeDirection] = useState<'up' | 'down' | 'left' | 'right' | null>(null);
+  const [cancelFlash, setCancelFlash] = useState(false);
   const rippleAnim = useRef(new Animated.Value(0)).current;
   const [ripplePosition, setRipplePosition] = useState<{ x: number; y: number } | null>(null);
 
@@ -178,6 +179,9 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
           setSwipeDirection(null);
           // 触覚フィードバック（キャンセル：Warning通知パターン）
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          // 視覚的フィードバック（列を点滅）
+          setCancelFlash(true);
+          setTimeout(() => setCancelFlash(false), 200);
         }
         return;
       }
@@ -275,8 +279,8 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
                   width: cellSize,
                   borderRightWidth: i < FIELD_COLS - 1 ? 1 : 0,
                 },
-                // アクティブな列をハイライト
-                activeColumn === i && styles.activeColumn,
+                // アクティブな列をハイライト（キャンセル時は点滅色）
+                activeColumn === i && (cancelFlash ? styles.cancelColumn : styles.activeColumn),
                 // ブロックされた列を赤くハイライト
                 blockedColumn === i && styles.blockedColumn,
               ]}
@@ -360,6 +364,9 @@ const styles = StyleSheet.create({
   },
   activeColumn: {
     backgroundColor: 'rgba(100, 150, 255, 0.3)',
+  },
+  cancelColumn: {
+    backgroundColor: 'rgba(255, 180, 50, 0.5)',
   },
   blockedColumn: {
     backgroundColor: 'rgba(255, 100, 100, 0.4)',
