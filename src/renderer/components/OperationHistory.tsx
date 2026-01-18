@@ -73,23 +73,19 @@ export const OperationHistory: React.FC<OperationHistoryProps> = ({
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>履歴に戻る</Text>
-            <Text style={styles.modalMessage}>
-              この状態に戻りますか？{'\n'}
-              以降の操作は取り消されます。
-            </Text>
+            <Text style={styles.modalTitle}>Restore?</Text>
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={[styles.modalButton, styles.cancelButton]}
                 onPress={handleCancelRestore}
               >
-                <Text style={styles.cancelButtonText}>キャンセル</Text>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalButton, styles.confirmButton]}
                 onPress={handleConfirmRestore}
               >
-                <Text style={styles.confirmButtonText}>戻る</Text>
+                <Text style={styles.confirmButtonText}>Restore</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -135,14 +131,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 12,
-  },
-  modalMessage: {
-    color: '#aaaacc',
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 22,
+    marginBottom: 16,
   },
   modalButtons: {
     flexDirection: 'row',
