@@ -96,7 +96,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle, onOpenCon
         {/* 左利きモード：ゲームエリアが先 */}
         {!isRightHanded && (
           <View style={styles.gameAreaContainer}>
-            <View style={isGameOver ? styles.grayedOut : undefined} pointerEvents={isGameOver ? 'none' : 'auto'}>
+            <View style={[styles.controlWrapper, isGameOver && styles.grayedOut]} pointerEvents={isGameOver ? 'none' : 'auto'}>
               <ControlArea cellSize={cellSize} sideMargin={largeMargin} isRightHanded={false}>
                 <View style={styles.fieldContainer}>
                   <Field
@@ -150,7 +150,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle, onOpenCon
         {/* 右利きモード：ゲームエリアが後 */}
         {isRightHanded && (
           <View style={styles.gameAreaContainer}>
-            <View style={isGameOver ? styles.grayedOut : undefined} pointerEvents={isGameOver ? 'none' : 'auto'}>
+            <View style={[styles.controlWrapper, isGameOver && styles.grayedOut]} pointerEvents={isGameOver ? 'none' : 'auto'}>
               <ControlArea cellSize={cellSize} sideMargin={largeMargin} isRightHanded={true}>
                 <View style={styles.fieldContainer}>
                   <Field
@@ -210,6 +210,9 @@ const styles = StyleSheet.create({
     marginRight: 0,
   },
   gameAreaContainer: {
+    flex: 1,
+  },
+  controlWrapper: {
     flex: 1,
   },
   fieldContainer: {
