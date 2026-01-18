@@ -104,12 +104,27 @@ const FieldThumbnail: React.FC<{ entry: GameHistoryEntry }> = ({ entry }) => {
 const GameHistoryItem: React.FC<{
   entry: GameHistoryEntry;
   onPress: () => void;
-  onDelete: () => void;
   onToggleFavorite: () => void;
-  onEditNote: () => void;
-}> = ({ entry, onPress, onDelete, onToggleFavorite, onEditNote }) => {
+  onOpenMenu: () => void;
+}> = ({ entry, onPress, onToggleFavorite, onOpenMenu }) => {
   return (
     <TouchableOpacity style={styles.itemContainer} onPress={onPress} activeOpacity={0.7}>
+      <FieldThumbnail entry={entry} />
+      <View style={styles.itemInfo}>
+        <Text style={styles.dateText}>{formatDate(entry.lastPlayedAt)}</Text>
+        <Text style={styles.scoreText}>Score: {entry.score}</Text>
+        <View style={styles.statsRow}>
+          <Text style={styles.dropCountText}>Drops: {entry.dropCount}</Text>
+          {entry.maxChainCount > 0 && (
+            <Text style={styles.chainText}>Chain: {entry.maxChainCount}</Text>
+          )}
+        </View>
+        {entry.note && (
+          <Text style={styles.noteText} numberOfLines={1}>
+            {entry.note}
+          </Text>
+        )}
+      </View>
       <TouchableOpacity
         style={styles.favoriteButton}
         onPress={(e) => {
@@ -121,46 +136,14 @@ const GameHistoryItem: React.FC<{
           {entry.isFavorite ? '★' : '☆'}
         </Text>
       </TouchableOpacity>
-      <FieldThumbnail entry={entry} />
-      <View style={styles.itemInfo}>
-        <Text style={styles.dateText}>{formatDate(entry.lastPlayedAt)}</Text>
-        <Text style={styles.scoreText}>Score: {entry.score}</Text>
-        <View style={styles.statsRow}>
-          <Text style={styles.dropCountText}>Drops: {entry.dropCount}</Text>
-          {entry.maxChainCount > 0 && (
-            <Text style={styles.chainText}>Chain: {entry.maxChainCount}</Text>
-          )}
-        </View>
-        {entry.note ? (
-          <TouchableOpacity
-            onPress={(e) => {
-              e.stopPropagation();
-              onEditNote();
-            }}
-          >
-            <Text style={styles.noteText} numberOfLines={1}>
-              {entry.note}
-            </Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            onPress={(e) => {
-              e.stopPropagation();
-              onEditNote();
-            }}
-          >
-            <Text style={styles.addNoteText}>+ Add note</Text>
-          </TouchableOpacity>
-        )}
-      </View>
       <TouchableOpacity
-        style={styles.deleteButton}
+        style={styles.menuButton}
         onPress={(e) => {
           e.stopPropagation();
-          onDelete();
+          onOpenMenu();
         }}
       >
-        <Text style={styles.deleteButtonText}>x</Text>
+        <Text style={styles.menuButtonText}>…</Text>
       </TouchableOpacity>
     </TouchableOpacity>
   );
@@ -179,6 +162,7 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
   const [showClearAllModal, setShowClearAllModal] = useState(false);
   const [noteEditId, setNoteEditId] = useState<string | null>(null);
   const [noteText, setNoteText] = useState('');
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
 
   // タブに応じてフィルタリング
   const filteredEntries = entries.filter(e =>
@@ -209,9 +193,13 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
     setShowClearAllModal(false);
   };
 
-  const handleOpenNoteEditor = (entry: GameHistoryEntry) => {
-    setNoteEditId(entry.id);
-    setNoteText(entry.note);
+  const handleOpenNoteEditor = (entryId: string) => {
+    const entry = entries.find(e => e.id === entryId);
+    if (entry) {
+      setNoteEditId(entry.id);
+      setNoteText(entry.note);
+    }
+    setMenuOpenId(null);
   };
 
   const handleSaveNote = () => {
@@ -220,6 +208,11 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
       setNoteEditId(null);
       setNoteText('');
     }
+  };
+
+  const handleDeleteFromMenu = (entryId: string) => {
+    setMenuOpenId(null);
+    setDeleteConfirmId(entryId);
   };
 
   const resumeEntry = sortedEntries.find(e => e.id === resumeConfirmId);
@@ -285,9 +278,8 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
               key={entry.id}
               entry={entry}
               onPress={() => setResumeConfirmId(entry.id)}
-              onDelete={() => setDeleteConfirmId(entry.id)}
               onToggleFavorite={() => toggleFavorite(entry.id)}
-              onEditNote={() => handleOpenNoteEditor(entry)}
+              onOpenMenu={() => setMenuOpenId(entry.id)}
             />
           ))}
         </ScrollView>
@@ -326,6 +318,36 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
             </View>
           </View>
         </View>
+      </Modal>
+
+      {/* メニューモーダル */}
+      <Modal
+        visible={menuOpenId !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuOpenId(null)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setMenuOpenId(null)}
+        >
+          <View style={styles.menuModalContent}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => menuOpenId && handleOpenNoteEditor(menuOpenId)}
+            >
+              <Text style={styles.menuItemText}>Edit note</Text>
+            </TouchableOpacity>
+            <View style={styles.menuDivider} />
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => menuOpenId && handleDeleteFromMenu(menuOpenId)}
+            >
+              <Text style={styles.menuItemTextDanger}>Delete</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
       </Modal>
 
       {/* ノート編集モーダル */}
@@ -528,11 +550,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   favoriteButton: {
-    width: 32,
-    height: 32,
+    width: 36,
+    height: 36,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
   },
   favoriteIcon: {
     fontSize: 24,
@@ -540,6 +561,17 @@ const styles = StyleSheet.create({
   },
   favoriteIconActive: {
     color: '#ffcc00',
+  },
+  menuButton: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  menuButtonText: {
+    color: '#888',
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   fieldBorder: {
     borderWidth: 1,
@@ -590,24 +622,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontStyle: 'italic',
   },
-  addNoteText: {
-    color: '#666',
-    fontSize: 12,
-    marginTop: 4,
-  },
-  deleteButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#666',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  deleteButtonText: {
-    color: '#888',
-    fontSize: 18,
-  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
@@ -622,6 +636,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#3a3a5a',
+  },
+  menuModalContent: {
+    backgroundColor: '#1a1a2e',
+    borderRadius: 12,
+    width: 200,
+    borderWidth: 1,
+    borderColor: '#3a3a5a',
+    overflow: 'hidden',
+  },
+  menuItem: {
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+  },
+  menuItemText: {
+    color: '#fff',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  menuItemTextDanger: {
+    color: '#ff4444',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  menuDivider: {
+    height: 1,
+    backgroundColor: '#3a3a5a',
   },
   modalTitle: {
     color: '#fff',
