@@ -25,15 +25,17 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle }) => {
   const restoreToSnapshot = useGameStore((state) => state.restoreToSnapshot);
 
   // 履歴エリアの幅
-  const historyWidth = 70;
+  const historyWidth = 76;
   // 履歴サムネイルのセルサイズ
   const historyCellSize = 4;
+  // 履歴とフィールドの間のマージン
+  const historyMargin = 2;
 
   // セルサイズを画面サイズに基づいて計算（右利き用：右マージン大きめ）
   const leftMargin = 4;
   const rightMargin = 20;
   // 履歴エリアを考慮してフィールドの最大幅を計算
-  const maxFieldWidth = width - leftMargin - rightMargin - historyWidth - 8;
+  const maxFieldWidth = width - leftMargin - rightMargin - historyWidth - historyMargin;
   const maxFieldHeight = height * 0.6; // 操作エリア分の余裕を確保
   const cellSizeByWidth = Math.floor(maxFieldWidth / FIELD_COLS);
   const cellSizeByHeight = Math.floor(maxFieldHeight / VISIBLE_ROWS);
@@ -138,7 +140,7 @@ const styles = StyleSheet.create({
     paddingLeft: 4,
   },
   historyContainer: {
-    marginRight: 4,
+    marginRight: 2,
   },
   fieldContainer: {
     position: 'relative',

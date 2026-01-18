@@ -48,7 +48,6 @@ export const OperationHistory: React.FC<OperationHistoryProps> = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>履歴</Text>
       <ScrollView
         ref={scrollViewRef}
         style={styles.scrollView}
@@ -109,12 +108,6 @@ const styles = StyleSheet.create({
     padding: 4,
     borderWidth: 1,
     borderColor: '#3a3a5a',
-  },
-  title: {
-    color: '#8888aa',
-    fontSize: 10,
-    textAlign: 'center',
-    marginBottom: 4,
   },
   scrollView: {
     flex: 1,
