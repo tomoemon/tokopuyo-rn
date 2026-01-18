@@ -229,9 +229,9 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
           ))}
         </View>
 
-        {/* 回転ガイド矢印 */}
+        {/* 回転ガイド矢印（スワイプ方向と同じ方向をハイライト） */}
         <View style={styles.swipeGuideContainer} pointerEvents="none">
-          <View style={[styles.swipeArrow, styles.swipeArrowUp, swipeDirection === 'down' && styles.swipeArrowActive]}>
+          <View style={[styles.swipeArrow, styles.swipeArrowUp, swipeDirection === 'up' && styles.swipeArrowActive]}>
             <View style={styles.arrowUp} />
           </View>
           <View style={styles.swipeArrowRow}>
@@ -243,7 +243,7 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
               <View style={styles.arrowRight} />
             </View>
           </View>
-          <View style={[styles.swipeArrow, styles.swipeArrowDown, swipeDirection === 'up' && styles.swipeArrowActive]}>
+          <View style={[styles.swipeArrow, styles.swipeArrowDown, swipeDirection === 'down' && styles.swipeArrowActive]}>
             <View style={styles.arrowDown} />
           </View>
         </View>
