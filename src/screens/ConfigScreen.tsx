@@ -1,12 +1,13 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import { useConfigStore, Handedness } from '../store';
 
 interface ConfigScreenProps {
-  onBack: () => void;
+  visible: boolean;
+  onClose: () => void;
 }
 
-export const ConfigScreen: React.FC<ConfigScreenProps> = ({ onBack }) => {
+export const ConfigScreen: React.FC<ConfigScreenProps> = ({ visible, onClose }) => {
   const handedness = useConfigStore((state) => state.handedness);
   const setHandedness = useConfigStore((state) => state.setHandedness);
 
@@ -15,100 +16,119 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({ onBack }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Config</Text>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent={true}
+      onRequestClose={onClose}
+    >
+      <View style={styles.overlay}>
+        <View style={styles.container}>
+          <Text style={styles.title}>Config</Text>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Handedness</Text>
-        <Text style={styles.sectionDescription}>
-          Select which side the game field should appear
-        </Text>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Handedness</Text>
+            <Text style={styles.sectionDescription}>
+              Select which side the game field should appear
+            </Text>
 
-        <View style={styles.optionsContainer}>
-          <TouchableOpacity
-            style={[
-              styles.optionButton,
-              handedness === 'right' && styles.optionButtonSelected,
-            ]}
-            onPress={() => handleSelectHandedness('right')}
-          >
-            <View style={styles.optionContent}>
-              <View style={styles.previewContainer}>
-                <View style={styles.previewLeft}>
-                  <View style={styles.previewHistory} />
-                </View>
-                <View style={styles.previewRight}>
-                  <View style={styles.previewField} />
-                </View>
-              </View>
-              <Text
+            <View style={styles.optionsContainer}>
+              <TouchableOpacity
                 style={[
-                  styles.optionText,
-                  handedness === 'right' && styles.optionTextSelected,
+                  styles.optionButton,
+                  handedness === 'right' && styles.optionButtonSelected,
                 ]}
+                onPress={() => handleSelectHandedness('right')}
               >
-                Right-handed
-              </Text>
-              <Text style={styles.optionSubtext}>Field on right</Text>
-            </View>
-          </TouchableOpacity>
+                <View style={styles.optionContent}>
+                  <View style={styles.previewContainer}>
+                    <View style={styles.previewLeft}>
+                      <View style={styles.previewHistory} />
+                    </View>
+                    <View style={styles.previewRight}>
+                      <View style={styles.previewField} />
+                    </View>
+                  </View>
+                  <Text
+                    style={[
+                      styles.optionText,
+                      handedness === 'right' && styles.optionTextSelected,
+                    ]}
+                  >
+                    Right-handed
+                  </Text>
+                  <Text style={styles.optionSubtext}>Field on right</Text>
+                </View>
+              </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[
-              styles.optionButton,
-              handedness === 'left' && styles.optionButtonSelected,
-            ]}
-            onPress={() => handleSelectHandedness('left')}
-          >
-            <View style={styles.optionContent}>
-              <View style={styles.previewContainer}>
-                <View style={styles.previewLeft}>
-                  <View style={styles.previewField} />
-                </View>
-                <View style={styles.previewRight}>
-                  <View style={styles.previewHistory} />
-                </View>
-              </View>
-              <Text
+              <TouchableOpacity
                 style={[
-                  styles.optionText,
-                  handedness === 'left' && styles.optionTextSelected,
+                  styles.optionButton,
+                  handedness === 'left' && styles.optionButtonSelected,
                 ]}
+                onPress={() => handleSelectHandedness('left')}
               >
-                Left-handed
-              </Text>
-              <Text style={styles.optionSubtext}>Field on left</Text>
+                <View style={styles.optionContent}>
+                  <View style={styles.previewContainer}>
+                    <View style={styles.previewLeft}>
+                      <View style={styles.previewField} />
+                    </View>
+                    <View style={styles.previewRight}>
+                      <View style={styles.previewHistory} />
+                    </View>
+                  </View>
+                  <Text
+                    style={[
+                      styles.optionText,
+                      handedness === 'left' && styles.optionTextSelected,
+                    ]}
+                  >
+                    Left-handed
+                  </Text>
+                  <Text style={styles.optionSubtext}>Field on left</Text>
+                </View>
+              </TouchableOpacity>
             </View>
+          </View>
+
+          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+            <Text style={styles.closeButtonText}>Close</Text>
           </TouchableOpacity>
         </View>
       </View>
-
-      <TouchableOpacity style={styles.backButton} onPress={onBack}>
-        <Text style={styles.backButtonText}>Back</Text>
-      </TouchableOpacity>
-    </View>
+    </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  overlay: {
     flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  container: {
     backgroundColor: '#0a0a1a',
-    padding: 20,
-    paddingTop: 60,
+    borderRadius: 16,
+    padding: 24,
+    marginHorizontal: 20,
+    maxWidth: 400,
+    width: '90%',
+    borderWidth: 1,
+    borderColor: '#2a2a4a',
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#ffffff',
-    marginBottom: 40,
+    marginBottom: 24,
     textAlign: 'center',
   },
   section: {
-    marginBottom: 40,
+    marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#ffffff',
     marginBottom: 8,
@@ -116,18 +136,18 @@ const styles = StyleSheet.create({
   sectionDescription: {
     fontSize: 14,
     color: '#888888',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   optionsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 16,
+    gap: 12,
   },
   optionButton: {
     flex: 1,
     backgroundColor: '#1a1a2e',
     borderRadius: 12,
-    padding: 16,
+    padding: 12,
     borderWidth: 2,
     borderColor: '#2a2a4a',
   },
@@ -140,9 +160,9 @@ const styles = StyleSheet.create({
   },
   previewContainer: {
     flexDirection: 'row',
-    width: 80,
-    height: 60,
-    marginBottom: 12,
+    width: 60,
+    height: 45,
+    marginBottom: 8,
     gap: 4,
   },
   previewLeft: {
@@ -156,43 +176,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   previewField: {
-    width: 30,
-    height: 50,
+    width: 22,
+    height: 38,
     backgroundColor: '#4444ff',
     borderRadius: 4,
   },
   previewHistory: {
-    width: 20,
-    height: 40,
+    width: 15,
+    height: 30,
     backgroundColor: '#444466',
     borderRadius: 4,
   },
   optionText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#888888',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   optionTextSelected: {
     color: '#ffffff',
   },
   optionSubtext: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#666666',
   },
-  backButton: {
-    backgroundColor: 'transparent',
-    paddingHorizontal: 40,
+  closeButton: {
+    backgroundColor: '#4444ff',
+    paddingHorizontal: 32,
     paddingVertical: 12,
-    borderRadius: 25,
-    borderWidth: 2,
-    borderColor: '#666666',
+    borderRadius: 20,
     alignSelf: 'center',
-    marginTop: 'auto',
-    marginBottom: 40,
   },
-  backButtonText: {
-    color: '#888888',
-    fontSize: 18,
+  closeButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });

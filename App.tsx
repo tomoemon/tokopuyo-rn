@@ -3,10 +3,11 @@ import { StatusBar } from 'expo-status-bar';
 import { TitleScreen, GameScreen, ConfigScreen } from './src/screens';
 import { useGameStore } from './src/store';
 
-type Screen = 'title' | 'game' | 'config';
+type Screen = 'title' | 'game';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('title');
+  const [configVisible, setConfigVisible] = useState(false);
   const dispatch = useGameStore((state) => state.dispatch);
 
   const handleStartGame = useCallback(() => {
@@ -19,7 +20,11 @@ export default function App() {
   }, []);
 
   const handleOpenConfig = useCallback(() => {
-    setCurrentScreen('config');
+    setConfigVisible(true);
+  }, []);
+
+  const handleCloseConfig = useCallback(() => {
+    setConfigVisible(false);
   }, []);
 
   return (
@@ -31,9 +36,7 @@ export default function App() {
       {currentScreen === 'game' && (
         <GameScreen onBackToTitle={handleBackToTitle} onOpenConfig={handleOpenConfig} />
       )}
-      {currentScreen === 'config' && (
-        <ConfigScreen onBack={handleBackToTitle} />
-      )}
+      <ConfigScreen visible={configVisible} onClose={handleCloseConfig} />
     </>
   );
 }
