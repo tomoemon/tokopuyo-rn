@@ -9,6 +9,7 @@ export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('title');
   const [configVisible, setConfigVisible] = useState(false);
   const dispatch = useGameStore((state) => state.dispatch);
+  const resumeFromHistory = useGameStore((state) => state.resumeFromHistory);
 
   const handleStartGame = useCallback(() => {
     dispatch({ type: 'START_GAME' });
@@ -35,6 +36,13 @@ export default function App() {
     setCurrentScreen('title');
   }, []);
 
+  const handleResumeGame = useCallback((gameId: string) => {
+    const success = resumeFromHistory(gameId);
+    if (success) {
+      setCurrentScreen('game');
+    }
+  }, [resumeFromHistory]);
+
   return (
     <>
       <StatusBar style="light" />
@@ -49,7 +57,7 @@ export default function App() {
         <GameScreen onBackToTitle={handleBackToTitle} onOpenConfig={handleOpenConfig} />
       )}
       {currentScreen === 'history' && (
-        <GameHistoryScreen onBack={handleBackFromHistory} />
+        <GameHistoryScreen onBack={handleBackFromHistory} onResumeGame={handleResumeGame} />
       )}
       <ConfigScreen visible={configVisible} onClose={handleCloseConfig} />
     </>

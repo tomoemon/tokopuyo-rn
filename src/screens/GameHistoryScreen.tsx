@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Alert,
   Modal,
 } from 'react-native';
 import { useGameHistoryStore, GameHistoryEntry } from '../store';
@@ -18,6 +17,7 @@ import {
 
 interface GameHistoryScreenProps {
   onBack: () => void;
+  onResumeGame: (gameId: string) => void;
 }
 
 // 色の定義
@@ -100,30 +100,41 @@ const FieldThumbnail: React.FC<{ entry: GameHistoryEntry }> = ({ entry }) => {
 // ゲーム履歴アイテムコンポーネント
 const GameHistoryItem: React.FC<{
   entry: GameHistoryEntry;
+  onPress: () => void;
   onDelete: () => void;
-}> = ({ entry, onDelete }) => {
+}> = ({ entry, onPress, onDelete }) => {
   return (
-    <View style={styles.itemContainer}>
+    <TouchableOpacity style={styles.itemContainer} onPress={onPress} activeOpacity={0.7}>
       <FieldThumbnail entry={entry} />
       <View style={styles.itemInfo}>
         <Text style={styles.dateText}>{formatDate(entry.lastPlayedAt)}</Text>
         <Text style={styles.scoreText}>Score: {entry.score}</Text>
-        {entry.maxChainCount > 0 && (
-          <Text style={styles.chainText}>Max Chain: {entry.maxChainCount}</Text>
-        )}
+        <View style={styles.statsRow}>
+          <Text style={styles.dropCountText}>Drops: {entry.dropCount}</Text>
+          {entry.maxChainCount > 0 && (
+            <Text style={styles.chainText}>Chain: {entry.maxChainCount}</Text>
+          )}
+        </View>
       </View>
-      <TouchableOpacity style={styles.deleteButton} onPress={onDelete}>
+      <TouchableOpacity
+        style={styles.deleteButton}
+        onPress={(e) => {
+          e.stopPropagation();
+          onDelete();
+        }}
+      >
         <Text style={styles.deleteButtonText}>x</Text>
       </TouchableOpacity>
-    </View>
+    </TouchableOpacity>
   );
 };
 
-export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack }) => {
+export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, onResumeGame }) => {
   const entries = useGameHistoryStore((state) => state.entries);
   const deleteEntry = useGameHistoryStore((state) => state.deleteEntry);
   const clearAllHistory = useGameHistoryStore((state) => state.clearAllHistory);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [resumeConfirmId, setResumeConfirmId] = useState<string | null>(null);
   const [showClearAllModal, setShowClearAllModal] = useState(false);
 
   // 新しい順にソート
@@ -138,10 +149,19 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack }) 
     }
   };
 
+  const handleResumeConfirm = () => {
+    if (resumeConfirmId) {
+      onResumeGame(resumeConfirmId);
+      setResumeConfirmId(null);
+    }
+  };
+
   const handleClearAll = () => {
     clearAllHistory();
     setShowClearAllModal(false);
   };
+
+  const resumeEntry = sortedEntries.find(e => e.id === resumeConfirmId);
 
   return (
     <View style={styles.container}>
@@ -171,11 +191,47 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack }) 
             <GameHistoryItem
               key={entry.id}
               entry={entry}
+              onPress={() => setResumeConfirmId(entry.id)}
               onDelete={() => setDeleteConfirmId(entry.id)}
             />
           ))}
         </ScrollView>
       )}
+
+      {/* 再開確認モーダル */}
+      <Modal
+        visible={resumeConfirmId !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setResumeConfirmId(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Resume this game?</Text>
+            {resumeEntry && (
+              <View style={styles.resumeInfo}>
+                <Text style={styles.resumeInfoText}>
+                  Score: {resumeEntry.score} | Drops: {resumeEntry.dropCount}
+                </Text>
+              </View>
+            )}
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => setResumeConfirmId(null)}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalResumeButton}
+                onPress={handleResumeConfirm}
+              >
+                <Text style={styles.modalResumeText}>Resume</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* 削除確認モーダル */}
       <Modal
@@ -339,10 +395,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
+  statsRow: {
+    flexDirection: 'row',
+    marginTop: 4,
+  },
+  dropCountText: {
+    color: '#88aaff',
+    fontSize: 14,
+    marginRight: 12,
+  },
   chainText: {
     color: '#ffaa44',
     fontSize: 14,
-    marginTop: 2,
   },
   deleteButton: {
     width: 32,
@@ -383,6 +447,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 16,
   },
+  resumeInfo: {
+    marginBottom: 8,
+  },
+  resumeInfoText: {
+    color: '#aaa',
+    fontSize: 14,
+  },
   modalButtons: {
     flexDirection: 'row',
     marginTop: 16,
@@ -409,6 +480,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalDeleteText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  modalResumeButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#4488ff',
+    marginLeft: 8,
+    alignItems: 'center',
+  },
+  modalResumeText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
