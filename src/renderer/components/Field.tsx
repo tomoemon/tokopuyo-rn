@@ -23,8 +23,16 @@ export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize, eras
   const fallingPositions: { x: number; y: number; color: string }[] = [];
   // ゴースト（落下予定位置）の位置
   const ghostPositions: { x: number; y: number; color: string }[] = [];
+  // 落下中ぷよの表示オフセット（上部にいるときは下にずらして表示）
+  let fallingDisplayOffset = 0;
 
   if (fallingPuyo) {
+    // 軸ぷよの表示位置を最低でもdisplayY=2にするためのオフセットを計算
+    // y=1のとき displayY=0 → オフセット+2で displayY=2
+    // y=3のとき displayY=2 → オフセット0
+    const pivotDisplayY = fallingPuyo.pivot.pos.y - HIDDEN_ROWS;
+    fallingDisplayOffset = Math.max(2 - pivotDisplayY, 0);
+
     fallingPositions.push({
       x: fallingPuyo.pivot.pos.x,
       y: fallingPuyo.pivot.pos.y,
@@ -132,10 +140,10 @@ export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize, eras
         );
       })}
 
-      {/* 操作中のぷよ（隠し行は表示しない） */}
+      {/* 操作中のぷよ（表示オフセット適用） */}
       {fallingPositions.map((pos, index) => {
-        if (pos.y < HIDDEN_ROWS) return null;
-        const displayY = pos.y - HIDDEN_ROWS;
+        // 表示位置 = ロジック位置 - 隠し行 + オフセット
+        const displayY = pos.y - HIDDEN_ROWS + fallingDisplayOffset;
         return (
           <View
             key={`falling-${index}`}
