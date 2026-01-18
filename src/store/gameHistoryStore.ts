@@ -17,6 +17,8 @@ export type GameHistoryEntry = {
   lastPlayedAt: string; // ISO 8601 形式
   operationHistory: GameSnapshot[]; // フィールドの操作履歴
   nextSnapshotId: number; // 次のスナップショットID
+  isFavorite: boolean; // お気に入りフラグ
+  note: string; // メモ
 };
 
 interface GameHistoryStore {
@@ -38,6 +40,8 @@ interface GameHistoryStore {
   clearAllHistory: () => void;
   getEntry: (id: string) => GameHistoryEntry | undefined;
   setCurrentGameId: (id: string | null) => void;
+  toggleFavorite: (id: string) => void;
+  updateNote: (id: string, note: string) => void;
 }
 
 // ユニークIDを生成
@@ -98,16 +102,26 @@ export const useGameHistoryStore = create<GameHistoryStore>()(
             lastPlayedAt: now,
             operationHistory: operationHistory.map(s => ({ ...s, field: cloneField(s.field) })),
             nextSnapshotId,
+            isFavorite: false,
+            note: '',
           };
           let newEntries = [...state.entries, newEntry];
 
-          // 100件を超えたら古いものを削除
+          // 100件を超えたら古い非お気に入りを削除
           if (newEntries.length > MAX_HISTORY_ENTRIES) {
-            // 日時でソートして古いものを削除
-            newEntries.sort((a, b) =>
+            // お気に入りと非お気に入りを分離
+            const favorites = newEntries.filter(e => e.isFavorite);
+            const nonFavorites = newEntries.filter(e => !e.isFavorite);
+
+            // 非お気に入りを日時でソートして古いものを削除
+            nonFavorites.sort((a, b) =>
               new Date(b.lastPlayedAt).getTime() - new Date(a.lastPlayedAt).getTime()
             );
-            newEntries = newEntries.slice(0, MAX_HISTORY_ENTRIES);
+
+            const maxNonFavorites = MAX_HISTORY_ENTRIES - favorites.length;
+            const trimmedNonFavorites = nonFavorites.slice(0, Math.max(0, maxNonFavorites));
+
+            newEntries = [...favorites, ...trimmedNonFavorites];
           }
 
           set({ entries: newEntries });
@@ -130,6 +144,22 @@ export const useGameHistoryStore = create<GameHistoryStore>()(
 
       setCurrentGameId: (id: string | null) => {
         set({ currentGameId: id });
+      },
+
+      toggleFavorite: (id: string) => {
+        const state = get();
+        const newEntries = state.entries.map(e =>
+          e.id === id ? { ...e, isFavorite: !e.isFavorite } : e
+        );
+        set({ entries: newEntries });
+      },
+
+      updateNote: (id: string, note: string) => {
+        const state = get();
+        const newEntries = state.entries.map(e =>
+          e.id === id ? { ...e, note } : e
+        );
+        set({ entries: newEntries });
       },
     }),
     {

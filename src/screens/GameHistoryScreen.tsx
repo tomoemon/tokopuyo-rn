@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ScrollView,
   Modal,
+  TextInput,
 } from 'react-native';
 import { useGameHistoryStore, GameHistoryEntry } from '../store';
 import {
@@ -19,6 +20,8 @@ interface GameHistoryScreenProps {
   onBack: () => void;
   onResumeGame: (gameId: string) => void;
 }
+
+type TabType = 'history' | 'favorite';
 
 // 色の定義
 const COLOR_MAP: Record<PuyoColor, string> = {
@@ -102,9 +105,22 @@ const GameHistoryItem: React.FC<{
   entry: GameHistoryEntry;
   onPress: () => void;
   onDelete: () => void;
-}> = ({ entry, onPress, onDelete }) => {
+  onToggleFavorite: () => void;
+  onEditNote: () => void;
+}> = ({ entry, onPress, onDelete, onToggleFavorite, onEditNote }) => {
   return (
     <TouchableOpacity style={styles.itemContainer} onPress={onPress} activeOpacity={0.7}>
+      <TouchableOpacity
+        style={styles.favoriteButton}
+        onPress={(e) => {
+          e.stopPropagation();
+          onToggleFavorite();
+        }}
+      >
+        <Text style={[styles.favoriteIcon, entry.isFavorite && styles.favoriteIconActive]}>
+          {entry.isFavorite ? '★' : '☆'}
+        </Text>
+      </TouchableOpacity>
       <FieldThumbnail entry={entry} />
       <View style={styles.itemInfo}>
         <Text style={styles.dateText}>{formatDate(entry.lastPlayedAt)}</Text>
@@ -115,6 +131,27 @@ const GameHistoryItem: React.FC<{
             <Text style={styles.chainText}>Chain: {entry.maxChainCount}</Text>
           )}
         </View>
+        {entry.note ? (
+          <TouchableOpacity
+            onPress={(e) => {
+              e.stopPropagation();
+              onEditNote();
+            }}
+          >
+            <Text style={styles.noteText} numberOfLines={1}>
+              {entry.note}
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            onPress={(e) => {
+              e.stopPropagation();
+              onEditNote();
+            }}
+          >
+            <Text style={styles.addNoteText}>+ Add note</Text>
+          </TouchableOpacity>
+        )}
       </View>
       <TouchableOpacity
         style={styles.deleteButton}
@@ -133,12 +170,23 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
   const entries = useGameHistoryStore((state) => state.entries);
   const deleteEntry = useGameHistoryStore((state) => state.deleteEntry);
   const clearAllHistory = useGameHistoryStore((state) => state.clearAllHistory);
+  const toggleFavorite = useGameHistoryStore((state) => state.toggleFavorite);
+  const updateNote = useGameHistoryStore((state) => state.updateNote);
+
+  const [activeTab, setActiveTab] = useState<TabType>('history');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [resumeConfirmId, setResumeConfirmId] = useState<string | null>(null);
   const [showClearAllModal, setShowClearAllModal] = useState(false);
+  const [noteEditId, setNoteEditId] = useState<string | null>(null);
+  const [noteText, setNoteText] = useState('');
+
+  // タブに応じてフィルタリング
+  const filteredEntries = entries.filter(e =>
+    activeTab === 'favorite' ? e.isFavorite : true
+  );
 
   // 新しい順にソート
-  const sortedEntries = [...entries].sort(
+  const sortedEntries = [...filteredEntries].sort(
     (a, b) => new Date(b.lastPlayedAt).getTime() - new Date(a.lastPlayedAt).getTime()
   );
 
@@ -161,6 +209,19 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
     setShowClearAllModal(false);
   };
 
+  const handleOpenNoteEditor = (entry: GameHistoryEntry) => {
+    setNoteEditId(entry.id);
+    setNoteText(entry.note);
+  };
+
+  const handleSaveNote = () => {
+    if (noteEditId) {
+      updateNote(noteEditId, noteText);
+      setNoteEditId(null);
+      setNoteText('');
+    }
+  };
+
   const resumeEntry = sortedEntries.find(e => e.id === resumeConfirmId);
 
   return (
@@ -170,7 +231,7 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Game History</Text>
-        {entries.length > 0 && (
+        {entries.length > 0 && activeTab === 'history' && (
           <TouchableOpacity
             style={styles.clearAllButton}
             onPress={() => setShowClearAllModal(true)}
@@ -178,12 +239,44 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
             <Text style={styles.clearAllButtonText}>Clear All</Text>
           </TouchableOpacity>
         )}
+        {(entries.length === 0 || activeTab === 'favorite') && (
+          <View style={styles.clearAllPlaceholder} />
+        )}
+      </View>
+
+      {/* タブ */}
+      <View style={styles.tabContainer}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'history' && styles.tabActive]}
+          onPress={() => setActiveTab('history')}
+        >
+          <Text style={[styles.tabText, activeTab === 'history' && styles.tabTextActive]}>
+            History
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'favorite' && styles.tabActive]}
+          onPress={() => setActiveTab('favorite')}
+        >
+          <Text style={[styles.tabText, activeTab === 'favorite' && styles.tabTextActive]}>
+            Favorite
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {sortedEntries.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No game history yet.</Text>
-          <Text style={styles.emptySubText}>Play a game to see it here!</Text>
+          {activeTab === 'history' ? (
+            <>
+              <Text style={styles.emptyText}>No game history yet.</Text>
+              <Text style={styles.emptySubText}>Play a game to see it here!</Text>
+            </>
+          ) : (
+            <>
+              <Text style={styles.emptyText}>No favorites yet.</Text>
+              <Text style={styles.emptySubText}>Tap the star icon to add favorites!</Text>
+            </>
+          )}
         </View>
       ) : (
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
@@ -193,6 +286,8 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
               entry={entry}
               onPress={() => setResumeConfirmId(entry.id)}
               onDelete={() => setDeleteConfirmId(entry.id)}
+              onToggleFavorite={() => toggleFavorite(entry.id)}
+              onEditNote={() => handleOpenNoteEditor(entry)}
             />
           ))}
         </ScrollView>
@@ -227,6 +322,47 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
                 onPress={handleResumeConfirm}
               >
                 <Text style={styles.modalResumeText}>Resume</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ノート編集モーダル */}
+      <Modal
+        visible={noteEditId !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setNoteEditId(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Edit Note</Text>
+            <TextInput
+              style={styles.noteInput}
+              value={noteText}
+              onChangeText={setNoteText}
+              placeholder="Enter a note..."
+              placeholderTextColor="#666"
+              multiline
+              maxLength={200}
+              autoFocus
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => {
+                  setNoteEditId(null);
+                  setNoteText('');
+                }}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalResumeButton}
+                onPress={handleSaveNote}
+              >
+                <Text style={styles.modalResumeText}>Save</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -335,6 +471,32 @@ const styles = StyleSheet.create({
     color: '#ff4444',
     fontSize: 14,
   },
+  clearAllPlaceholder: {
+    width: 80,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  tabActive: {
+    borderBottomColor: '#4488ff',
+  },
+  tabText: {
+    color: '#666',
+    fontSize: 16,
+  },
+  tabTextActive: {
+    color: '#4488ff',
+    fontWeight: 'bold',
+  },
   scrollView: {
     flex: 1,
   },
@@ -365,6 +527,20 @@ const styles = StyleSheet.create({
     borderColor: '#3a3a5a',
     alignItems: 'center',
   },
+  favoriteButton: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  favoriteIcon: {
+    fontSize: 24,
+    color: '#666',
+  },
+  favoriteIconActive: {
+    color: '#ffcc00',
+  },
   fieldBorder: {
     borderWidth: 1,
     borderColor: '#4a4a6a',
@@ -383,7 +559,7 @@ const styles = StyleSheet.create({
   },
   itemInfo: {
     flex: 1,
-    marginLeft: 16,
+    marginLeft: 12,
   },
   dateText: {
     color: '#aaa',
@@ -408,6 +584,17 @@ const styles = StyleSheet.create({
     color: '#ffaa44',
     fontSize: 14,
   },
+  noteText: {
+    color: '#aaa',
+    fontSize: 12,
+    marginTop: 4,
+    fontStyle: 'italic',
+  },
+  addNoteText: {
+    color: '#666',
+    fontSize: 12,
+    marginTop: 4,
+  },
   deleteButton: {
     width: 32,
     height: 32,
@@ -431,7 +618,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a1a2e',
     borderRadius: 12,
     padding: 24,
-    width: 280,
+    width: 300,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#3a3a5a',
@@ -453,6 +640,19 @@ const styles = StyleSheet.create({
   resumeInfoText: {
     color: '#aaa',
     fontSize: 14,
+  },
+  noteInput: {
+    width: '100%',
+    minHeight: 80,
+    backgroundColor: '#0a0a1a',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#3a3a5a',
+    color: '#fff',
+    padding: 12,
+    fontSize: 14,
+    textAlignVertical: 'top',
+    marginTop: 8,
   },
   modalButtons: {
     flexDirection: 'row',
