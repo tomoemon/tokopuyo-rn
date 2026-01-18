@@ -1,13 +1,26 @@
-import { Field, Position, PuyoColor, FIELD_COLS, FIELD_ROWS, CONNECT_COUNT } from './types';
+import { Field, Position, PuyoColor, FIELD_COLS, FIELD_ROWS, CONNECT_COUNT, HIDDEN_ROWS } from './types';
 import { isValidPosition, getPuyo } from './field';
 
 /**
+ * 連鎖判定に使用する有効な位置かどうか（隠しマスを除外）
+ */
+function isValidChainPosition(pos: Position): boolean {
+  return isValidPosition(pos) && pos.y >= HIDDEN_ROWS;
+}
+
+/**
  * 指定位置から同色で繋がっているぷよを全て探す（幅優先探索）
+ * 隠しマス（y < HIDDEN_ROWS）は連鎖判定に含めない
  */
 export function findConnectedPuyos(
   field: Field,
   startPos: Position
 ): Position[] {
+  // 隠しマスからは探索しない
+  if (!isValidChainPosition(startPos)) {
+    return [];
+  }
+
   const color = getPuyo(field, startPos);
   if (color === null) {
     return [];
@@ -35,7 +48,7 @@ export function findConnectedPuyos(
 
     connected.push(pos);
 
-    // 上下左右を探索
+    // 上下左右を探索（隠しマスは除外）
     const neighbors: Position[] = [
       { x: pos.x - 1, y: pos.y },
       { x: pos.x + 1, y: pos.y },
@@ -44,7 +57,8 @@ export function findConnectedPuyos(
     ];
 
     for (const neighbor of neighbors) {
-      if (isValidPosition(neighbor) && !visited.has(posToKey(neighbor))) {
+      // 隠しマスには探索しない
+      if (isValidChainPosition(neighbor) && !visited.has(posToKey(neighbor))) {
         queue.push(neighbor);
       }
     }
@@ -55,13 +69,15 @@ export function findConnectedPuyos(
 
 /**
  * フィールド全体から消えるグループを探す
+ * 隠しマス（y < HIDDEN_ROWS）は連鎖判定に含めない
  */
 export function findErasableGroups(field: Field): Position[][] {
   const visited = new Set<string>();
   const groups: Position[][] = [];
   const posToKey = (pos: Position): string => `${pos.x},${pos.y}`;
 
-  for (let y = 0; y < FIELD_ROWS; y++) {
+  // 隠しマス（y < HIDDEN_ROWS）はスキップ
+  for (let y = HIDDEN_ROWS; y < FIELD_ROWS; y++) {
     for (let x = 0; x < FIELD_COLS; x++) {
       const pos: Position = { x, y };
       const key = posToKey(pos);

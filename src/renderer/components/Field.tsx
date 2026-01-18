@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Field as FieldType, FallingPuyo, ErasingPuyo, FIELD_COLS, FIELD_ROWS } from '../../logic/types';
+import { Field as FieldType, FallingPuyo, ErasingPuyo, FIELD_COLS, VISIBLE_ROWS, HIDDEN_ROWS } from '../../logic/types';
 import { getSatellitePosition, hardDropPuyo } from '../../logic/puyo';
 import { Puyo } from './Puyo';
 import { DisappearEffect } from './DisappearEffect';
@@ -17,20 +17,55 @@ const BORDER_WIDTH = 3;
 
 export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize, erasingPuyos = [], onEffectComplete }) => {
   const fieldWidth = FIELD_COLS * cellSize + BORDER_WIDTH * 2;
-  const fieldHeight = FIELD_ROWS * cellSize + BORDER_WIDTH * 2;
+  const fieldHeight = VISIBLE_ROWS * cellSize + BORDER_WIDTH * 2;
 
   // 操作中のぷよの位置
   const fallingPositions: { x: number; y: number; color: string }[] = [];
   // ゴースト（落下予定位置）の位置
   const ghostPositions: { x: number; y: number; color: string }[] = [];
+  // 落下中ぷよの表示オフセット（上部にいるときは下にずらして表示）
+  let fallingDisplayOffset = 0;
 
   if (fallingPuyo) {
+    const satellitePos = getSatellitePosition(fallingPuyo);
+    const pivotX = fallingPuyo.pivot.pos.x;
+    const satelliteX = satellitePos.x;
+
+    // 軸ぷよの表示位置を最低でもdisplayY=2にするためのオフセットを計算
+    // y=1のとき displayY=0 → オフセット+2で displayY=2
+    // y=3のとき displayY=2 → オフセット0
+    const pivotDisplayY = fallingPuyo.pivot.pos.y - HIDDEN_ROWS;
+    let offset = Math.max(2 - pivotDisplayY, 0);
+
+    // オフセットを調整して、フィールドのぷよと重ならないようにする
+    while (offset > 0) {
+      const pivotDisplayYWithOffset = pivotDisplayY + offset;
+      const satelliteDisplayYWithOffset = (satellitePos.y - HIDDEN_ROWS) + offset;
+
+      // 表示位置に対応するフィールドのロジック位置
+      const pivotFieldY = pivotDisplayYWithOffset + HIDDEN_ROWS;
+      const satelliteFieldY = satelliteDisplayYWithOffset + HIDDEN_ROWS;
+
+      // その位置にフィールドのぷよがあるかチェック
+      const pivotOverlaps = pivotFieldY >= 0 && pivotFieldY < field.length &&
+                            field[pivotFieldY][pivotX] !== null;
+      const satelliteOverlaps = satelliteFieldY >= 0 && satelliteFieldY < field.length &&
+                                field[satelliteFieldY][satelliteX] !== null;
+
+      if (pivotOverlaps || satelliteOverlaps) {
+        offset--;
+      } else {
+        break;
+      }
+    }
+
+    fallingDisplayOffset = offset;
+
     fallingPositions.push({
       x: fallingPuyo.pivot.pos.x,
       y: fallingPuyo.pivot.pos.y,
       color: fallingPuyo.pivot.color,
     });
-    const satellitePos = getSatellitePosition(fallingPuyo);
     fallingPositions.push({
       x: satellitePos.x,
       y: satellitePos.y,
@@ -67,8 +102,8 @@ export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize, eras
         },
       ]}
     >
-      {/* グリッド背景 */}
-      {Array.from({ length: FIELD_ROWS }).map((_, y) => (
+      {/* グリッド背景（表示行のみ） */}
+      {Array.from({ length: VISIBLE_ROWS }).map((_, y) => (
         <View key={y} style={styles.row}>
           {Array.from({ length: FIELD_COLS }).map((_, x) => (
             <View
@@ -85,10 +120,12 @@ export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize, eras
         </View>
       ))}
 
-      {/* フィールド上のぷよ */}
+      {/* フィールド上のぷよ（隠し行も含めて表示） */}
       {field.map((row, y) =>
         row.map((color, x) => {
           if (color === null) return null;
+          // 隠し行（y=0）はdisplayY=-1となり、フィールド上部に表示される
+          const displayY = y - HIDDEN_ROWS;
           return (
             <View
               key={`${x}-${y}`}
@@ -96,7 +133,7 @@ export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize, eras
                 styles.puyoContainer,
                 {
                   left: x * cellSize,
-                  top: y * cellSize,
+                  top: displayY * cellSize,
                   width: cellSize,
                   height: cellSize,
                 },
@@ -108,52 +145,82 @@ export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize, eras
         })
       )}
 
-      {/* ゴースト（落下予定位置） */}
-      {ghostPositions.map((pos, index) => (
+      {/* ゴースト（落下予定位置、隠し行は表示しない） */}
+      {ghostPositions.map((pos, index) => {
+        if (pos.y < HIDDEN_ROWS) return null;
+        const displayY = pos.y - HIDDEN_ROWS;
+        return (
+          <View
+            key={`ghost-${index}`}
+            style={[
+              styles.puyoContainer,
+              {
+                left: pos.x * cellSize,
+                top: displayY * cellSize,
+                width: cellSize,
+                height: cellSize,
+              },
+            ]}
+          >
+            <Puyo color={pos.color as any} size={cellSize - 4} isGhost />
+          </View>
+        );
+      })}
+
+      {/* 操作中のぷよ（表示オフセット適用） */}
+      {fallingPositions.map((pos, index) => {
+        // 表示位置 = ロジック位置 - 隠し行 + オフセット
+        const displayY = pos.y - HIDDEN_ROWS + fallingDisplayOffset;
+        return (
+          <View
+            key={`falling-${index}`}
+            style={[
+              styles.puyoContainer,
+              {
+                left: pos.x * cellSize,
+                top: displayY * cellSize,
+                width: cellSize,
+                height: cellSize,
+              },
+            ]}
+          >
+            <Puyo color={pos.color as any} size={cellSize - 4} />
+          </View>
+        );
+      })}
+
+      {/* 消えるエフェクト（隠し行は表示しない） */}
+      {erasingPuyos.map((puyo, index) => {
+        if (puyo.pos.y < HIDDEN_ROWS) return null;
+        return (
+          <DisappearEffect
+            key={`effect-${puyo.pos.x}-${puyo.pos.y}-${index}`}
+            color={puyo.color}
+            x={puyo.pos.x}
+            y={puyo.pos.y - HIDDEN_ROWS}
+            cellSize={cellSize}
+            onComplete={index === 0 ? onEffectComplete : undefined}
+          />
+        );
+      })}
+
+      {/* ゲームオーバーゾーンのバツ印（ぷよの上にオーバーレイ表示） */}
+      {[2, 3].map((x) => (
         <View
-          key={`ghost-${index}`}
+          key={`gameover-mark-${x}`}
           style={[
-            styles.puyoContainer,
+            styles.gameOverMarkOverlay,
             {
-              left: pos.x * cellSize,
-              top: pos.y * cellSize,
+              left: x * cellSize,
+              top: 0,
               width: cellSize,
               height: cellSize,
             },
           ]}
         >
-          <Puyo color={pos.color as any} size={cellSize - 4} isGhost />
+          <View style={[styles.xLine, styles.xLine1, { width: cellSize * 0.6 }]} />
+          <View style={[styles.xLine, styles.xLine2, { width: cellSize * 0.6 }]} />
         </View>
-      ))}
-
-      {/* 操作中のぷよ */}
-      {fallingPositions.map((pos, index) => (
-        <View
-          key={`falling-${index}`}
-          style={[
-            styles.puyoContainer,
-            {
-              left: pos.x * cellSize,
-              top: pos.y * cellSize,
-              width: cellSize,
-              height: cellSize,
-            },
-          ]}
-        >
-          <Puyo color={pos.color as any} size={cellSize - 4} />
-        </View>
-      ))}
-
-      {/* 消えるエフェクト */}
-      {erasingPuyos.map((puyo, index) => (
-        <DisappearEffect
-          key={`effect-${puyo.pos.x}-${puyo.pos.y}-${index}`}
-          color={puyo.color}
-          x={puyo.pos.x}
-          y={puyo.pos.y}
-          cellSize={cellSize}
-          onComplete={index === 0 ? onEffectComplete : undefined}
-        />
       ))}
     </View>
   );
@@ -165,6 +232,7 @@ const styles = StyleSheet.create({
     borderWidth: BORDER_WIDTH,
     borderColor: '#4a4a6a',
     position: 'relative',
+    overflow: 'visible', // 隠しマス（上部）のぷよを表示するため
   },
   row: {
     flexDirection: 'row',
@@ -172,10 +240,30 @@ const styles = StyleSheet.create({
   cell: {
     borderWidth: 0.5,
     borderColor: '#2a2a4a',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   puyoContainer: {
     position: 'absolute',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  gameOverMarkOverlay: {
+    position: 'absolute',
+    justifyContent: 'center',
+    alignItems: 'center',
+    pointerEvents: 'none',
+  },
+  xLine: {
+    position: 'absolute',
+    height: 2,
+    backgroundColor: 'rgba(255, 100, 100, 0.4)',
+    borderRadius: 1,
+  },
+  xLine1: {
+    transform: [{ rotate: '45deg' }],
+  },
+  xLine2: {
+    transform: [{ rotate: '-45deg' }],
   },
 });

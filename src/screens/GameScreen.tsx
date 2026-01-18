@@ -4,7 +4,7 @@ import * as Haptics from 'expo-haptics';
 import { useGameStore } from '../store';
 import { ControlArea } from '../input';
 import { Field, NextDisplay, ScoreDisplay } from '../renderer';
-import { FIELD_COLS, FIELD_ROWS } from '../logic/types';
+import { FIELD_COLS, VISIBLE_ROWS } from '../logic/types';
 
 interface GameScreenProps {
   onBackToTitle: () => void;
@@ -28,7 +28,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle }) => {
   const maxFieldWidth = width - leftMargin - rightMargin;
   const maxFieldHeight = height * 0.6; // 操作エリア分の余裕を確保
   const cellSizeByWidth = Math.floor(maxFieldWidth / FIELD_COLS);
-  const cellSizeByHeight = Math.floor(maxFieldHeight / FIELD_ROWS);
+  const cellSizeByHeight = Math.floor(maxFieldHeight / VISIBLE_ROWS);
   const cellSize = Math.min(cellSizeByWidth, cellSizeByHeight);
 
   const handleRestart = useCallback(() => {
@@ -56,10 +56,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle }) => {
 
   return (
     <View style={styles.container}>
-      {/* ヘッダー */}
-      <View style={styles.header}>
-        <ScoreDisplay score={score} chainCount={chainCount} />
-      </View>
+      {/* 上部スペーサー（ノッチ対策 + 1マス分のマージン） */}
+      <View style={[styles.topSpacer, { height: 50 + cellSize }]} />
 
       {/* メインゲームエリア */}
       <ControlArea cellSize={cellSize} rightMargin={rightMargin}>
@@ -80,6 +78,11 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle }) => {
           </View>
         </View>
       </ControlArea>
+
+      {/* フッター（スコアと連鎖数表示） */}
+      <View style={styles.footer}>
+        <ScoreDisplay score={score} chainCount={chainCount} />
+      </View>
 
       {/* ゲームオーバー表示 */}
       {isGameOver && (
@@ -102,13 +105,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0a0a1a',
   },
-  header: {
-    paddingTop: 50,
-    paddingBottom: 4,
-    alignItems: 'center',
+  topSpacer: {
+    // height is set dynamically based on cellSize
   },
   fieldContainer: {
     position: 'relative',
+  },
+  footer: {
+    paddingVertical: 12,
+    alignItems: 'center',
   },
   nextOverlay: {
     position: 'absolute',

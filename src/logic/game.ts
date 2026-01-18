@@ -24,6 +24,7 @@ import {
   createFallingPuyo,
   generatePuyoPair,
   getSatellitePosition,
+  canPlace,
 } from './puyo';
 
 /**
@@ -64,6 +65,14 @@ export function spawnNextPuyo(state: GameState): GameState {
 
   const [pivotColor, satelliteColor] = state.nextQueue[0];
   const fallingPuyo = createFallingPuyo(pivotColor, satelliteColor);
+
+  // スポーン位置に配置できない場合はゲームオーバー
+  if (!canPlace(state.field, fallingPuyo)) {
+    return {
+      ...state,
+      phase: 'gameover',
+    };
+  }
 
   // 新しいNEXTを追加
   const newNextQueue = [...state.nextQueue.slice(1), generatePuyoPair()];

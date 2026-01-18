@@ -37,17 +37,25 @@ export function getSatellitePosition(fallingPuyo: FallingPuyo): Position {
 
 /**
  * 操作ぷよが指定位置に配置可能か
+ * サテライトがy < 0（隠し行より上）の場合も許可（設置時に消滅する）
  */
 export function canPlace(field: Field, fallingPuyo: FallingPuyo): boolean {
   const pivotPos = fallingPuyo.pivot.pos;
   const satellitePos = getSatellitePosition(fallingPuyo);
 
-  return (
-    isValidPosition(pivotPos) &&
-    isValidPosition(satellitePos) &&
-    isEmpty(field, pivotPos) &&
-    isEmpty(field, satellitePos)
-  );
+  // 軸ぷよは必ずフィールド内かつ空である必要がある
+  if (!isValidPosition(pivotPos) || !isEmpty(field, pivotPos)) {
+    return false;
+  }
+
+  // 子ぷよがフィールド上方向に出る場合は許可（設置時に消滅）
+  if (satellitePos.y < 0) {
+    // x座標はフィールド範囲内である必要がある
+    return satellitePos.x >= 0 && satellitePos.x < FIELD_COLS;
+  }
+
+  // 子ぷよがフィールド内の場合は通常のチェック
+  return isValidPosition(satellitePos) && isEmpty(field, satellitePos);
 }
 
 /**
@@ -212,7 +220,10 @@ export function generatePuyoPair(): [PuyoColor, PuyoColor] {
 }
 
 /**
- * 新しい操作ぷよを生成（初期位置：3列目の最上部）
+ * 新しい操作ぷよを生成（初期位置：3列目、隠し行）
+ * y=0は隠し行、y=1はゲームオーバーゾーン（バツ印表示位置）
+ * 軸ぷよはy=0（隠し行）に出現し、子ぷよはy=-1（フィールド外）に出現
+ * フィールド外のぷよは設置時に消滅する
  */
 export function createFallingPuyo(
   pivotColor: PuyoColor,
@@ -220,13 +231,13 @@ export function createFallingPuyo(
 ): FallingPuyo {
   return {
     pivot: {
-      pos: { x: 2, y: 1 }, // 3列目（インデックス2）、上から2段目
+      pos: { x: 2, y: 0 }, // 3列目（インデックス2）、隠し行
       color: pivotColor,
     },
     satellite: {
       color: satelliteColor,
     },
-    rotation: 0, // 子ぷよは上
+    rotation: 0, // 子ぷよは上（y=-1、フィールド外に出現）
   };
 }
 
@@ -264,21 +275,74 @@ export function setColumn(
 }
 
 /**
- * 回転状態を直接設定
+ * 回転状態を直接設定（壁蹴り対応）
  */
 export function setRotation(
   field: Field,
   fallingPuyo: FallingPuyo,
   rotation: Rotation
 ): FallingPuyo | null {
-  const newFallingPuyo: FallingPuyo = {
+  let newFallingPuyo: FallingPuyo = {
     ...fallingPuyo,
     rotation,
   };
 
+  // そのまま配置できる場合
   if (canPlace(field, newFallingPuyo)) {
     return newFallingPuyo;
   }
 
+  // 壁蹴り（回転先が壁や他のぷよにぶつかる場合、軸ぷよを移動させる）
+  const satelliteOffset = getSatelliteOffset(rotation);
+
+  // 回転先の子ぷよ位置
+  const newSatellitePos = {
+    x: fallingPuyo.pivot.pos.x + satelliteOffset.x,
+    y: fallingPuyo.pivot.pos.y + satelliteOffset.y,
+  };
+
+  // 壁蹴りの方向を決定
+  let kickX = 0;
+  let kickY = 0;
+
+  // 左右の壁蹴り
+  if (newSatellitePos.x < 0) {
+    kickX = 1;
+  } else if (newSatellitePos.x >= FIELD_COLS) {
+    kickX = -1;
+  } else if (!isEmpty(field, newSatellitePos)) {
+    // 他のぷよにぶつかる場合、逆方向に蹴る
+    kickX = -satelliteOffset.x;
+  }
+
+  // 床への壁蹴り（子ぷよが下にある場合）
+  if (newSatellitePos.y >= FIELD_ROWS) {
+    kickY = -1;
+  } else if (
+    isValidPosition(newSatellitePos) &&
+    !isEmpty(field, newSatellitePos) &&
+    satelliteOffset.y > 0
+  ) {
+    kickY = -1;
+  }
+
+  if (kickX !== 0 || kickY !== 0) {
+    newFallingPuyo = {
+      ...newFallingPuyo,
+      pivot: {
+        ...newFallingPuyo.pivot,
+        pos: {
+          x: fallingPuyo.pivot.pos.x + kickX,
+          y: fallingPuyo.pivot.pos.y + kickY,
+        },
+      },
+    };
+
+    if (canPlace(field, newFallingPuyo)) {
+      return newFallingPuyo;
+    }
+  }
+
+  // 配置不可
   return null;
 }
