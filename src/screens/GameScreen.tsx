@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions } from 'r
 import * as Haptics from 'expo-haptics';
 import { useGameStore } from '../store';
 import { ControlArea } from '../input';
-import { Field, NextDisplay, ScoreDisplay } from '../renderer';
+import { Field, NextDisplay, ScoreDisplay, OperationHistory } from '../renderer';
 import { FIELD_COLS, VISIBLE_ROWS } from '../logic/types';
 
 interface GameScreenProps {
@@ -21,11 +21,19 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle }) => {
   const dispatch = useGameStore((state) => state.dispatch);
   const erasingPuyos = useGameStore((state) => state.erasingPuyos);
   const clearErasingPuyos = useGameStore((state) => state.clearErasingPuyos);
+  const history = useGameStore((state) => state.history);
+  const restoreToSnapshot = useGameStore((state) => state.restoreToSnapshot);
+
+  // 履歴エリアの幅
+  const historyWidth = 70;
+  // 履歴サムネイルのセルサイズ
+  const historyCellSize = 4;
 
   // セルサイズを画面サイズに基づいて計算（右利き用：右マージン大きめ）
   const leftMargin = 4;
   const rightMargin = 20;
-  const maxFieldWidth = width - leftMargin - rightMargin;
+  // 履歴エリアを考慮してフィールドの最大幅を計算
+  const maxFieldWidth = width - leftMargin - rightMargin - historyWidth - 8;
   const maxFieldHeight = height * 0.6; // 操作エリア分の余裕を確保
   const cellSizeByWidth = Math.floor(maxFieldWidth / FIELD_COLS);
   const cellSizeByHeight = Math.floor(maxFieldHeight / VISIBLE_ROWS);
@@ -35,6 +43,10 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle }) => {
     dispatch({ type: 'RESTART_GAME' });
     onBackToTitle();
   }, [dispatch, onBackToTitle]);
+
+  const handleRestoreToSnapshot = useCallback((snapshotId: number) => {
+    restoreToSnapshot(snapshotId);
+  }, [restoreToSnapshot]);
 
   // 連鎖消去時のhaptic feedback
   const prevErasingCountRef = useRef(0);
@@ -59,25 +71,37 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle }) => {
       {/* 上部スペーサー（ノッチ対策 + 1マス分のマージン） */}
       <View style={[styles.topSpacer, { height: 50 + cellSize }]} />
 
-      {/* メインゲームエリア */}
-      <ControlArea cellSize={cellSize} rightMargin={rightMargin}>
-        {/* フィールドとNEXT表示のコンテナ */}
-        <View style={styles.fieldContainer}>
-          {/* フィールド */}
-          <Field
-            field={field}
-            fallingPuyo={fallingPuyo}
-            cellSize={cellSize}
-            erasingPuyos={erasingPuyos}
-            onEffectComplete={clearErasingPuyos}
+      {/* メインエリア（履歴 + ゲームフィールド） */}
+      <View style={styles.mainArea}>
+        {/* 左側：操作履歴 */}
+        <View style={[styles.historyContainer, { width: historyWidth }]}>
+          <OperationHistory
+            history={history}
+            cellSize={historyCellSize}
+            onRestoreToSnapshot={handleRestoreToSnapshot}
           />
-
-          {/* NEXT表示（フィールド右上にオーバーレイ） */}
-          <View style={styles.nextOverlay}>
-            <NextDisplay nextQueue={nextQueue} cellSize={cellSize * 0.6} />
-          </View>
         </View>
-      </ControlArea>
+
+        {/* 右側：ゲームエリア */}
+        <ControlArea cellSize={cellSize} rightMargin={rightMargin}>
+          {/* フィールドとNEXT表示のコンテナ */}
+          <View style={styles.fieldContainer}>
+            {/* フィールド */}
+            <Field
+              field={field}
+              fallingPuyo={fallingPuyo}
+              cellSize={cellSize}
+              erasingPuyos={erasingPuyos}
+              onEffectComplete={clearErasingPuyos}
+            />
+
+            {/* NEXT表示（フィールド右上にオーバーレイ） */}
+            <View style={styles.nextOverlay}>
+              <NextDisplay nextQueue={nextQueue} cellSize={cellSize * 0.6} />
+            </View>
+          </View>
+        </ControlArea>
+      </View>
 
       {/* フッター（スコアと連鎖数表示） */}
       <View style={styles.footer}>
@@ -107,6 +131,14 @@ const styles = StyleSheet.create({
   },
   topSpacer: {
     // height is set dynamically based on cellSize
+  },
+  mainArea: {
+    flex: 1,
+    flexDirection: 'row',
+    paddingLeft: 4,
+  },
+  historyContainer: {
+    marginRight: 4,
   },
   fieldContainer: {
     position: 'relative',

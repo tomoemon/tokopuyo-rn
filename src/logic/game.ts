@@ -22,22 +22,17 @@ import {
 import { calculateScore } from './score';
 import {
   createFallingPuyo,
-  generatePuyoPair,
   getSatellitePosition,
   canPlace,
 } from './puyo';
 
 /**
  * 初期ゲーム状態を作成
+ * @param nextQueue 初期NEXTキュー（外部から渡す）
  */
-export function createInitialGameState(): GameState {
-  // NEXTキューを3つ生成
-  const nextQueue: [PuyoColor, PuyoColor][] = [
-    generatePuyoPair(),
-    generatePuyoPair(),
-    generatePuyoPair(),
-  ];
-
+export function createInitialGameState(
+  nextQueue: [PuyoColor, PuyoColor][]
+): GameState {
   return {
     field: createEmptyField(),
     fallingPuyo: null,
@@ -50,15 +45,25 @@ export function createInitialGameState(): GameState {
 
 /**
  * ゲームを開始（最初のぷよを出す）
+ * @param state 現在のゲーム状態
+ * @param newPair 追加する新しいぷよペア（外部から渡す）
  */
-export function startGame(state: GameState): GameState {
-  return spawnNextPuyo(state);
+export function startGame(
+  state: GameState,
+  newPair: [PuyoColor, PuyoColor]
+): GameState {
+  return spawnNextPuyo(state, newPair);
 }
 
 /**
  * 次のぷよをスポーン
+ * @param state 現在のゲーム状態
+ * @param newPair 追加する新しいぷよペア（外部から渡す）
  */
-export function spawnNextPuyo(state: GameState): GameState {
+export function spawnNextPuyo(
+  state: GameState,
+  newPair: [PuyoColor, PuyoColor]
+): GameState {
   if (state.nextQueue.length === 0) {
     return state;
   }
@@ -75,7 +80,7 @@ export function spawnNextPuyo(state: GameState): GameState {
   }
 
   // 新しいNEXTを追加
-  const newNextQueue = [...state.nextQueue.slice(1), generatePuyoPair()];
+  const newNextQueue = [...state.nextQueue.slice(1), newPair];
 
   return {
     ...state,
@@ -176,11 +181,17 @@ export function isChainFinished(state: GameState): boolean {
 
 /**
  * 次のフェーズに進む
+ * @param state 現在のゲーム状態
+ * @param newPair 次のぷよスポーン時に追加する新しいぷよペア（スポーンが発生する場合に必要）
  */
-export function advancePhase(state: GameState): GameState {
+export function advancePhase(
+  state: GameState,
+  newPair?: [PuyoColor, PuyoColor]
+): GameState {
   switch (state.phase) {
     case 'ready':
-      return startGame(state);
+      if (!newPair) throw new Error('newPair is required for ready phase');
+      return startGame(state, newPair);
 
     case 'dropping':
       // 重力適用後、連鎖チェック
@@ -194,7 +205,8 @@ export function advancePhase(state: GameState): GameState {
         return { ...afterGravity, phase: 'gameover' };
       }
       // 次のぷよをスポーン
-      return spawnNextPuyo(afterGravity);
+      if (!newPair) throw new Error('newPair is required for spawning');
+      return spawnNextPuyo(afterGravity, newPair);
 
     case 'chaining':
       // 連鎖処理
@@ -210,7 +222,8 @@ export function advancePhase(state: GameState): GameState {
         return { ...afterChainGravity, phase: 'gameover' };
       }
       // 次のぷよをスポーン
-      return spawnNextPuyo(afterChainGravity);
+      if (!newPair) throw new Error('newPair is required for spawning');
+      return spawnNextPuyo(afterChainGravity, newPair);
 
     default:
       return state;

@@ -73,3 +73,17 @@ export type RotationDirection = 'cw' | 'ccw'; // clockwise / counter-clockwise
 
 // 移動方向
 export type MoveDirection = 'left' | 'right';
+
+// 乱数生成器の状態
+export type RngState = [number, number, number, number];
+
+// ゲーム状態のスナップショット（履歴用）
+export type GameSnapshot = {
+  id: number;
+  field: Field;
+  nextQueue: [PuyoColor, PuyoColor][];
+  score: number;
+  chainCount: number;
+  // 乱数系列を再現するための状態
+  rngState: RngState;
+};
