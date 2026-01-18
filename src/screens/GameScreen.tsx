@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions, Alert } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useGameStore, useConfigStore } from '../store';
 import { ControlArea } from '../input';
@@ -48,10 +48,21 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle, onOpenCon
   const BORDER_WIDTH = 3;
   const controlAreaWidth = cellSize * FIELD_COLS + BORDER_WIDTH * 2;
 
-  const handleRestart = useCallback(() => {
+  const handleBackToTitleDirect = useCallback(() => {
     dispatch({ type: 'RESTART_GAME' });
     onBackToTitle();
   }, [dispatch, onBackToTitle]);
+
+  const handleBackToTitleWithConfirm = useCallback(() => {
+    Alert.alert(
+      'タイトルに戻る',
+      '現在のゲームを終了してタイトル画面に戻りますか？',
+      [
+        { text: 'キャンセル', style: 'cancel' },
+        { text: '戻る', style: 'destructive', onPress: handleBackToTitleDirect },
+      ]
+    );
+  }, [handleBackToTitleDirect]);
 
   const handleRestoreToSnapshot = useCallback((snapshotId: number) => {
     restoreToSnapshot(snapshotId);
@@ -111,7 +122,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle, onOpenCon
 
             {/* ボタン行 */}
             <View style={[styles.buttonRow, { width: controlAreaWidth, marginLeft: largeMargin }]}>
-              <TouchableOpacity style={styles.smallButton} onPress={handleRestart}>
+              <TouchableOpacity style={styles.smallButton} onPress={handleBackToTitleWithConfirm}>
                 <Text style={styles.smallButtonText}>Title</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.smallButton} onPress={onOpenConfig}>
@@ -163,7 +174,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle, onOpenCon
 
             {/* ボタン行 */}
             <View style={[styles.buttonRow, { width: controlAreaWidth, alignSelf: 'flex-end', marginRight: largeMargin }]}>
-              <TouchableOpacity style={styles.smallButton} onPress={handleRestart}>
+              <TouchableOpacity style={styles.smallButton} onPress={handleBackToTitleWithConfirm}>
                 <Text style={styles.smallButtonText}>Title</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.smallButton} onPress={onOpenConfig}>
@@ -180,7 +191,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle, onOpenCon
           <View style={styles.gameOverContent}>
             <Text style={styles.gameOverText}>GAME OVER</Text>
             <Text style={styles.finalScore}>Score: {score.toLocaleString()}</Text>
-            <TouchableOpacity style={styles.restartButton} onPress={handleRestart}>
+            <TouchableOpacity style={styles.restartButton} onPress={handleBackToTitleDirect}>
               <Text style={styles.restartButtonText}>タイトルへ</Text>
             </TouchableOpacity>
           </View>
