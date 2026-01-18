@@ -37,17 +37,25 @@ export function getSatellitePosition(fallingPuyo: FallingPuyo): Position {
 
 /**
  * 操作ぷよが指定位置に配置可能か
+ * サテライトがy < 0（隠し行より上）の場合も許可（設置時に消滅する）
  */
 export function canPlace(field: Field, fallingPuyo: FallingPuyo): boolean {
   const pivotPos = fallingPuyo.pivot.pos;
   const satellitePos = getSatellitePosition(fallingPuyo);
 
-  return (
-    isValidPosition(pivotPos) &&
-    isValidPosition(satellitePos) &&
-    isEmpty(field, pivotPos) &&
-    isEmpty(field, satellitePos)
-  );
+  // 軸ぷよは必ずフィールド内かつ空である必要がある
+  if (!isValidPosition(pivotPos) || !isEmpty(field, pivotPos)) {
+    return false;
+  }
+
+  // 子ぷよがフィールド上方向に出る場合は許可（設置時に消滅）
+  if (satellitePos.y < 0) {
+    // x座標はフィールド範囲内である必要がある
+    return satellitePos.x >= 0 && satellitePos.x < FIELD_COLS;
+  }
+
+  // 子ぷよがフィールド内の場合は通常のチェック
+  return isValidPosition(satellitePos) && isEmpty(field, satellitePos);
 }
 
 /**
@@ -212,9 +220,10 @@ export function generatePuyoPair(): [PuyoColor, PuyoColor] {
 }
 
 /**
- * 新しい操作ぷよを生成（初期位置：3列目、表示行の最上段）
+ * 新しい操作ぷよを生成（初期位置：3列目、隠し行）
  * y=0は隠し行、y=1はゲームオーバーゾーン（バツ印表示位置）
- * 軸ぷよはy=1に出現し、子ぷよはy=0（隠しマス）に出現
+ * 軸ぷよはy=0（隠し行）に出現し、子ぷよはy=-1（フィールド外）に出現
+ * フィールド外のぷよは設置時に消滅する
  */
 export function createFallingPuyo(
   pivotColor: PuyoColor,
@@ -222,13 +231,13 @@ export function createFallingPuyo(
 ): FallingPuyo {
   return {
     pivot: {
-      pos: { x: 2, y: 1 }, // 3列目（インデックス2）、表示行の最上段
+      pos: { x: 2, y: 0 }, // 3列目（インデックス2）、隠し行
       color: pivotColor,
     },
     satellite: {
       color: satelliteColor,
     },
-    rotation: 0, // 子ぷよは上（y=0、隠しマスに出現）
+    rotation: 0, // 子ぷよは上（y=-1、フィールド外に出現）
   };
 }
 
