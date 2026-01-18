@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Field as FieldType, FallingPuyo, ErasingPuyo, FIELD_COLS, FIELD_ROWS } from '../../logic/types';
-import { getSatellitePosition } from '../../logic/puyo';
+import { getSatellitePosition, hardDropPuyo } from '../../logic/puyo';
 import { Puyo } from './Puyo';
 import { DisappearEffect } from './DisappearEffect';
 
@@ -21,6 +21,9 @@ export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize, eras
 
   // 操作中のぷよの位置
   const fallingPositions: { x: number; y: number; color: string }[] = [];
+  // ゴースト（落下予定位置）の位置
+  const ghostPositions: { x: number; y: number; color: string }[] = [];
+
   if (fallingPuyo) {
     fallingPositions.push({
       x: fallingPuyo.pivot.pos.x,
@@ -33,6 +36,25 @@ export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize, eras
       y: satellitePos.y,
       color: fallingPuyo.satellite.color,
     });
+
+    // ゴースト位置を計算（ハードドロップ後の位置）
+    const droppedPuyo = hardDropPuyo(field, fallingPuyo);
+    const ghostPivotPos = droppedPuyo.pivot.pos;
+    const ghostSatellitePos = getSatellitePosition(droppedPuyo);
+
+    // 現在位置と異なる場合のみゴーストを表示
+    if (ghostPivotPos.y !== fallingPuyo.pivot.pos.y) {
+      ghostPositions.push({
+        x: ghostPivotPos.x,
+        y: ghostPivotPos.y,
+        color: droppedPuyo.pivot.color,
+      });
+      ghostPositions.push({
+        x: ghostSatellitePos.x,
+        y: ghostSatellitePos.y,
+        color: droppedPuyo.satellite.color,
+      });
+    }
   }
 
   return (
@@ -85,6 +107,24 @@ export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize, eras
           );
         })
       )}
+
+      {/* ゴースト（落下予定位置） */}
+      {ghostPositions.map((pos, index) => (
+        <View
+          key={`ghost-${index}`}
+          style={[
+            styles.puyoContainer,
+            {
+              left: pos.x * cellSize,
+              top: pos.y * cellSize,
+              width: cellSize,
+              height: cellSize,
+            },
+          ]}
+        >
+          <Puyo color={pos.color as any} size={cellSize - 4} isGhost />
+        </View>
+      ))}
 
       {/* 操作中のぷよ */}
       {fallingPositions.map((pos, index) => (

@@ -1,5 +1,6 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { useGameStore } from '../store';
 import { ControlArea } from '../input';
 import { Field, NextDisplay, ScoreDisplay } from '../renderer';
@@ -34,6 +35,22 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle }) => {
     dispatch({ type: 'RESTART_GAME' });
     onBackToTitle();
   }, [dispatch, onBackToTitle]);
+
+  // 連鎖消去時のhaptic feedback
+  const prevErasingCountRef = useRef(0);
+  useEffect(() => {
+    if (erasingPuyos.length > 0 && prevErasingCountRef.current === 0) {
+      // 連鎖数に応じて強度を変える
+      if (chainCount >= 3) {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      } else if (chainCount >= 2) {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      } else {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+    }
+    prevErasingCountRef.current = erasingPuyos.length;
+  }, [erasingPuyos, chainCount]);
 
   const isGameOver = phase === 'gameover';
 
