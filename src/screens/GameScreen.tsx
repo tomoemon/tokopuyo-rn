@@ -25,7 +25,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle }) => {
   const restoreToSnapshot = useGameStore((state) => state.restoreToSnapshot);
 
   // 履歴エリアの幅
-  const historyWidth = 60;
+  const historyWidth = 80;
   // 履歴サムネイルのセルサイズ
   const historyCellSize = 6;
   // セルサイズを画面サイズに基づいて計算（右利き用：右マージン大きめ）
