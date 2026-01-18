@@ -105,7 +105,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle, onOpenCon
                   erasingPuyos={erasingPuyos}
                   onEffectComplete={clearErasingPuyos}
                 />
-                <View style={[styles.nextOverlay, styles.nextOverlayLeft]}>
+                <View style={[styles.nextOverlay, styles.nextOverlayRight]}>
                   <NextDisplay nextQueue={nextQueue} cellSize={cellSize * 0.6} />
                 </View>
               </View>
@@ -276,9 +276,6 @@ const styles = StyleSheet.create({
   },
   nextOverlayRight: {
     right: 8,
-  },
-  nextOverlayLeft: {
-    left: 8,
   },
   gameOverOverlay: {
     ...StyleSheet.absoluteFillObject,
