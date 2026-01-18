@@ -16,14 +16,22 @@ export class PuyoRng {
    * 現在のシード状態を取得（復元用）
    */
   getState(): RngState {
-    return [...this.rng.state] as RngState;
+    return [
+      this.rng._state0U,
+      this.rng._state0L,
+      this.rng._state1U,
+      this.rng._state1L,
+    ];
   }
 
   /**
    * シード状態を設定（復元用）
    */
   setState(state: RngState): void {
-    this.rng = new XorShift([...state] as RngState);
+    this.rng._state0U = state[0];
+    this.rng._state0L = state[1];
+    this.rng._state1U = state[2];
+    this.rng._state1L = state[3];
   }
 
   /**
