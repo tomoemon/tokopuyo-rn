@@ -5,7 +5,11 @@ import {
   ChainResult,
   ErasingPuyo,
   PuyoColor,
+  GameSnapshot,
+  RngState,
+  Position,
 } from '../logic/types';
+import { cloneField } from '../logic/field';
 import {
   createInitialGameState,
   startGame,
@@ -23,7 +27,9 @@ import {
   isLanded,
   setColumn,
   setRotation,
+  getSatellitePosition,
 } from '../logic/puyo';
+import { PuyoRng, generateSeed } from '../logic/random';
 import { GameAction } from './actions';
 
 interface GameStore extends GameState {
@@ -31,10 +37,16 @@ interface GameStore extends GameState {
   currentChainResult: ChainResult | null;
   // 消えているぷよ（エフェクト表示用）
   erasingPuyos: ErasingPuyo[];
+  // 操作履歴（スナップショット配列）
+  history: GameSnapshot[];
+  // 次のスナップショットID
+  nextSnapshotId: number;
 
   // アクション
   dispatch: (action: GameAction) => void;
   clearErasingPuyos: () => void;
+  // 履歴への復元
+  restoreToSnapshot: (snapshotId: number) => void;
 
   // 内部メソッド
   tick: () => void;
@@ -54,9 +66,10 @@ const DROP_INTERVAL = 1000;
 // 消去アニメーション開始までの遅延（ミリ秒）
 const ERASING_DELAY = 200;
 
+// グローバル乱数生成器
+let rng: PuyoRng = new PuyoRng(generateSeed());
+
 // 消えるぷよを検出してerasingフェーズに遷移する処理
-// 消えるぷよがあればerasingPuyosとphase: 'erasing'を含むオブジェクトを返す
-// なければnullを返す
 function detectErasingPuyos(
   field: GameState['field']
 ): { erasingPuyos: ErasingPuyo[]; phase: 'erasing' } | null {
@@ -77,9 +90,43 @@ function detectErasingPuyos(
   return { erasingPuyos, phase: 'erasing' };
 }
 
+// スナップショットを作成するヘルパー関数
+function createSnapshot(
+  state: GameState,
+  id: number,
+  rngState: RngState,
+  droppedPositions: Position[]
+): GameSnapshot {
+  return {
+    id,
+    field: cloneField(state.field),
+    nextQueue: state.nextQueue.map(pair => [...pair] as [PuyoColor, PuyoColor]),
+    score: state.score,
+    chainCount: state.chainCount,
+    rngState: [...rngState] as RngState,
+    droppedPositions,
+  };
+}
+
+// 初期状態を作成するヘルパー関数
+function createInitialState(): GameState & { history: GameSnapshot[]; nextSnapshotId: number } {
+  rng = new PuyoRng(generateSeed());
+  const nextQueue: [PuyoColor, PuyoColor][] = [
+    rng.nextPuyoPair(),
+    rng.nextPuyoPair(),
+    rng.nextPuyoPair(),
+  ];
+  const gameState = createInitialGameState(nextQueue);
+  return {
+    ...gameState,
+    history: [],
+    nextSnapshotId: 0,
+  };
+}
+
 export const useGameStore = create<GameStore>((set, get) => ({
   // 初期状態
-  ...createInitialGameState(),
+  ...createInitialState(),
   currentChainResult: null,
   erasingPuyos: [],
 
@@ -90,8 +137,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
     switch (action.type) {
       case 'START_GAME': {
         if (state.phase === 'ready') {
-          const newState = startGame(state);
-          set(newState);
+          // ゲーム開始前のスナップショットを保存（初期状態なので落下位置は空）
+          const rngState = rng.getState();
+          const initialSnapshot = createSnapshot(state, state.nextSnapshotId, rngState, []);
+
+          const newPair = rng.nextPuyoPair();
+          const newState = startGame(state, newPair);
+          set({
+            ...newState,
+            history: [initialSnapshot],
+            nextSnapshotId: state.nextSnapshotId + 1,
+          });
           get().startGameLoop();
         }
         break;
@@ -103,7 +159,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           clearTimeout(erasingDelayId);
           erasingDelayId = null;
         }
-        const newState = createInitialGameState();
+        const newState = createInitialState();
         set({ ...newState, currentChainResult: null, erasingPuyos: [] });
         break;
       }
@@ -160,14 +216,39 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
       case 'HARD_DROP': {
         if (state.phase === 'falling' && state.fallingPuyo) {
+          // 乱数状態を先に保存（復元用）
+          const rngStateBeforeDrop = rng.getState();
+
           const droppedPuyo = hardDropPuyo(state.field, state.fallingPuyo);
+
+          // 落下位置を記録
+          const pivotPos = droppedPuyo.pivot.pos;
+          const satellitePos = getSatellitePosition(droppedPuyo);
+          const droppedPositions: Position[] = [
+            { x: pivotPos.x, y: pivotPos.y },
+            { x: satellitePos.x, y: satellitePos.y },
+          ];
+
           const stateWithDroppedPuyo = updateFallingPuyo(state, droppedPuyo);
           const lockedState = lockFallingPuyo(stateWithDroppedPuyo);
-          const nextState = advancePhase(lockedState);
+
+          // 落下後のフィールドでスナップショットを作成（落下位置を含む）
+          const snapshot = createSnapshot(lockedState, state.nextSnapshotId, rngStateBeforeDrop, droppedPositions);
+
+          // 新しいぷよペアを生成
+          const newPair = rng.nextPuyoPair();
+          const nextState = advancePhase(lockedState, newPair);
+
+          // 履歴に追加
+          const newHistory = [...state.history, snapshot];
 
           // chainingフェーズになったら遅延後にerasingへ遷移
           if (nextState.phase === 'chaining') {
-            set(nextState);
+            set({
+              ...nextState,
+              history: newHistory,
+              nextSnapshotId: state.nextSnapshotId + 1,
+            });
             erasingDelayId = setTimeout(() => {
               const currentState = get();
               if (currentState.phase === 'chaining') {
@@ -179,7 +260,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
             }, ERASING_DELAY);
             return;
           }
-          set(nextState);
+          set({
+            ...nextState,
+            history: newHistory,
+            nextSnapshotId: state.nextSnapshotId + 1,
+          });
         }
         break;
       }
@@ -206,12 +291,67 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
   },
 
+  // 履歴への復元
+  restoreToSnapshot: (snapshotId: number) => {
+    const state = get();
+    const snapshotIndex = state.history.findIndex(s => s.id === snapshotId);
+    if (snapshotIndex === -1) return;
+
+    const snapshot = state.history[snapshotIndex];
+
+    // 乱数生成器の状態を復元
+    rng.setState(snapshot.rngState);
+
+    // NEXTキューを復元（ディープコピー）
+    const restoredNextQueue = snapshot.nextQueue.map(
+      pair => [...pair] as [PuyoColor, PuyoColor]
+    );
+
+    // 新しいぷよペアを生成してゲームを開始
+    const newPair = rng.nextPuyoPair();
+    const [pivotColor, satelliteColor] = restoredNextQueue[0];
+    const newNextQueue = [...restoredNextQueue.slice(1), newPair];
+
+    // フィールドを復元
+    const restoredField = cloneField(snapshot.field);
+
+    // 履歴をスナップショット時点まで切り詰める
+    const trimmedHistory = state.history.slice(0, snapshotIndex + 1);
+
+    // fallingPuyoを作成
+    const fallingPuyo: FallingPuyo = {
+      pivot: {
+        pos: { x: 2, y: 0 },
+        color: pivotColor,
+      },
+      satellite: {
+        color: satelliteColor,
+      },
+      rotation: 0,
+    };
+
+    set({
+      field: restoredField,
+      fallingPuyo,
+      nextQueue: newNextQueue,
+      score: snapshot.score,
+      chainCount: snapshot.chainCount,
+      phase: 'falling',
+      erasingPuyos: [],
+      currentChainResult: null,
+      history: trimmedHistory,
+    });
+  },
+
   // 消えているぷよをクリア（アニメーション完了時に呼ばれる）
   clearErasingPuyos: () => {
     const state = get();
     if (state.phase === 'erasing') {
+      // 新しいぷよペアを生成
+      const newPair = rng.nextPuyoPair();
+
       // アニメーション完了後、連鎖処理を実行して次のフェーズへ
-      const afterChainState = advancePhase({ ...state, phase: 'chaining' });
+      const afterChainState = advancePhase({ ...state, phase: 'chaining' }, newPair);
 
       // 次の連鎖があれば遅延後にerasingへ遷移
       if (afterChainState.phase === 'chaining') {
@@ -239,8 +379,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     // fallingフェーズでは自動落下しない（下スワイプで落下）
     if (state.phase === 'dropping') {
+      // 新しいぷよペアを生成
+      const newPair = rng.nextPuyoPair();
+
       // 落下中は自動で進める
-      const nextState = advancePhase(state);
+      const nextState = advancePhase(state, newPair);
 
       // chainingフェーズになったら遅延後にerasingへ遷移
       if (nextState.phase === 'chaining') {

@@ -15,3 +15,6 @@ export * from './puyo';
 
 // ゲーム進行
 export * from './game';
+
+// 乱数生成
+export * from './random';
