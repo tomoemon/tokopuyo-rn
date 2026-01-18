@@ -212,9 +212,9 @@ export function generatePuyoPair(): [PuyoColor, PuyoColor] {
 }
 
 /**
- * 新しい操作ぷよを生成（初期位置：3列目、表示行の上から2段目）
+ * 新しい操作ぷよを生成（初期位置：3列目、表示行の最上段）
  * y=0は隠し行、y=1はゲームオーバーゾーン（バツ印表示位置）
- * 軸ぷよはy=2に出現し、子ぷよはy=1（ゲームオーバーゾーン）に出現
+ * 軸ぷよはy=1に出現し、子ぷよはy=0（隠しマス）に出現
  */
 export function createFallingPuyo(
   pivotColor: PuyoColor,
@@ -222,13 +222,13 @@ export function createFallingPuyo(
 ): FallingPuyo {
   return {
     pivot: {
-      pos: { x: 2, y: 2 }, // 3列目（インデックス2）、表示行の上から2段目
+      pos: { x: 2, y: 1 }, // 3列目（インデックス2）、表示行の最上段
       color: pivotColor,
     },
     satellite: {
       color: satelliteColor,
     },
-    rotation: 0, // 子ぷよは上（y=1、ゲームオーバーゾーンに出現）
+    rotation: 0, // 子ぷよは上（y=0、隠しマスに出現）
   };
 }
 
