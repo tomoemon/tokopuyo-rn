@@ -4,9 +4,10 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 interface TitleScreenProps {
   onStartGame: () => void;
   onOpenConfig: () => void;
+  onOpenHistory: () => void;
 }
 
-export const TitleScreen: React.FC<TitleScreenProps> = ({ onStartGame, onOpenConfig }) => {
+export const TitleScreen: React.FC<TitleScreenProps> = ({ onStartGame, onOpenConfig, onOpenHistory }) => {
   return (
     <View style={styles.container}>
       <View style={styles.titleContainer}>
@@ -20,6 +21,10 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({ onStartGame, onOpenCon
 
       <TouchableOpacity style={styles.configButton} onPress={onOpenConfig}>
         <Text style={styles.configButtonText}>Config</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.historyButton} onPress={onOpenHistory}>
+        <Text style={styles.historyButtonText}>History</Text>
       </TouchableOpacity>
     </View>
   );
@@ -73,6 +78,19 @@ const styles = StyleSheet.create({
     borderColor: '#666666',
   },
   configButtonText: {
+    color: '#888888',
+    fontSize: 18,
+  },
+  historyButton: {
+    marginTop: 16,
+    backgroundColor: 'transparent',
+    paddingHorizontal: 40,
+    paddingVertical: 12,
+    borderRadius: 25,
+    borderWidth: 2,
+    borderColor: '#666666',
+  },
+  historyButtonText: {
     color: '#888888',
     fontSize: 18,
   },

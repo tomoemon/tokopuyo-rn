@@ -33,6 +33,7 @@ import {
 } from '../logic/puyo';
 import { PuyoRng, generateSeed } from '../logic/random';
 import { GameAction } from './actions';
+import { useGameHistoryStore } from './gameHistoryStore';
 
 interface GameStore extends GameState {
   // 現在の連鎖結果（エフェクト表示用）
@@ -141,6 +142,9 @@ export const useGameStore = create<GameStore>()(
     switch (action.type) {
       case 'START_GAME': {
         if (state.phase === 'ready') {
+          // ゲーム履歴に新しいゲームを開始
+          useGameHistoryStore.getState().startNewGame();
+
           // ゲーム開始前のスナップショットを保存（初期状態なので落下位置は空）
           const rngState = rng.getState();
           const initialSnapshot = createSnapshot(state, state.nextSnapshotId, rngState, []);
@@ -152,6 +156,10 @@ export const useGameStore = create<GameStore>()(
             history: [initialSnapshot],
             nextSnapshotId: state.nextSnapshotId + 1,
           });
+
+          // ゲーム履歴を更新（初期状態）
+          useGameHistoryStore.getState().updateCurrentGame(newState.field, newState.score, 0);
+
           get().startGameLoop();
         }
         break;
@@ -253,6 +261,14 @@ export const useGameStore = create<GameStore>()(
               history: newHistory,
               nextSnapshotId: state.nextSnapshotId + 1,
             });
+
+            // ゲーム履歴を更新
+            useGameHistoryStore.getState().updateCurrentGame(
+              nextState.field,
+              nextState.score,
+              nextState.chainCount
+            );
+
             erasingDelayId = setTimeout(() => {
               const currentState = get();
               if (currentState.phase === 'chaining') {
@@ -269,6 +285,13 @@ export const useGameStore = create<GameStore>()(
             history: newHistory,
             nextSnapshotId: state.nextSnapshotId + 1,
           });
+
+          // ゲーム履歴を更新
+          useGameHistoryStore.getState().updateCurrentGame(
+            nextState.field,
+            nextState.score,
+            nextState.chainCount
+          );
         }
         break;
       }
@@ -360,6 +383,14 @@ export const useGameStore = create<GameStore>()(
       // 次の連鎖があれば遅延後にerasingへ遷移
       if (afterChainState.phase === 'chaining') {
         set({ ...afterChainState, erasingPuyos: [] });
+
+        // ゲーム履歴を更新（連鎖中のスコアと連鎖数を保存）
+        useGameHistoryStore.getState().updateCurrentGame(
+          afterChainState.field,
+          afterChainState.score,
+          afterChainState.chainCount
+        );
+
         erasingDelayId = setTimeout(() => {
           const currentState = get();
           if (currentState.phase === 'chaining') {
@@ -372,6 +403,13 @@ export const useGameStore = create<GameStore>()(
         return;
       }
       set({ ...afterChainState, erasingPuyos: [] });
+
+      // ゲーム履歴を更新（連鎖完了後の状態を保存）
+      useGameHistoryStore.getState().updateCurrentGame(
+        afterChainState.field,
+        afterChainState.score,
+        afterChainState.chainCount
+      );
     } else {
       set({ erasingPuyos: [] });
     }
