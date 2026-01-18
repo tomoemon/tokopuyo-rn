@@ -81,14 +81,11 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle, onOpenCon
       <View style={[styles.topSpacer, { height: 50 + cellSize }]} />
 
       {/* メインエリア（履歴 + ゲームフィールド） */}
-      <View style={[
-        styles.mainArea,
-        { paddingLeft: leftMargin, paddingRight: rightMargin }
-      ]}>
+      <View style={styles.mainArea}>
         {/* 左利きモード：ゲームエリアが先 */}
         {!isRightHanded && (
-          <View style={[styles.gameAreaContainer, { paddingLeft: leftMargin }]}>
-            <ControlArea cellSize={cellSize} sideMargin={leftMargin} isRightHanded={false}>
+          <View style={styles.gameAreaContainer}>
+            <ControlArea cellSize={cellSize} sideMargin={largeMargin} isRightHanded={false}>
               <View style={styles.fieldContainer}>
                 <Field
                   field={field}
@@ -104,7 +101,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle, onOpenCon
             </ControlArea>
 
             {/* スコアと連鎖数（操作エリアの直下） */}
-            <View style={[styles.scoreRow, { width: controlAreaWidth }]}>
+            <View style={[styles.scoreRow, { width: controlAreaWidth, marginLeft: largeMargin }]}>
               <View style={[styles.chainContainer, { opacity: chainCount > 0 ? 1 : 0 }]}>
                 <Text style={styles.chainCount}>{chainCount || 1}</Text>
                 <Text style={styles.chainLabel}>連鎖</Text>
@@ -113,7 +110,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle, onOpenCon
             </View>
 
             {/* ボタン行 */}
-            <View style={[styles.buttonRow, { width: controlAreaWidth }]}>
+            <View style={[styles.buttonRow, { width: controlAreaWidth, marginLeft: largeMargin }]}>
               <TouchableOpacity style={styles.smallButton} onPress={handleRestart}>
                 <Text style={styles.smallButtonText}>Title</Text>
               </TouchableOpacity>
@@ -135,8 +132,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle, onOpenCon
 
         {/* 右利きモード：ゲームエリアが後 */}
         {isRightHanded && (
-          <View style={[styles.gameAreaContainer, { paddingRight: rightMargin }]}>
-            <ControlArea cellSize={cellSize} sideMargin={rightMargin} isRightHanded={true}>
+          <View style={styles.gameAreaContainer}>
+            <ControlArea cellSize={cellSize} sideMargin={largeMargin} isRightHanded={true}>
               <View style={styles.fieldContainer}>
                 <Field
                   field={field}
@@ -152,7 +149,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle, onOpenCon
             </ControlArea>
 
             {/* スコアと連鎖数（操作エリアの直下） */}
-            <View style={[styles.scoreRow, { width: controlAreaWidth, alignSelf: 'flex-end' }]}>
+            <View style={[styles.scoreRow, { width: controlAreaWidth, alignSelf: 'flex-end', marginRight: largeMargin }]}>
               <View style={[styles.chainContainer, { opacity: chainCount > 0 ? 1 : 0 }]}>
                 <Text style={styles.chainCount}>{chainCount || 1}</Text>
                 <Text style={styles.chainLabel}>連鎖</Text>
@@ -161,7 +158,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle, onOpenCon
             </View>
 
             {/* ボタン行 */}
-            <View style={[styles.buttonRow, { width: controlAreaWidth, alignSelf: 'flex-end' }]}>
+            <View style={[styles.buttonRow, { width: controlAreaWidth, alignSelf: 'flex-end', marginRight: largeMargin }]}>
               <TouchableOpacity style={styles.smallButton} onPress={handleRestart}>
                 <Text style={styles.smallButtonText}>Title</Text>
               </TouchableOpacity>
