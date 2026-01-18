@@ -266,21 +266,74 @@ export function setColumn(
 }
 
 /**
- * 回転状態を直接設定
+ * 回転状態を直接設定（壁蹴り対応）
  */
 export function setRotation(
   field: Field,
   fallingPuyo: FallingPuyo,
   rotation: Rotation
 ): FallingPuyo | null {
-  const newFallingPuyo: FallingPuyo = {
+  let newFallingPuyo: FallingPuyo = {
     ...fallingPuyo,
     rotation,
   };
 
+  // そのまま配置できる場合
   if (canPlace(field, newFallingPuyo)) {
     return newFallingPuyo;
   }
 
+  // 壁蹴り（回転先が壁や他のぷよにぶつかる場合、軸ぷよを移動させる）
+  const satelliteOffset = getSatelliteOffset(rotation);
+
+  // 回転先の子ぷよ位置
+  const newSatellitePos = {
+    x: fallingPuyo.pivot.pos.x + satelliteOffset.x,
+    y: fallingPuyo.pivot.pos.y + satelliteOffset.y,
+  };
+
+  // 壁蹴りの方向を決定
+  let kickX = 0;
+  let kickY = 0;
+
+  // 左右の壁蹴り
+  if (newSatellitePos.x < 0) {
+    kickX = 1;
+  } else if (newSatellitePos.x >= FIELD_COLS) {
+    kickX = -1;
+  } else if (!isEmpty(field, newSatellitePos)) {
+    // 他のぷよにぶつかる場合、逆方向に蹴る
+    kickX = -satelliteOffset.x;
+  }
+
+  // 床への壁蹴り（子ぷよが下にある場合）
+  if (newSatellitePos.y >= FIELD_ROWS) {
+    kickY = -1;
+  } else if (
+    isValidPosition(newSatellitePos) &&
+    !isEmpty(field, newSatellitePos) &&
+    satelliteOffset.y > 0
+  ) {
+    kickY = -1;
+  }
+
+  if (kickX !== 0 || kickY !== 0) {
+    newFallingPuyo = {
+      ...newFallingPuyo,
+      pivot: {
+        ...newFallingPuyo.pivot,
+        pos: {
+          x: fallingPuyo.pivot.pos.x + kickX,
+          y: fallingPuyo.pivot.pos.y + kickY,
+        },
+      },
+    };
+
+    if (canPlace(field, newFallingPuyo)) {
+      return newFallingPuyo;
+    }
+  }
+
+  // 配置不可
   return null;
 }
