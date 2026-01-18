@@ -180,7 +180,7 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
           setTimeout(() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          }, 80);
+          }, 150);
         }
         return;
       }
