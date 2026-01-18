@@ -56,8 +56,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle }) => {
 
   return (
     <View style={styles.container}>
-      {/* 上部スペーサー */}
-      <View style={styles.topSpacer} />
+      {/* 上部スペーサー（ノッチ対策 + 2マス分のマージン） */}
+      <View style={[styles.topSpacer, { height: 50 + cellSize * 2 }]} />
 
       {/* メインゲームエリア */}
       <ControlArea cellSize={cellSize} rightMargin={rightMargin}>
@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#0a0a1a',
   },
   topSpacer: {
-    paddingTop: 50,
+    // height is set dynamically based on cellSize
   },
   fieldContainer: {
     position: 'relative',

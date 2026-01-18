@@ -80,15 +80,7 @@ export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize, eras
                   height: cellSize,
                 },
               ]}
-            >
-              {/* ゲームオーバーゾーンのバツ印（表示行最上段の3列目と4列目） */}
-              {y === 0 && (x === 2 || x === 3) && (
-                <View style={styles.gameOverMark}>
-                  <View style={[styles.xLine, styles.xLine1, { width: cellSize * 0.6 }]} />
-                  <View style={[styles.xLine, styles.xLine2, { width: cellSize * 0.6 }]} />
-                </View>
-              )}
-            </View>
+            />
           ))}
         </View>
       ))}
@@ -176,6 +168,25 @@ export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize, eras
           />
         );
       })}
+
+      {/* ゲームオーバーゾーンのバツ印（ぷよの上にオーバーレイ表示） */}
+      {[2, 3].map((x) => (
+        <View
+          key={`gameover-mark-${x}`}
+          style={[
+            styles.gameOverMarkOverlay,
+            {
+              left: x * cellSize,
+              top: 0,
+              width: cellSize,
+              height: cellSize,
+            },
+          ]}
+        >
+          <View style={[styles.xLine, styles.xLine1, { width: cellSize * 0.6 }]} />
+          <View style={[styles.xLine, styles.xLine2, { width: cellSize * 0.6 }]} />
+        </View>
+      ))}
     </View>
   );
 };
@@ -201,12 +212,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  gameOverMark: {
+  gameOverMarkOverlay: {
     position: 'absolute',
-    width: '100%',
-    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
+    pointerEvents: 'none',
   },
   xLine: {
     position: 'absolute',
