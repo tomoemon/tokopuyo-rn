@@ -93,11 +93,11 @@ export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize, eras
         </View>
       ))}
 
-      {/* フィールド上のぷよ（隠し行は表示しない） */}
+      {/* フィールド上のぷよ（隠し行も含めて表示） */}
       {field.map((row, y) =>
         row.map((color, x) => {
-          // 隠し行（y < HIDDEN_ROWS）は表示しない
-          if (color === null || y < HIDDEN_ROWS) return null;
+          if (color === null) return null;
+          // 隠し行（y=0）はdisplayY=-1となり、フィールド上部に表示される
           const displayY = y - HIDDEN_ROWS;
           return (
             <View
@@ -205,6 +205,7 @@ const styles = StyleSheet.create({
     borderWidth: BORDER_WIDTH,
     borderColor: '#4a4a6a',
     position: 'relative',
+    overflow: 'visible', // 隠しマス（上部）のぷよを表示するため
   },
   row: {
     flexDirection: 'row',
