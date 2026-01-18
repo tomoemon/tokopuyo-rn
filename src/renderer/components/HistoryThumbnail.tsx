@@ -135,17 +135,13 @@ const styles = StyleSheet.create({
   },
   field: {
     backgroundColor: '#1a1a2e',
-    borderWidth: 1,
-    borderColor: '#4a4a6a',
     position: 'relative',
-    overflow: 'hidden',
   },
   row: {
     flexDirection: 'row',
   },
   cell: {
-    borderWidth: 0.5,
-    borderColor: 'rgba(42, 42, 74, 0.5)',
+    // グリッド線は省略（サイズを正確に保つため）
   },
   puyo: {
     position: 'absolute',
