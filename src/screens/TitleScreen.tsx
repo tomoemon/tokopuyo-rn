@@ -3,9 +3,10 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
 interface TitleScreenProps {
   onStartGame: () => void;
+  onOpenConfig: () => void;
 }
 
-export const TitleScreen: React.FC<TitleScreenProps> = ({ onStartGame }) => {
+export const TitleScreen: React.FC<TitleScreenProps> = ({ onStartGame, onOpenConfig }) => {
   return (
     <View style={styles.container}>
       <View style={styles.titleContainer}>
@@ -17,12 +18,9 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({ onStartGame }) => {
         <Text style={styles.startButtonText}>START</Text>
       </TouchableOpacity>
 
-      <View style={styles.instructionsContainer}>
-        <Text style={styles.instructionsTitle}>操作方法</Text>
-        <Text style={styles.instruction}>← → スワイプ : 移動</Text>
-        <Text style={styles.instruction}>↓ スワイプ : 落下</Text>
-        <Text style={styles.instruction}>タップ : 回転</Text>
-      </View>
+      <TouchableOpacity style={styles.configButton} onPress={onOpenConfig}>
+        <Text style={styles.configButtonText}>Config</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -65,18 +63,17 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
   },
-  instructionsContainer: {
-    marginTop: 60,
-    alignItems: 'center',
+  configButton: {
+    marginTop: 30,
+    backgroundColor: 'transparent',
+    paddingHorizontal: 40,
+    paddingVertical: 12,
+    borderRadius: 25,
+    borderWidth: 2,
+    borderColor: '#666666',
   },
-  instructionsTitle: {
+  configButtonText: {
     color: '#888888',
-    fontSize: 16,
-    marginBottom: 12,
-  },
-  instruction: {
-    color: '#666666',
-    fontSize: 14,
-    marginVertical: 4,
+    fontSize: 18,
   },
 });

@@ -23,7 +23,8 @@ src/
 │   └── index.ts
 │
 ├── store/                    # 状態管理（Zustand）
-│   ├── gameStore.ts          # ゲーム状態ストア・アクションディスパッチ
+│   ├── gameStore.ts          # ゲーム状態ストア・アクションディスパッチ（永続化対応）
+│   ├── configStore.ts        # 設定ストア（利き手設定、永続化対応）
 │   ├── actions.ts            # アクション型定義
 │   └── index.ts
 │
@@ -44,6 +45,7 @@ src/
 └── screens/                  # 画面
     ├── TitleScreen.tsx       # タイトル画面
     ├── GameScreen.tsx        # ゲーム画面
+    ├── ConfigScreen.tsx      # 設定画面（モーダル）
     └── index.ts
 ```
 
@@ -67,6 +69,39 @@ src/
   - `rngState`: 乱数生成器の状態
   - `droppedPositions`: 落下させたぷよの位置
 
+## 画面構成
+
+### タイトル画面 (TitleScreen)
+- STARTボタン: ゲーム開始
+- Configボタン: 設定画面を開く
+
+### ゲーム画面 (GameScreen)
+- フィールド: 6列×12段のゲームフィールド
+- 操作エリア: フィールド直下のタッチ操作領域
+- NEXTぷよ: フィールド右上に表示
+- 履歴エリア: フィールドの反対側に配置
+- スコア表示: 操作エリア直下の右側
+- 連鎖数表示: 操作エリア直下の左側
+- Title/Configボタン: スコア表示の下
+
+### 設定画面 (ConfigScreen)
+- モーダル形式で現在の画面の上に表示
+- 利き手設定（右利き/左利き）の切り替え
+
+## 利き手設定（Handedness）
+
+プレイヤーの利き手に合わせてレイアウトを切り替え可能:
+
+### 右利きモード（デフォルト）
+- フィールドと操作エリアが画面右側
+- 履歴エリアが画面左側
+
+### 左利きモード
+- フィールドと操作エリアが画面左側
+- 履歴エリアが画面右側
+
+設定はConfig画面から変更可能。アプリ再起動後も設定は保持される。
+
 ## 操作システム (src/input/ControlAreaInput.tsx)
 
 操作エリアでのタッチ操作を処理:
@@ -77,8 +112,11 @@ src/
 
 ## ゲームストア (src/store/gameStore.ts)
 
-Zustandを使用した状態管理。主なアクション:
+Zustandを使用した状態管理。AsyncStorageによる永続化対応。
+
+### 主なアクション
 - `START_GAME`: ゲーム開始
+- `RESTART_GAME`: ゲームリセット
 - `MOVE_LEFT` / `MOVE_RIGHT`: 左右移動
 - `ROTATE_CW` / `ROTATE_CCW`: 回転
 - `HARD_DROP`: ハードドロップ
@@ -86,9 +124,25 @@ Zustandを使用した状態管理。主なアクション:
 - `SET_ROTATION`: 回転状態を直接設定
 - `TICK`: ゲームループのティック処理
 
+### 永続化される項目
+- フィールド状態
+- NEXTキュー
+- スコア
+- 連鎖数
+- ゲームフェーズ
+- 操作履歴
+- スナップショットID
+
+## 設定ストア (src/store/configStore.ts)
+
+Zustandを使用した設定管理。AsyncStorageによる永続化対応。
+
+### 設定項目
+- `handedness`: 利き手設定 (`'right'` | `'left'`)
+
 ## 操作履歴機能
 
-フィールドの左側に操作履歴を一覧表示する機能。
+フィールドの横に操作履歴を一覧表示する機能。
 
 ### 機能概要
 - ぷよを落下させるたびにゲーム状態のスナップショットを保存
@@ -110,6 +164,27 @@ Zustandを使用した状態管理。主なアクション:
 - `OperationHistory`: 履歴一覧のスクロールビューと復元確認モーダル
 - `PuyoRng`: xorshiftライブラリのラッパークラス
 
+## ゲームオーバー表示
+
+ゲームオーバー時の表示:
+- フィールドと操作エリアがグレーアウト（opacity: 0.4）
+- フィールド上に薄い赤色のオーバーレイと「GAME OVER」テキストを表示
+- 操作エリアへのタッチ入力は無効化
+- 履歴からの復元操作は可能（過去の状態に戻れる）
+- Title/Configボタンは引き続き使用可能
+
+## データ永続化
+
+AsyncStorage + Zustand persistミドルウェアを使用:
+
+### 保存されるデータ
+- **configStore**: 利き手設定
+- **gameStore**: ゲーム状態（フィールド、スコア、履歴など）
+
+### 復元時の処理
+- 最後のスナップショットから乱数状態を復元
+- 進行中だったゲームはreadyフェーズに戻す
+
 ## 開発コマンド
 
 ```bash
@@ -117,3 +192,13 @@ npm start        # Expo開発サーバー起動
 npm run android  # Androidで実行
 npm run ios      # iOSで実行
 ```
+
+## 依存パッケージ
+
+- `expo`: Expoフレームワーク
+- `react-native`: React Native
+- `zustand`: 状態管理
+- `@react-native-async-storage/async-storage`: データ永続化
+- `expo-haptics`: 触覚フィードバック
+- `react-native-gesture-handler`: ジェスチャー処理
+- `xorshift`: 疑似乱数生成

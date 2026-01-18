@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   GameState,
   FallingPuyo,
@@ -124,7 +126,9 @@ function createInitialState(): GameState & { history: GameSnapshot[]; nextSnapsh
   };
 }
 
-export const useGameStore = create<GameStore>((set, get) => ({
+export const useGameStore = create<GameStore>()(
+  persist(
+    (set, get) => ({
   // 初期状態
   ...createInitialState(),
   currentChainResult: null,
@@ -427,4 +431,36 @@ export const useGameStore = create<GameStore>((set, get) => ({
       gameLoopId = null;
     }
   },
-}));
+}),
+    {
+      name: 'tokopuyo-game',
+      storage: createJSONStorage(() => AsyncStorage),
+      // 永続化する項目を選択（関数やエフェクト状態は除外）
+      partialize: (state) => ({
+        field: state.field,
+        nextQueue: state.nextQueue,
+        score: state.score,
+        chainCount: state.chainCount,
+        phase: state.phase,
+        history: state.history,
+        nextSnapshotId: state.nextSnapshotId,
+      }),
+      // 復元時の処理
+      onRehydrateStorage: () => (state) => {
+        if (state && state.history.length > 0) {
+          // 最後のスナップショットから乱数状態を復元
+          const lastSnapshot = state.history[state.history.length - 1];
+          rng.setState(lastSnapshot.rngState);
+
+          // 進行中だったゲームがある場合、readyフェーズに戻す
+          // （fallingPuyoは永続化されないため）
+          if (state.phase === 'falling' || state.phase === 'dropping' ||
+              state.phase === 'chaining' || state.phase === 'erasing') {
+            // 次のゲーム開始時に正しく動作するようにreadyに
+            useGameStore.setState({ phase: 'ready', fallingPuyo: null });
+          }
+        }
+      },
+    }
+  )
+);
