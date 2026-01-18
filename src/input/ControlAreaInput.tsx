@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   View,
   PanResponder,
@@ -32,6 +32,9 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
   const startPosRef = useRef({ x: 0, y: 0 });
   const currentSwipeRef = useRef<{ dx: number; dy: number }>({ dx: 0, dy: 0 });
   const initialColumnRef = useRef<number | null>(null);
+  // 操作エリアのページ上の位置を記録
+  const controlAreaLayoutRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const controlAreaViewRef = useRef<View>(null);
 
   // 視覚的フィードバック用の状態
   const [activeColumn, setActiveColumn] = useState<number | null>(null);
@@ -113,10 +116,10 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
       currentSwipeRef.current = { dx: 0, dy: 0 };
 
       // タッチした列を計算して設定
-      // locationXは操作エリア内の相対位置（ボーダー幅を考慮）
+      // pageXから操作エリアの位置を引いて相対位置を計算（locationXは素早いタップで不正確になることがある）
       const BORDER_WIDTH = 3;
-      const adjustedX = locationX - BORDER_WIDTH;
-      const column = Math.floor(adjustedX / cellSize);
+      const relativeX = pageX - controlAreaLayoutRef.current.x - BORDER_WIDTH;
+      const column = Math.floor(relativeX / cellSize);
       const clampedColumn = Math.max(0, Math.min(FIELD_COLS - 1, column));
       initialColumnRef.current = clampedColumn;
 
@@ -228,21 +231,24 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
     [dispatch]
   );
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: handleTouchStart,
-      onPanResponderMove: handleTouchMove,
-      onPanResponderRelease: handleTouchEnd,
-      onPanResponderTerminate: handleTouchEnd,
-    })
-  ).current;
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onPanResponderGrant: handleTouchStart,
+        onPanResponderMove: handleTouchMove,
+        onPanResponderRelease: handleTouchEnd,
+        onPanResponderTerminate: handleTouchEnd,
+      }),
+    [handleTouchStart, handleTouchMove, handleTouchEnd]
+  );
 
   return (
     <View style={[styles.container, { paddingRight: rightMargin }]}>
       {children}
       <View
+        ref={controlAreaViewRef}
         style={[
           styles.controlArea,
           {
@@ -250,6 +256,12 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, rightMargin,
             height: cellSize * 3,
           },
         ]}
+        onLayout={() => {
+          // ビューのページ上の位置を取得
+          controlAreaViewRef.current?.measureInWindow((x, y) => {
+            controlAreaLayoutRef.current = { x, y };
+          });
+        }}
         {...panResponder.panHandlers}
       >
         {/* 6列の縦線（タッチイベントは親に伝播） */}
