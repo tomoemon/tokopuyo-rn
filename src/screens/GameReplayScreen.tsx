@@ -30,6 +30,9 @@ export const GameReplayScreen: React.FC<GameReplayScreenProps> = ({ entry, onBac
   const [animatingChainCount, setAnimatingChainCount] = useState(0);
   const [animatingScore, setAnimatingScore] = useState(0);
 
+  // 連鎖後のフィールド状態をキャッシュ（インデックス -> 連鎖後フィールド）
+  const [finalFieldCache, setFinalFieldCache] = useState<Map<number, FieldType>>(new Map());
+
   // タイマー参照
   const chainTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -48,8 +51,8 @@ export const GameReplayScreen: React.FC<GameReplayScreenProps> = ({ entry, onBac
   // 現在のスナップショット
   const currentSnapshot = history[currentIndex];
 
-  // 表示用のフィールド（アニメーション中はアニメーション用フィールドを使用）
-  const displayField = animatingField ?? currentSnapshot.field;
+  // 表示用のフィールド（優先順位: アニメーション中 > キャッシュ > スナップショット）
+  const displayField = animatingField ?? finalFieldCache.get(currentIndex) ?? currentSnapshot.field;
   const displayChainCount = isAnimating ? animatingChainCount : currentSnapshot.chainCount;
   const displayScore = isAnimating ? animatingScore : currentSnapshot.score;
 
@@ -164,16 +167,24 @@ export const GameReplayScreen: React.FC<GameReplayScreenProps> = ({ entry, onBac
         setErasingPuyos(nextErasing);
       }, CHAIN_DELAY);
     } else {
-      // 連鎖終了 - 次のスナップショットに移動
+      // 連鎖終了 - 連鎖後のフィールドをキャッシュに保存
+      const nextIndex = currentIndex + 1;
+      setFinalFieldCache((prev) => {
+        const newCache = new Map(prev);
+        newCache.set(nextIndex, newField);
+        return newCache;
+      });
+
+      // 次のスナップショットに移動
       setIsAnimating(false);
       setAnimatingField(null);
       setErasingPuyos([]);
       setAnimatingChainCount(0);
       setAnimatingScore(0);
-      setCurrentIndex((prev) => Math.min(maxIndex, prev + 1));
+      setCurrentIndex(nextIndex);
     }
   }, [animatingField, isAnimating, erasingPuyos, animatingChainCount, animatingScore,
-      detectErasingPuyos, calculateChainScore, maxIndex]);
+      detectErasingPuyos, calculateChainScore, maxIndex, currentIndex]);
 
   // ナビゲーション関数
   const goToFirst = useCallback(() => {
