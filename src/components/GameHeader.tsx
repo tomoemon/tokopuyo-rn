@@ -3,16 +3,22 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
 interface GameHeaderProps {
   onBack: () => void;
-  onConfig: () => void;
-  score: number;
   backDisabled?: boolean;
+  // 中央コンテンツ: title か score のどちらか
+  title?: string;
+  score?: number;
+  // 右側: Config ボタンを表示するか
+  showConfig?: boolean;
+  onConfig?: () => void;
 }
 
 export const GameHeader: React.FC<GameHeaderProps> = ({
   onBack,
-  onConfig,
-  score,
   backDisabled = false,
+  title,
+  score,
+  showConfig = true,
+  onConfig,
 }) => {
   return (
     <View style={styles.header}>
@@ -24,13 +30,23 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
         <Text style={[styles.buttonText, backDisabled && styles.buttonTextDisabled]}>Back</Text>
       </TouchableOpacity>
 
-      <View style={styles.scoreContainer}>
-        <Text style={styles.score}>{score.toLocaleString()}</Text>
-      </View>
+      {/* 中央コンテンツ */}
+      {title ? (
+        <Text style={styles.title}>{title}</Text>
+      ) : (
+        <View style={styles.scoreContainer}>
+          <Text style={styles.score}>{(score ?? 0).toLocaleString()}</Text>
+        </View>
+      )}
 
-      <TouchableOpacity style={styles.button} onPress={onConfig}>
-        <Text style={styles.buttonText}>Config</Text>
-      </TouchableOpacity>
+      {/* 右側コンテンツ */}
+      {showConfig && onConfig ? (
+        <TouchableOpacity style={styles.button} onPress={onConfig}>
+          <Text style={styles.buttonText}>Config</Text>
+        </TouchableOpacity>
+      ) : (
+        <View style={styles.placeholder} />
+      )}
     </View>
   );
 };
@@ -60,10 +76,15 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#888',
-    fontSize: 14,
+    fontSize: 16,
   },
   buttonTextDisabled: {
     color: '#444',
+  },
+  title: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   scoreContainer: {
     flex: 1,
@@ -74,5 +95,8 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 24,
     fontWeight: 'bold',
+  },
+  placeholder: {
+    minWidth: 70,
   },
 });
