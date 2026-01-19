@@ -33,6 +33,7 @@ import {
 } from '../logic/puyo';
 import { PuyoRng, generateSeed } from '../logic/random';
 import { GameAction } from './actions';
+import { useGameHistoryStore } from './gameHistoryStore';
 
 interface GameStore extends GameState {
   // 現在の連鎖結果（エフェクト表示用）
@@ -49,6 +50,8 @@ interface GameStore extends GameState {
   clearErasingPuyos: () => void;
   // 履歴への復元
   restoreToSnapshot: (snapshotId: number) => void;
+  // ゲーム履歴からゲームを再開
+  resumeFromHistory: (gameHistoryId: string, fromFavorites?: boolean) => boolean;
 
   // 内部メソッド
   tick: () => void;
@@ -141,6 +144,9 @@ export const useGameStore = create<GameStore>()(
     switch (action.type) {
       case 'START_GAME': {
         if (state.phase === 'ready') {
+          // ゲーム履歴に新しいゲームを開始
+          useGameHistoryStore.getState().startNewGame();
+
           // ゲーム開始前のスナップショットを保存（初期状態なので落下位置は空）
           const rngState = rng.getState();
           const initialSnapshot = createSnapshot(state, state.nextSnapshotId, rngState, []);
@@ -152,6 +158,16 @@ export const useGameStore = create<GameStore>()(
             history: [initialSnapshot],
             nextSnapshotId: state.nextSnapshotId + 1,
           });
+
+          // ゲーム履歴を更新（初期状態）
+          useGameHistoryStore.getState().updateCurrentGame(
+            newState.field,
+            newState.score,
+            0,
+            [initialSnapshot],
+            state.nextSnapshotId + 1
+          );
+
           get().startGameLoop();
         }
         break;
@@ -253,6 +269,16 @@ export const useGameStore = create<GameStore>()(
               history: newHistory,
               nextSnapshotId: state.nextSnapshotId + 1,
             });
+
+            // ゲーム履歴を更新
+            useGameHistoryStore.getState().updateCurrentGame(
+              nextState.field,
+              nextState.score,
+              nextState.chainCount,
+              newHistory,
+              state.nextSnapshotId + 1
+            );
+
             erasingDelayId = setTimeout(() => {
               const currentState = get();
               if (currentState.phase === 'chaining') {
@@ -269,6 +295,15 @@ export const useGameStore = create<GameStore>()(
             history: newHistory,
             nextSnapshotId: state.nextSnapshotId + 1,
           });
+
+          // ゲーム履歴を更新
+          useGameHistoryStore.getState().updateCurrentGame(
+            nextState.field,
+            nextState.score,
+            nextState.chainCount,
+            newHistory,
+            state.nextSnapshotId + 1
+          );
         }
         break;
       }
@@ -347,6 +382,84 @@ export const useGameStore = create<GameStore>()(
     });
   },
 
+  // ゲーム履歴からゲームを再開
+  resumeFromHistory: (gameHistoryId: string, fromFavorites: boolean = false) => {
+    const gameHistoryStore = useGameHistoryStore.getState();
+    const entry = fromFavorites
+      ? gameHistoryStore.getFavoriteEntry(gameHistoryId)
+      : gameHistoryStore.getEntry(gameHistoryId);
+    if (!entry || entry.operationHistory.length === 0) {
+      return false;
+    }
+
+    // 現在のゲームループを停止
+    get().stopGameLoop();
+    if (erasingDelayId !== null) {
+      clearTimeout(erasingDelayId);
+      erasingDelayId = null;
+    }
+
+    // 最後のスナップショットを取得
+    const lastSnapshot = entry.operationHistory[entry.operationHistory.length - 1];
+
+    // 乱数生成器の状態を復元
+    rng.setState(lastSnapshot.rngState);
+
+    // NEXTキューを復元（ディープコピー）
+    const restoredNextQueue = lastSnapshot.nextQueue.map(
+      pair => [...pair] as [PuyoColor, PuyoColor]
+    );
+
+    // 新しいぷよペアを生成してゲームを開始
+    const newPair = rng.nextPuyoPair();
+    const [pivotColor, satelliteColor] = restoredNextQueue[0];
+    const newNextQueue = [...restoredNextQueue.slice(1), newPair];
+
+    // フィールドを復元
+    const restoredField = cloneField(lastSnapshot.field);
+
+    // 操作履歴を復元（ディープコピー）
+    const restoredHistory = entry.operationHistory.map(s => ({
+      ...s,
+      field: cloneField(s.field),
+      nextQueue: s.nextQueue.map(pair => [...pair] as [PuyoColor, PuyoColor]),
+      rngState: [...s.rngState] as RngState,
+    }));
+
+    // fallingPuyoを作成
+    const fallingPuyo: FallingPuyo = {
+      pivot: {
+        pos: { x: 2, y: 0 },
+        color: pivotColor,
+      },
+      satellite: {
+        color: satelliteColor,
+      },
+      rotation: 0,
+    };
+
+    set({
+      field: restoredField,
+      fallingPuyo,
+      nextQueue: newNextQueue,
+      score: lastSnapshot.score,
+      chainCount: lastSnapshot.chainCount,
+      phase: 'falling',
+      erasingPuyos: [],
+      currentChainResult: null,
+      history: restoredHistory,
+      nextSnapshotId: entry.nextSnapshotId,
+    });
+
+    // ゲーム履歴の現在のゲームIDを設定
+    gameHistoryStore.setCurrentGameId(gameHistoryId);
+
+    // ゲームループを開始
+    get().startGameLoop();
+
+    return true;
+  },
+
   // 消えているぷよをクリア（アニメーション完了時に呼ばれる）
   clearErasingPuyos: () => {
     const state = get();
@@ -360,6 +473,16 @@ export const useGameStore = create<GameStore>()(
       // 次の連鎖があれば遅延後にerasingへ遷移
       if (afterChainState.phase === 'chaining') {
         set({ ...afterChainState, erasingPuyos: [] });
+
+        // ゲーム履歴を更新（連鎖中のスコアと連鎖数を保存）
+        useGameHistoryStore.getState().updateCurrentGame(
+          afterChainState.field,
+          afterChainState.score,
+          afterChainState.chainCount,
+          state.history,
+          state.nextSnapshotId
+        );
+
         erasingDelayId = setTimeout(() => {
           const currentState = get();
           if (currentState.phase === 'chaining') {
@@ -372,6 +495,15 @@ export const useGameStore = create<GameStore>()(
         return;
       }
       set({ ...afterChainState, erasingPuyos: [] });
+
+      // ゲーム履歴を更新（連鎖完了後の状態を保存）
+      useGameHistoryStore.getState().updateCurrentGame(
+        afterChainState.field,
+        afterChainState.score,
+        afterChainState.chainCount,
+        state.history,
+        state.nextSnapshotId
+      );
     } else {
       set({ erasingPuyos: [] });
     }
