@@ -5,7 +5,7 @@ import { useConfigStore } from '../store';
 import { GameHistoryEntry } from '../store/gameHistoryStore';
 import { Field, NextDisplay, OperationHistory } from '../renderer';
 import { GameHeader } from '../components';
-import { FIELD_COLS, VISIBLE_ROWS, ErasingPuyo, Field as FieldType } from '../logic/types';
+import { FIELD_COLS, TOTAL_ROWS, HIDDEN_ROWS, ErasingPuyo, Field as FieldType } from '../logic/types';
 import { findErasableGroups, flattenGroups } from '../logic/chain';
 import { getPuyo, applyGravity, removePuyos, cloneField } from '../logic/field';
 
@@ -77,7 +77,7 @@ export const GameReplayScreen: React.FC<GameReplayScreenProps> = ({ entry, onBac
   const maxFieldWidth = width - leftMargin - rightMargin - historyWidth;
   const maxFieldHeight = height * 0.6;
   const cellSizeByWidth = Math.floor(maxFieldWidth / FIELD_COLS);
-  const cellSizeByHeight = Math.floor(maxFieldHeight / VISIBLE_ROWS);
+  const cellSizeByHeight = Math.floor(maxFieldHeight / TOTAL_ROWS);
   const cellSize = Math.min(cellSizeByWidth, cellSizeByHeight);
 
   // コントロールエリアの幅
@@ -85,7 +85,7 @@ export const GameReplayScreen: React.FC<GameReplayScreenProps> = ({ entry, onBac
   const controlAreaWidth = cellSize * FIELD_COLS + BORDER_WIDTH * 2;
 
   // フィールドの高さ
-  const fieldHeight = cellSize * VISIBLE_ROWS + BORDER_WIDTH * 2;
+  const fieldHeight = cellSize * TOTAL_ROWS + BORDER_WIDTH * 2;
   // 再生コントロールの高さ（概算）
   const replayControlsHeight = 80;
   // 履歴枠の高さ = フィールド + 再生コントロール
@@ -303,12 +303,12 @@ export const GameReplayScreen: React.FC<GameReplayScreenProps> = ({ entry, onBac
           erasingPuyos={erasingPuyos}
           onEffectComplete={handleEffectComplete}
         />
-        <View style={[styles.nextOverlay, styles.nextOverlayRight]}>
+        <View style={[styles.nextOverlay, { top: HIDDEN_ROWS * cellSize + 8, right: 8 }]}>
           <NextDisplay nextQueue={currentSnapshot.nextQueue} cellSize={cellSize * 0.6} />
         </View>
-        {/* 連鎖数オーバレイ（左上） */}
+        {/* 連鎖数オーバレイ（可視マスの左上） */}
         {displayChainCount > 0 && (
-          <View style={styles.chainOverlay}>
+          <View style={[styles.chainOverlay, { top: HIDDEN_ROWS * cellSize + 8 }]}>
             <Text style={styles.chainCount}>{displayChainCount}</Text>
             <Text style={styles.chainLabel}>連鎖</Text>
           </View>
@@ -428,17 +428,12 @@ const styles = StyleSheet.create({
   },
   nextOverlay: {
     position: 'absolute',
-    top: 8,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     borderRadius: 8,
     padding: 4,
   },
-  nextOverlayRight: {
-    right: 8,
-  },
   chainOverlay: {
     position: 'absolute',
-    top: 8,
     left: 8,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     borderRadius: 8,

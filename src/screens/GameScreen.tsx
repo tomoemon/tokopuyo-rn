@@ -5,7 +5,7 @@ import { useGameStore, useConfigStore } from '../store';
 import { ControlArea } from '../input';
 import { Field, NextDisplay, OperationHistory } from '../renderer';
 import { GameHeader } from '../components';
-import { FIELD_COLS, VISIBLE_ROWS } from '../logic/types';
+import { FIELD_COLS, TOTAL_ROWS, HIDDEN_ROWS } from '../logic/types';
 
 interface GameScreenProps {
   onBackToTitle: () => void;
@@ -42,12 +42,12 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle, onOpenCon
   const maxFieldWidth = width - leftMargin - rightMargin - historyWidth;
   const maxFieldHeight = height * 0.6; // 操作エリア分の余裕を確保
   const cellSizeByWidth = Math.floor(maxFieldWidth / FIELD_COLS);
-  const cellSizeByHeight = Math.floor(maxFieldHeight / VISIBLE_ROWS);
+  const cellSizeByHeight = Math.floor(maxFieldHeight / TOTAL_ROWS);
   const cellSize = Math.min(cellSizeByWidth, cellSizeByHeight);
 
   // フィールドの高さ
   const BORDER_WIDTH = 3;
-  const fieldHeight = cellSize * VISIBLE_ROWS + BORDER_WIDTH * 2;
+  const fieldHeight = cellSize * TOTAL_ROWS + BORDER_WIDTH * 2;
   // 操作エリアの高さ（cellSize * 3 + marginTop + borderWidth * 2）
   const controlAreaHeight = cellSize * 3 + 10 + BORDER_WIDTH * 2;
   // 履歴枠の高さ = フィールド + 操作エリア
@@ -104,12 +104,12 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle, onOpenCon
               erasingPuyos={erasingPuyos}
               onEffectComplete={clearErasingPuyos}
             />
-            <View style={[styles.nextOverlay, styles.nextOverlayRight]}>
+            <View style={[styles.nextOverlay, { top: HIDDEN_ROWS * cellSize + 8, right: 8 }]}>
               <NextDisplay nextQueue={nextQueue} cellSize={cellSize * 0.6} />
             </View>
-            {/* 連鎖数オーバレイ（左上） */}
+            {/* 連鎖数オーバレイ（可視マスの左上） */}
             {chainCount > 0 && (
-              <View style={styles.chainOverlay}>
+              <View style={[styles.chainOverlay, { top: HIDDEN_ROWS * cellSize + 8 }]}>
                 <Text style={styles.chainCount}>{chainCount}</Text>
                 <Text style={styles.chainLabel}>連鎖</Text>
               </View>
@@ -183,17 +183,12 @@ const styles = StyleSheet.create({
   },
   nextOverlay: {
     position: 'absolute',
-    top: 8,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     borderRadius: 8,
     padding: 4,
   },
-  nextOverlayRight: {
-    right: 8,
-  },
   chainOverlay: {
     position: 'absolute',
-    top: 8,
     left: 8,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     borderRadius: 8,
