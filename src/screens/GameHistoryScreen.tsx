@@ -440,10 +440,10 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
               {autocompleteSuggestions.slice(0, 5).map((tag, index) => (
                 <TouchableOpacity
                   key={index}
-                  style={styles.suggestionItem}
+                  style={styles.suggestionTag}
                   onPress={() => handleAddFilterTag(tag)}
                 >
-                  <Text style={styles.suggestionText}>{tag}</Text>
+                  <Text style={styles.suggestionTagText}>{tag}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -773,22 +773,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   suggestionsContainer: {
-    backgroundColor: '#1a1a2e',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#3a3a5a',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
     marginBottom: 8,
-    overflow: 'hidden',
   },
-  suggestionItem: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#2a2a4a',
+  suggestionTag: {
+    backgroundColor: '#2a2a4a',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
-  suggestionText: {
-    color: '#fff',
-    fontSize: 14,
+  suggestionTagText: {
+    color: '#aaccff',
+    fontSize: 12,
   },
   popularTagsList: {
     flexDirection: 'row',
