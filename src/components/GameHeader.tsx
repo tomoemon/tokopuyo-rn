@@ -10,6 +10,8 @@ interface GameHeaderProps {
   // 右側: Config ボタンを表示するか
   showConfig?: boolean;
   onConfig?: () => void;
+  // 下部ボーダーを表示するか
+  showBorder?: boolean;
 }
 
 export const GameHeader: React.FC<GameHeaderProps> = ({
@@ -19,9 +21,10 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
   score,
   showConfig = true,
   onConfig,
+  showBorder = true,
 }) => {
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, showBorder && styles.headerBorder]}>
       <TouchableOpacity
         style={[styles.button, backDisabled && styles.buttonDisabled]}
         onPress={onBack}
@@ -59,6 +62,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 60,
     paddingBottom: 16,
+  },
+  headerBorder: {
     borderBottomWidth: 1,
     borderBottomColor: '#333',
   },

@@ -333,6 +333,7 @@ export const GameReplayScreen: React.FC<GameReplayScreenProps> = ({ entry, onBac
         onConfig={onOpenConfig}
         score={displayScore}
         backDisabled={isAnimating}
+        showBorder={false}
       />
 
       {/* メインエリア（履歴 + ゲームフィールド） */}

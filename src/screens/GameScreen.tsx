@@ -132,6 +132,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle, onOpenCon
         onBack={handleBackToTitleWithConfirm}
         onConfig={onOpenConfig}
         score={score}
+        showBorder={false}
       />
 
       {/* メインエリア（履歴 + ゲームフィールド） */}

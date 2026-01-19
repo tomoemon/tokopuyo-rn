@@ -239,7 +239,10 @@ export const useGameStore = create<GameStore>()(
           // 乱数状態を先に保存（復元用）
           const rngStateBeforeDrop = rng.getState();
 
-          const droppedPuyo = hardDropPuyo(state.field, state.fallingPuyo);
+          // 新しいぷよを落下させる前に連鎖数をリセット
+          const stateWithResetChain = { ...state, chainCount: 0 };
+
+          const droppedPuyo = hardDropPuyo(stateWithResetChain.field, stateWithResetChain.fallingPuyo!);
 
           // 落下位置を記録
           const pivotPos = droppedPuyo.pivot.pos;
@@ -249,7 +252,7 @@ export const useGameStore = create<GameStore>()(
             { x: satellitePos.x, y: satellitePos.y },
           ];
 
-          const stateWithDroppedPuyo = updateFallingPuyo(state, droppedPuyo);
+          const stateWithDroppedPuyo = updateFallingPuyo(stateWithResetChain, droppedPuyo);
           const lockedState = lockFallingPuyo(stateWithDroppedPuyo);
 
           // 落下後のフィールドでスナップショットを作成（落下位置を含む）
