@@ -24,8 +24,13 @@ src/
 │
 ├── store/                    # 状態管理（Zustand）
 │   ├── gameStore.ts          # ゲーム状態ストア・アクションディスパッチ（永続化対応）
+│   ├── gameHistoryStore.ts   # ゲーム履歴ストア（History/Favorite管理、永続化対応）
 │   ├── configStore.ts        # 設定ストア（利き手設定、永続化対応）
 │   ├── actions.ts            # アクション型定義
+│   └── index.ts
+│
+├── components/               # 共通コンポーネント
+│   ├── DismissableModal.tsx  # 背景タップで閉じるモーダル
 │   └── index.ts
 │
 ├── renderer/                 # 描画コンポーネント
@@ -45,6 +50,7 @@ src/
 └── screens/                  # 画面
     ├── TitleScreen.tsx       # タイトル画面
     ├── GameScreen.tsx        # ゲーム画面
+    ├── GameHistoryScreen.tsx # ゲーム履歴画面（History/Favorite タブ）
     ├── ConfigScreen.tsx      # 設定画面（モーダル）
     └── index.ts
 ```
@@ -87,6 +93,32 @@ src/
 ### 設定画面 (ConfigScreen)
 - モーダル形式で現在の画面の上に表示
 - 利き手設定（右利き/左利き）の切り替え
+
+### ゲーム履歴画面 (GameHistoryScreen)
+過去のゲーム記録を管理する画面。History タブと Favorite タブで構成。
+
+#### History タブ
+- ゲーム終了時に自動保存された履歴を一覧表示
+- 各アイテムの表示内容: サムネイル、日時、スコア、ドロップ数、連鎖数
+- ☆アイコン: Favorite に追加（追加後は✓に変化）
+- ⋮アイコン（右上）: 削除確認ダイアログを表示
+
+#### Favorite タブ
+- History から追加したお気に入りを一覧表示
+- 各アイテムの表示内容: サムネイル、日時、スコア、ドロップ数、連鎖数、Note、Tags
+- ✎アイコン: 編集モーダルを表示（Note/Tags の編集）
+- ⋮アイコン（右上）: 削除確認ダイアログを表示
+
+#### タグ検索/フィルター機能
+- Favorite タブ上部に検索バーを常時表示
+- 使用頻度順にタグを一覧表示（タップでフィルターに追加）
+- テキスト入力でオートコンプリート候補を表示
+- 複数タグ選択時は AND 検索（すべてのタグを含むアイテムのみ表示）
+- 選択中のタグは青いバッジで表示、タップで削除可能
+
+#### 共通機能
+- アイテムタップで Resume 確認ダイアログを表示
+- すべてのダイアログは背景タップで閉じることが可能
 
 ## 利き手設定（Handedness）
 
@@ -139,6 +171,52 @@ Zustandを使用した設定管理。AsyncStorageによる永続化対応。
 
 ### 設定項目
 - `handedness`: 利き手設定 (`'right'` | `'left'`)
+
+## ゲーム履歴ストア (src/store/gameHistoryStore.ts)
+
+Zustandを使用したゲーム履歴管理。AsyncStorageによる永続化対応。
+
+### GameHistoryEntry 型
+- `id`: エントリID
+- `field`: フィールド状態
+- `score`: スコア
+- `maxChainCount`: 最大連鎖数
+- `dropCount`: ドロップ数
+- `lastPlayedAt`: 最終プレイ日時（ISO文字列）
+- `operationHistory`: 操作履歴（GameSnapshot配列）
+- `nextSnapshotId`: 次のスナップショットID
+- `note`: メモ（Favorite用）
+- `tags`: タグ配列（Favorite用）
+
+### 主な機能
+- `entries`: History エントリ一覧
+- `favorites`: Favorite エントリ一覧
+- `addEntry`: 新規エントリ追加
+- `deleteEntry`: History からエントリ削除
+- `addToFavorites`: History から Favorite にコピー
+- `deleteFavorite`: Favorite からエントリ削除
+- `updateFavoriteDetails`: Favorite の Note/Tags を更新
+- `isInFavorites`: 指定IDが Favorite に存在するか確認
+
+## 共通コンポーネント (src/components/)
+
+### DismissableModal
+背景タップで閉じることができるモーダルコンポーネント。
+
+```tsx
+<DismissableModal
+  visible={isVisible}
+  onDismiss={() => setIsVisible(false)}
+  animationType="fade"
+>
+  <View>{/* モーダルコンテンツ */}</View>
+</DismissableModal>
+```
+
+- `Pressable` を使用した標準的な実装
+- 背景タップで `onDismiss` コールバックが呼ばれる
+- コンテンツ内のタップはイベントを吸収（閉じない）
+- `overlayStyle` / `contentStyle` でスタイルカスタマイズ可能
 
 ## 操作履歴機能
 
