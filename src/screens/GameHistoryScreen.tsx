@@ -108,8 +108,8 @@ const HistoryItem: React.FC<{
   isInFavorites: boolean;
   onPress: () => void;
   onAddToFavorite: () => void;
-  onDelete: () => void;
-}> = ({ entry, isInFavorites, onPress, onAddToFavorite, onDelete }) => {
+  onMenuPress: () => void;
+}> = ({ entry, isInFavorites, onPress, onAddToFavorite, onMenuPress }) => {
   return (
     <TouchableOpacity style={styles.itemContainer} onPress={onPress} activeOpacity={0.7}>
       <FieldThumbnail entry={entry} />
@@ -139,13 +139,13 @@ const HistoryItem: React.FC<{
         </TouchableOpacity>
       )}
       <TouchableOpacity
-        style={styles.iconButton}
+        style={styles.menuIconButton}
         onPress={(e) => {
           e.stopPropagation();
-          onDelete();
+          onMenuPress();
         }}
       >
-        <Text style={styles.trashIcon}>🗑</Text>
+        <Text style={styles.menuIcon}>⋮</Text>
       </TouchableOpacity>
     </TouchableOpacity>
   );
@@ -155,9 +155,9 @@ const HistoryItem: React.FC<{
 const FavoriteItem: React.FC<{
   entry: GameHistoryEntry;
   onPress: () => void;
-  onDelete: () => void;
+  onMenuPress: () => void;
   onEdit: () => void;
-}> = ({ entry, onPress, onDelete, onEdit }) => {
+}> = ({ entry, onPress, onMenuPress, onEdit }) => {
   const tags = entry.tags || [];
   return (
     <TouchableOpacity style={styles.favoriteItemContainer} onPress={onPress} activeOpacity={0.7}>
@@ -196,13 +196,13 @@ const FavoriteItem: React.FC<{
         <Text style={styles.penIcon}>✎</Text>
       </TouchableOpacity>
       <TouchableOpacity
-        style={styles.iconButton}
+        style={styles.menuIconButton}
         onPress={(e) => {
           e.stopPropagation();
-          onDelete();
+          onMenuPress();
         }}
       >
-        <Text style={styles.trashIcon}>🗑</Text>
+        <Text style={styles.menuIcon}>⋮</Text>
       </TouchableOpacity>
     </TouchableOpacity>
   );
@@ -222,6 +222,9 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
   const [deleteFromFavorites, setDeleteFromFavorites] = useState(false);
   const [resumeConfirmId, setResumeConfirmId] = useState<string | null>(null);
   const [resumeFromFavorites, setResumeFromFavorites] = useState(false);
+  // メニューポップアップ用の状態
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [menuFromFavorites, setMenuFromFavorites] = useState(false);
   // 編集モーダル用の状態
   const [editId, setEditId] = useState<string | null>(null);
   const [editNote, setEditNote] = useState('');
@@ -288,6 +291,14 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
     setEditTags(editTags.filter(tag => tag !== tagToRemove));
   };
 
+  const handleMenuDelete = () => {
+    if (menuOpenId) {
+      setDeleteConfirmId(menuOpenId);
+      setDeleteFromFavorites(menuFromFavorites);
+      setMenuOpenId(null);
+    }
+  };
+
   const resumeEntry = resumeFromFavorites
     ? favorites.find(e => e.id === resumeConfirmId)
     : entries.find(e => e.id === resumeConfirmId);
@@ -349,9 +360,9 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
                     setResumeFromFavorites(false);
                   }}
                   onAddToFavorite={() => addToFavorites(entry.id)}
-                  onDelete={() => {
-                    setDeleteConfirmId(entry.id);
-                    setDeleteFromFavorites(false);
+                  onMenuPress={() => {
+                    setMenuOpenId(entry.id);
+                    setMenuFromFavorites(false);
                   }}
                 />
               ))
@@ -363,9 +374,9 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
                     setResumeConfirmId(entry.id);
                     setResumeFromFavorites(true);
                   }}
-                  onDelete={() => {
-                    setDeleteConfirmId(entry.id);
-                    setDeleteFromFavorites(true);
+                  onMenuPress={() => {
+                    setMenuOpenId(entry.id);
+                    setMenuFromFavorites(true);
                   }}
                   onEdit={() => handleOpenEditModal(entry.id)}
                 />
@@ -487,6 +498,29 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
             </View>
           </View>
         </TouchableWithoutFeedback>
+      </Modal>
+
+      {/* メニューポップアップモーダル */}
+      <Modal
+        visible={menuOpenId !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuOpenId(null)}
+      >
+        <TouchableOpacity
+          style={styles.menuOverlay}
+          activeOpacity={1}
+          onPress={() => setMenuOpenId(null)}
+        >
+          <View style={styles.menuPopup}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={handleMenuDelete}
+            >
+              <Text style={styles.menuItemDeleteText}>Delete</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
       </Modal>
 
       {/* 削除確認モーダル */}
@@ -655,8 +689,42 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#aaa',
   },
-  trashIcon: {
-    fontSize: 18,
+  menuIconButton: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  menuIcon: {
+    fontSize: 20,
+    color: '#888',
+    fontWeight: 'bold',
+  },
+  menuOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  menuPopup: {
+    backgroundColor: '#2a2a4a',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#4a4a6a',
+    minWidth: 120,
+    overflow: 'hidden',
+  },
+  menuItem: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+  },
+  menuItemDeleteText: {
+    color: '#ff6666',
+    fontSize: 16,
+    textAlign: 'center',
   },
   fieldBorder: {
     borderWidth: 1,
