@@ -206,7 +206,6 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
   const favorites = useGameHistoryStore((state) => state.favorites);
   const deleteEntry = useGameHistoryStore((state) => state.deleteEntry);
   const deleteFavorite = useGameHistoryStore((state) => state.deleteFavorite);
-  const clearAllHistory = useGameHistoryStore((state) => state.clearAllHistory);
   const addToFavorites = useGameHistoryStore((state) => state.addToFavorites);
   const removeFromFavorites = useGameHistoryStore((state) => state.removeFromFavorites);
   const isInFavorites = useGameHistoryStore((state) => state.isInFavorites);
@@ -217,7 +216,6 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
   const [deleteFromFavorites, setDeleteFromFavorites] = useState(false);
   const [resumeConfirmId, setResumeConfirmId] = useState<string | null>(null);
   const [resumeFromFavorites, setResumeFromFavorites] = useState(false);
-  const [showClearAllModal, setShowClearAllModal] = useState(false);
   const [noteEditId, setNoteEditId] = useState<string | null>(null);
   const [noteEditFromFavorites, setNoteEditFromFavorites] = useState(false);
   const [noteText, setNoteText] = useState('');
@@ -250,11 +248,6 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
       setResumeConfirmId(null);
       setResumeFromFavorites(false);
     }
-  };
-
-  const handleClearAll = () => {
-    clearAllHistory();
-    setShowClearAllModal(false);
   };
 
   const handleOpenNoteEditor = (entryId: string, fromFavorites: boolean) => {
@@ -294,17 +287,7 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Game History</Text>
-        {entries.length > 0 && activeTab === 'history' && (
-          <TouchableOpacity
-            style={styles.clearAllButton}
-            onPress={() => setShowClearAllModal(true)}
-          >
-            <Text style={styles.clearAllButtonText}>Clear All</Text>
-          </TouchableOpacity>
-        )}
-        {(entries.length === 0 || activeTab === 'favorite') && (
-          <View style={styles.clearAllPlaceholder} />
-        )}
+        <View style={styles.headerPlaceholder} />
       </View>
 
       {/* タブ */}
@@ -511,35 +494,6 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
           </View>
         </View>
       </Modal>
-
-      {/* 全削除確認モーダル */}
-      <Modal
-        visible={showClearAllModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowClearAllModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Clear all history?</Text>
-            <Text style={styles.modalSubtext}>This action cannot be undone.</Text>
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={styles.modalCancelButton}
-                onPress={() => setShowClearAllModal(false)}
-              >
-                <Text style={styles.modalCancelText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalDeleteButton}
-                onPress={handleClearAll}
-              >
-                <Text style={styles.modalDeleteText}>Clear All</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 };
@@ -575,19 +529,8 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
   },
-  clearAllButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ff4444',
-  },
-  clearAllButtonText: {
-    color: '#ff4444',
-    fontSize: 14,
-  },
-  clearAllPlaceholder: {
-    width: 80,
+  headerPlaceholder: {
+    width: 60,
   },
   tabContainer: {
     flexDirection: 'row',
