@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -234,12 +234,49 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
   const [editNote, setEditNote] = useState('');
   const [editTags, setEditTags] = useState<string[]>([]);
   const [newTagText, setNewTagText] = useState('');
+  // タグ検索用の状態
+  const [filterTags, setFilterTags] = useState<string[]>([]);
+  const [filterSearchText, setFilterSearchText] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // Favorite で使われているタグを頻度順に取得
+  const tagsByFrequency = useMemo(() => {
+    const tagCount: Record<string, number> = {};
+    favorites.forEach(entry => {
+      (entry.tags || []).forEach(tag => {
+        tagCount[tag] = (tagCount[tag] || 0) + 1;
+      });
+    });
+    return Object.entries(tagCount)
+      .sort((a, b) => b[1] - a[1])
+      .map(([tag]) => tag);
+  }, [favorites]);
+
+  // 検索テキストに基づく補完候補
+  const autocompleteSuggestions = useMemo(() => {
+    if (!filterSearchText.trim()) return [];
+    const searchLower = filterSearchText.toLowerCase();
+    return tagsByFrequency.filter(
+      tag => tag.toLowerCase().includes(searchLower) && !filterTags.includes(tag)
+    );
+  }, [filterSearchText, tagsByFrequency, filterTags]);
 
   // 現在のタブに応じたリスト
   const currentList = activeTab === 'favorite' ? favorites : entries;
 
+  // フィルタリング（Favorite タブの場合のみ）
+  const filteredList = useMemo(() => {
+    if (activeTab !== 'favorite' || filterTags.length === 0) {
+      return currentList;
+    }
+    return currentList.filter(entry => {
+      const entryTags = entry.tags || [];
+      return filterTags.every(filterTag => entryTags.includes(filterTag));
+    });
+  }, [activeTab, currentList, filterTags]);
+
   // 新しい順にソート
-  const sortedList = [...currentList].sort(
+  const sortedList = [...filteredList].sort(
     (a, b) => new Date(b.lastPlayedAt).getTime() - new Date(a.lastPlayedAt).getTime()
   );
 
@@ -309,6 +346,27 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
     setEditTags(editTags.filter(tag => tag !== tagToRemove));
   };
 
+  // フィルタータグの追加
+  const handleAddFilterTag = (tag: string) => {
+    if (!filterTags.includes(tag)) {
+      setFilterTags([...filterTags, tag]);
+    }
+    setFilterSearchText('');
+    setShowSuggestions(false);
+  };
+
+  // フィルタータグの削除
+  const handleRemoveFilterTag = (tag: string) => {
+    setFilterTags(filterTags.filter(t => t !== tag));
+  };
+
+  // フィルターのクリア
+  const handleClearFilter = () => {
+    setFilterTags([]);
+    setFilterSearchText('');
+    setShowSuggestions(false);
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -339,12 +397,94 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
         </TouchableOpacity>
       </View>
 
+      {/* Favorite タブ用のタグ検索バー */}
+      {activeTab === 'favorite' && tagsByFrequency.length > 0 && (
+        <View style={styles.filterContainer}>
+          {/* 選択中のフィルタータグ */}
+          {filterTags.length > 0 && (
+            <View style={styles.selectedFilterTags}>
+              {filterTags.map((tag, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.selectedFilterTag}
+                  onPress={() => handleRemoveFilterTag(tag)}
+                >
+                  <Text style={styles.selectedFilterTagText}>{tag}</Text>
+                  <Text style={styles.selectedFilterTagRemove}>×</Text>
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity style={styles.clearFilterButton} onPress={handleClearFilter}>
+                <Text style={styles.clearFilterText}>Clear</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* 検索入力 */}
+          <View style={styles.filterInputContainer}>
+            <TextInput
+              style={styles.filterInput}
+              value={filterSearchText}
+              onChangeText={(text) => {
+                setFilterSearchText(text);
+                setShowSuggestions(true);
+              }}
+              onFocus={() => setShowSuggestions(true)}
+              placeholder="Search by tag..."
+              placeholderTextColor="#666"
+            />
+          </View>
+
+          {/* オートコンプリート候補 */}
+          {showSuggestions && autocompleteSuggestions.length > 0 && (
+            <View style={styles.suggestionsContainer}>
+              {autocompleteSuggestions.slice(0, 5).map((tag, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.suggestionItem}
+                  onPress={() => handleAddFilterTag(tag)}
+                >
+                  <Text style={styles.suggestionText}>{tag}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
+          {/* 人気のタグ（検索中でない場合） */}
+          {!filterSearchText && (
+            <View style={styles.popularTagsContainer}>
+              <Text style={styles.popularTagsLabel}>Popular tags:</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={styles.popularTagsList}>
+                  {tagsByFrequency
+                    .filter(tag => !filterTags.includes(tag))
+                    .slice(0, 10)
+                    .map((tag, index) => (
+                      <TouchableOpacity
+                        key={index}
+                        style={styles.popularTag}
+                        onPress={() => handleAddFilterTag(tag)}
+                      >
+                        <Text style={styles.popularTagText}>{tag}</Text>
+                      </TouchableOpacity>
+                    ))}
+                </View>
+              </ScrollView>
+            </View>
+          )}
+        </View>
+      )}
+
       {sortedList.length === 0 ? (
         <View style={styles.emptyContainer}>
           {activeTab === 'history' ? (
             <>
               <Text style={styles.emptyText}>No game history yet.</Text>
               <Text style={styles.emptySubText}>Play a game to see it here!</Text>
+            </>
+          ) : filterTags.length > 0 ? (
+            <>
+              <Text style={styles.emptyText}>No matches found.</Text>
+              <Text style={styles.emptySubText}>Try different tags or clear the filter.</Text>
             </>
           ) : (
             <>
@@ -581,6 +721,101 @@ const styles = StyleSheet.create({
   tabTextActive: {
     color: '#4488ff',
     fontWeight: 'bold',
+  },
+  filterContainer: {
+    backgroundColor: '#0a0a1a',
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  selectedFilterTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 8,
+    alignItems: 'center',
+  },
+  selectedFilterTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#4488ff',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  selectedFilterTagText: {
+    color: '#fff',
+    fontSize: 13,
+  },
+  selectedFilterTagRemove: {
+    color: '#fff',
+    fontSize: 16,
+    marginLeft: 6,
+    fontWeight: 'bold',
+  },
+  clearFilterButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  clearFilterText: {
+    color: '#888',
+    fontSize: 13,
+    textDecorationLine: 'underline',
+  },
+  filterInputContainer: {
+    marginBottom: 8,
+  },
+  filterInput: {
+    backgroundColor: '#1a1a2e',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#3a3a5a',
+    color: '#fff',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 14,
+  },
+  suggestionsContainer: {
+    backgroundColor: '#1a1a2e',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#3a3a5a',
+    marginBottom: 8,
+    overflow: 'hidden',
+  },
+  suggestionItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2a2a4a',
+  },
+  suggestionText: {
+    color: '#fff',
+    fontSize: 14,
+  },
+  popularTagsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  popularTagsLabel: {
+    color: '#888',
+    fontSize: 12,
+    marginRight: 8,
+  },
+  popularTagsList: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  popularTag: {
+    backgroundColor: '#2a2a4a',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  popularTagText: {
+    color: '#aaccff',
+    fontSize: 12,
   },
   scrollView: {
     flex: 1,
