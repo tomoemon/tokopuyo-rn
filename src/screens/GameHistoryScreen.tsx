@@ -159,9 +159,8 @@ const FavoriteItem: React.FC<{
   onEdit: () => void;
 }> = ({ entry, onPress, onDelete, onEdit }) => {
   const tags = entry.tags || [];
-  const hasDetails = entry.note || tags.length > 0;
   return (
-    <TouchableOpacity style={styles.itemContainer} onPress={onPress} activeOpacity={0.7}>
+    <TouchableOpacity style={styles.favoriteItemContainer} onPress={onPress} activeOpacity={0.7}>
       <FieldThumbnail entry={entry} />
       <View style={styles.itemInfo}>
         <Text style={styles.dateText}>{formatDate(entry.lastPlayedAt)}</Text>
@@ -172,8 +171,19 @@ const FavoriteItem: React.FC<{
             <Text style={styles.chainText}>Chain: {entry.maxChainCount}</Text>
           )}
         </View>
-        {hasDetails && (
-          <Text style={styles.detailsIndicator}>📝</Text>
+        {entry.note && (
+          <Text style={styles.noteText} numberOfLines={1}>
+            {entry.note}
+          </Text>
+        )}
+        {tags.length > 0 && (
+          <View style={styles.tagsRow}>
+            {tags.map((tag, index) => (
+              <View key={index} style={styles.tagBadge}>
+                <Text style={styles.tagText}>{tag}</Text>
+              </View>
+            ))}
+          </View>
         )}
       </View>
       <TouchableOpacity
@@ -597,9 +607,31 @@ const styles = StyleSheet.create({
     borderColor: '#3a3a5a',
     alignItems: 'center',
   },
-  detailsIndicator: {
-    fontSize: 12,
-    marginTop: 4,
+  favoriteItemContainer: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(26, 26, 46, 0.9)',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#3a3a5a',
+    alignItems: 'flex-start',
+  },
+  tagsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 6,
+    gap: 4,
+  },
+  tagBadge: {
+    backgroundColor: '#3a3a6a',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  tagText: {
+    color: '#aaccff',
+    fontSize: 11,
   },
   iconButton: {
     width: 36,
