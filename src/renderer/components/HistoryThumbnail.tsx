@@ -12,6 +12,7 @@ interface HistoryThumbnailProps {
   snapshot: GameSnapshot;
   cellSize: number;
   onPress: () => void;
+  isSelected?: boolean;
 }
 
 // 色の定義（縮小版用にシンプルな色）
@@ -26,6 +27,7 @@ export const HistoryThumbnail: React.FC<HistoryThumbnailProps> = ({
   snapshot,
   cellSize,
   onPress,
+  isSelected = false,
 }) => {
   const fieldWidth = FIELD_COLS * cellSize;
   const fieldHeight = VISIBLE_ROWS * cellSize;
@@ -40,7 +42,7 @@ export const HistoryThumbnail: React.FC<HistoryThumbnailProps> = ({
   return (
     <TouchableOpacity
       onPress={onPress}
-      style={styles.container}
+      style={[styles.container, isSelected && styles.containerSelected]}
       activeOpacity={0.7}
     >
       {/* ミニフィールド */}
@@ -144,6 +146,11 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     borderWidth: 1,
     borderColor: '#3a3a5a',
+  },
+  containerSelected: {
+    borderColor: '#4488ff',
+    borderWidth: 2,
+    backgroundColor: 'rgba(68, 136, 255, 0.2)',
   },
   fieldBorder: {
     borderWidth: 1,

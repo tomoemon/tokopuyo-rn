@@ -22,6 +22,7 @@ import { DismissableModal } from '../components';
 interface GameHistoryScreenProps {
   onBack: () => void;
   onResumeGame: (gameId: string, fromFavorites: boolean) => void;
+  onReplayGame: (gameId: string, fromFavorites: boolean) => void;
 }
 
 type TabType = 'history' | 'favorite';
@@ -209,7 +210,7 @@ const FavoriteItem: React.FC<{
   );
 };
 
-export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, onResumeGame }) => {
+export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, onResumeGame, onReplayGame }) => {
   const entries = useGameHistoryStore((state) => state.entries);
   const favorites = useGameHistoryStore((state) => state.favorites);
   const deleteEntry = useGameHistoryStore((state) => state.deleteEntry);
@@ -310,6 +311,13 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
   const handleResumeConfirm = () => {
     if (resumeEntryCache) {
       onResumeGame(resumeEntryCache.id, resumeEntryCache.fromFavorites);
+      setResumeModalVisible(false);
+    }
+  };
+
+  const handleReplayConfirm = () => {
+    if (resumeEntryCache) {
+      onReplayGame(resumeEntryCache.id, resumeEntryCache.fromFavorites);
       setResumeModalVisible(false);
     }
   };
@@ -521,14 +529,14 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
         </ScrollView>
       )}
 
-      {/* 再開確認モーダル */}
+      {/* 再開/再生 選択モーダル */}
       <DismissableModal
         visible={resumeModalVisible}
         onDismiss={handleCloseResumeModal}
         animationType="fade"
       >
         <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Resume this game?</Text>
+          <Text style={styles.modalTitle}>Select action</Text>
           {resumeEntryCache && (
             <View style={styles.resumeInfo}>
               <Text style={styles.resumeInfoText}>
@@ -536,20 +544,28 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
               </Text>
             </View>
           )}
-          <View style={styles.modalButtons}>
+          <View style={styles.actionButtons}>
             <TouchableOpacity
-              style={styles.modalCancelButton}
-              onPress={handleCloseResumeModal}
-            >
-              <Text style={styles.modalCancelText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.modalResumeButton}
+              style={styles.actionButton}
               onPress={handleResumeConfirm}
             >
-              <Text style={styles.modalResumeText}>Resume</Text>
+              <Text style={styles.actionButtonText}>Resume</Text>
+              <Text style={styles.actionButtonSubtext}>Continue playing</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={handleReplayConfirm}
+            >
+              <Text style={styles.actionButtonText}>Replay</Text>
+              <Text style={styles.actionButtonSubtext}>Watch the game</Text>
             </TouchableOpacity>
           </View>
+          <TouchableOpacity
+            style={styles.modalCancelButtonFull}
+            onPress={handleCloseResumeModal}
+          >
+            <Text style={styles.modalCancelText}>Cancel</Text>
+          </TouchableOpacity>
         </View>
       </DismissableModal>
 
@@ -1031,11 +1047,44 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   resumeInfo: {
-    marginBottom: 8,
+    marginBottom: 16,
   },
   resumeInfoText: {
     color: '#aaa',
     fontSize: 14,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  actionButton: {
+    flex: 1,
+    backgroundColor: 'rgba(68, 136, 255, 0.2)',
+    borderWidth: 1,
+    borderColor: '#4488ff',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+  },
+  actionButtonText: {
+    color: '#4488ff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  actionButtonSubtext: {
+    color: '#888',
+    fontSize: 11,
+    marginTop: 4,
+  },
+  modalCancelButtonFull: {
+    width: '100%',
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#666',
+    alignItems: 'center',
   },
   noteInput: {
     width: '100%',
