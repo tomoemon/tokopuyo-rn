@@ -451,25 +451,22 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
 
           {/* 人気のタグ（検索中でない場合） */}
           {!filterSearchText && (
-            <View style={styles.popularTagsContainer}>
-              <Text style={styles.popularTagsLabel}>Popular tags:</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={styles.popularTagsList}>
-                  {tagsByFrequency
-                    .filter(tag => !filterTags.includes(tag))
-                    .slice(0, 10)
-                    .map((tag, index) => (
-                      <TouchableOpacity
-                        key={index}
-                        style={styles.popularTag}
-                        onPress={() => handleAddFilterTag(tag)}
-                      >
-                        <Text style={styles.popularTagText}>{tag}</Text>
-                      </TouchableOpacity>
-                    ))}
-                </View>
-              </ScrollView>
-            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.popularTagsList}>
+                {tagsByFrequency
+                  .filter(tag => !filterTags.includes(tag))
+                  .slice(0, 10)
+                  .map((tag, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={styles.popularTag}
+                      onPress={() => handleAddFilterTag(tag)}
+                    >
+                      <Text style={styles.popularTagText}>{tag}</Text>
+                    </TouchableOpacity>
+                  ))}
+              </View>
+            </ScrollView>
           )}
         </View>
       )}
@@ -793,15 +790,6 @@ const styles = StyleSheet.create({
   suggestionText: {
     color: '#fff',
     fontSize: 14,
-  },
-  popularTagsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  popularTagsLabel: {
-    color: '#888',
-    fontSize: 12,
-    marginRight: 8,
   },
   popularTagsList: {
     flexDirection: 'row',
