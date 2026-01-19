@@ -18,6 +18,7 @@ export type GameHistoryEntry = {
   operationHistory: GameSnapshot[]; // フィールドの操作履歴
   nextSnapshotId: number; // 次のスナップショットID
   note: string; // メモ
+  tags: string[]; // タグ（グルーピング用）
 };
 
 interface GameHistoryStore {
@@ -42,6 +43,8 @@ interface GameHistoryStore {
   getEntry: (id: string) => GameHistoryEntry | undefined;
   setCurrentGameId: (id: string | null) => void;
   updateNote: (id: string, note: string, isFavoriteList: boolean) => void;
+  updateTags: (id: string, tags: string[], isFavoriteList: boolean) => void;
+  updateFavoriteDetails: (id: string, note: string, tags: string[]) => void;
 
   // お気に入り関連
   addToFavorites: (id: string) => void;
@@ -65,6 +68,7 @@ function cloneEntry(entry: GameHistoryEntry): GameHistoryEntry {
       ...s,
       field: cloneField(s.field),
     })),
+    tags: [...(entry.tags || [])],
   };
 }
 
@@ -122,6 +126,7 @@ export const useGameHistoryStore = create<GameHistoryStore>()(
             operationHistory: operationHistory.map(s => ({ ...s, field: cloneField(s.field) })),
             nextSnapshotId,
             note: '',
+            tags: [],
           };
           let newEntries = [...state.entries, newEntry];
 
@@ -168,6 +173,29 @@ export const useGameHistoryStore = create<GameHistoryStore>()(
           );
           set({ entries: newEntries });
         }
+      },
+
+      updateTags: (id: string, tags: string[], isFavoriteList: boolean) => {
+        const state = get();
+        if (isFavoriteList) {
+          const newFavorites = state.favorites.map(e =>
+            e.id === id ? { ...e, tags } : e
+          );
+          set({ favorites: newFavorites });
+        } else {
+          const newEntries = state.entries.map(e =>
+            e.id === id ? { ...e, tags } : e
+          );
+          set({ entries: newEntries });
+        }
+      },
+
+      updateFavoriteDetails: (id: string, note: string, tags: string[]) => {
+        const state = get();
+        const newFavorites = state.favorites.map(e =>
+          e.id === id ? { ...e, note, tags } : e
+        );
+        set({ favorites: newFavorites });
       },
 
       addToFavorites: (id: string) => {

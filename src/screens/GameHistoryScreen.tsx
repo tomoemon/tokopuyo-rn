@@ -154,44 +154,57 @@ const FavoriteItem: React.FC<{
   entry: GameHistoryEntry;
   onPress: () => void;
   onDelete: () => void;
-  onOpenMenu: () => void;
-}> = ({ entry, onPress, onDelete, onOpenMenu }) => {
+  onEdit: () => void;
+}> = ({ entry, onPress, onDelete, onEdit }) => {
+  const tags = entry.tags || [];
   return (
-    <TouchableOpacity style={styles.itemContainer} onPress={onPress} activeOpacity={0.7}>
-      <FieldThumbnail entry={entry} />
-      <View style={styles.itemInfo}>
-        <Text style={styles.dateText}>{formatDate(entry.lastPlayedAt)}</Text>
-        <Text style={styles.scoreText}>Score: {entry.score}</Text>
-        <View style={styles.statsRow}>
-          <Text style={styles.dropCountText}>Drops: {entry.dropCount}</Text>
-          {entry.maxChainCount > 0 && (
-            <Text style={styles.chainText}>Chain: {entry.maxChainCount}</Text>
+    <TouchableOpacity style={styles.favoriteItemContainer} onPress={onPress} activeOpacity={0.7}>
+      {/* 右上のメニューアイコン */}
+      <TouchableOpacity
+        style={styles.editIconButton}
+        onPress={(e) => {
+          e.stopPropagation();
+          onEdit();
+        }}
+      >
+        <Text style={styles.editIcon}>⋮</Text>
+      </TouchableOpacity>
+      <View style={styles.favoriteItemContent}>
+        <FieldThumbnail entry={entry} />
+        <View style={styles.itemInfo}>
+          <Text style={styles.dateText}>{formatDate(entry.lastPlayedAt)}</Text>
+          <Text style={styles.scoreText}>Score: {entry.score}</Text>
+          <View style={styles.statsRow}>
+            <Text style={styles.dropCountText}>Drops: {entry.dropCount}</Text>
+            {entry.maxChainCount > 0 && (
+              <Text style={styles.chainText}>Chain: {entry.maxChainCount}</Text>
+            )}
+          </View>
+          {entry.note && (
+            <Text style={styles.noteText} numberOfLines={1}>
+              {entry.note}
+            </Text>
+          )}
+          {tags.length > 0 && (
+            <View style={styles.tagsRow}>
+              {tags.map((tag, index) => (
+                <View key={index} style={styles.tagBadge}>
+                  <Text style={styles.tagText}>{tag}</Text>
+                </View>
+              ))}
+            </View>
           )}
         </View>
-        {entry.note && (
-          <Text style={styles.noteText} numberOfLines={1}>
-            {entry.note}
-          </Text>
-        )}
+        <TouchableOpacity
+          style={styles.iconButton}
+          onPress={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+        >
+          <Text style={styles.trashIcon}>🗑</Text>
+        </TouchableOpacity>
       </View>
-      <TouchableOpacity
-        style={styles.iconButton}
-        onPress={(e) => {
-          e.stopPropagation();
-          onDelete();
-        }}
-      >
-        <Text style={styles.trashIcon}>🗑</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.menuButton}
-        onPress={(e) => {
-          e.stopPropagation();
-          onOpenMenu();
-        }}
-      >
-        <Text style={styles.menuButtonText}>…</Text>
-      </TouchableOpacity>
     </TouchableOpacity>
   );
 };
@@ -203,18 +216,18 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
   const deleteFavorite = useGameHistoryStore((state) => state.deleteFavorite);
   const addToFavorites = useGameHistoryStore((state) => state.addToFavorites);
   const isInFavorites = useGameHistoryStore((state) => state.isInFavorites);
-  const updateNote = useGameHistoryStore((state) => state.updateNote);
+  const updateFavoriteDetails = useGameHistoryStore((state) => state.updateFavoriteDetails);
 
   const [activeTab, setActiveTab] = useState<TabType>('history');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [deleteFromFavorites, setDeleteFromFavorites] = useState(false);
   const [resumeConfirmId, setResumeConfirmId] = useState<string | null>(null);
   const [resumeFromFavorites, setResumeFromFavorites] = useState(false);
-  const [noteEditId, setNoteEditId] = useState<string | null>(null);
-  const [noteEditFromFavorites, setNoteEditFromFavorites] = useState(false);
-  const [noteText, setNoteText] = useState('');
-  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
-  const [menuFromFavorites, setMenuFromFavorites] = useState(false);
+  // 編集モーダル用の状態
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editNote, setEditNote] = useState('');
+  const [editTags, setEditTags] = useState<string[]>([]);
+  const [newTagText, setNewTagText] = useState('');
 
   // 現在のタブに応じたリスト
   const currentList = activeTab === 'favorite' ? favorites : entries;
@@ -244,30 +257,36 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
     }
   };
 
-  const handleOpenNoteEditor = (entryId: string, fromFavorites: boolean) => {
-    const list = fromFavorites ? favorites : entries;
-    const entry = list.find(e => e.id === entryId);
+  const handleOpenEditModal = (entryId: string) => {
+    const entry = favorites.find(e => e.id === entryId);
     if (entry) {
-      setNoteEditId(entry.id);
-      setNoteEditFromFavorites(fromFavorites);
-      setNoteText(entry.note);
-    }
-    setMenuOpenId(null);
-  };
-
-  const handleSaveNote = () => {
-    if (noteEditId) {
-      updateNote(noteEditId, noteText, noteEditFromFavorites);
-      setNoteEditId(null);
-      setNoteEditFromFavorites(false);
-      setNoteText('');
+      setEditId(entry.id);
+      setEditNote(entry.note || '');
+      setEditTags(entry.tags || []);
+      setNewTagText('');
     }
   };
 
-  const handleDeleteFromMenu = (entryId: string, fromFavorites: boolean) => {
-    setMenuOpenId(null);
-    setDeleteConfirmId(entryId);
-    setDeleteFromFavorites(fromFavorites);
+  const handleSaveEdit = () => {
+    if (editId) {
+      updateFavoriteDetails(editId, editNote, editTags);
+      setEditId(null);
+      setEditNote('');
+      setEditTags([]);
+      setNewTagText('');
+    }
+  };
+
+  const handleAddTag = () => {
+    const trimmedTag = newTagText.trim();
+    if (trimmedTag && !editTags.includes(trimmedTag)) {
+      setEditTags([...editTags, trimmedTag]);
+      setNewTagText('');
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setEditTags(editTags.filter(tag => tag !== tagToRemove));
   };
 
   const resumeEntry = resumeFromFavorites
@@ -349,10 +368,7 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
                     setDeleteConfirmId(entry.id);
                     setDeleteFromFavorites(true);
                   }}
-                  onOpenMenu={() => {
-                    setMenuOpenId(entry.id);
-                    setMenuFromFavorites(true);
-                  }}
+                  onEdit={() => handleOpenEditModal(entry.id)}
                 />
               ))}
         </ScrollView>
@@ -393,69 +409,77 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
         </View>
       </Modal>
 
-      {/* メニューモーダル */}
+      {/* 編集モーダル */}
       <Modal
-        visible={menuOpenId !== null}
+        visible={editId !== null}
         transparent
         animationType="fade"
-        onRequestClose={() => setMenuOpenId(null)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setMenuOpenId(null)}
-        >
-          <View style={styles.menuModalContent}>
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => menuOpenId && handleOpenNoteEditor(menuOpenId, menuFromFavorites)}
-            >
-              <Text style={styles.menuItemText}>Edit note</Text>
-            </TouchableOpacity>
-            <View style={styles.menuDivider} />
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => menuOpenId && handleDeleteFromMenu(menuOpenId, menuFromFavorites)}
-            >
-              <Text style={styles.menuItemTextDanger}>Delete</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
-
-      {/* ノート編集モーダル */}
-      <Modal
-        visible={noteEditId !== null}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setNoteEditId(null)}
+        onRequestClose={() => setEditId(null)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Edit Note</Text>
+          <View style={styles.editModalContent}>
+            <Text style={styles.modalTitle}>Edit Favorite</Text>
+
+            {/* Note セクション */}
+            <Text style={styles.editSectionLabel}>Note</Text>
             <TextInput
               style={styles.noteInput}
-              value={noteText}
-              onChangeText={setNoteText}
+              value={editNote}
+              onChangeText={setEditNote}
               placeholder="Enter a note..."
               placeholderTextColor="#666"
               multiline
               maxLength={200}
-              autoFocus
             />
+
+            {/* Tags セクション */}
+            <Text style={styles.editSectionLabel}>Tags</Text>
+            <View style={styles.tagsEditContainer}>
+              {editTags.map((tag, index) => (
+                <View key={index} style={styles.tagEditBadge}>
+                  <Text style={styles.tagEditText}>{tag}</Text>
+                  <TouchableOpacity
+                    style={styles.tagRemoveButton}
+                    onPress={() => handleRemoveTag(tag)}
+                  >
+                    <Text style={styles.tagRemoveText}>×</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+            <View style={styles.tagInputRow}>
+              <TextInput
+                style={styles.tagInput}
+                value={newTagText}
+                onChangeText={setNewTagText}
+                placeholder="Add a tag..."
+                placeholderTextColor="#666"
+                maxLength={20}
+                onSubmitEditing={handleAddTag}
+              />
+              <TouchableOpacity
+                style={styles.tagAddButton}
+                onPress={handleAddTag}
+              >
+                <Text style={styles.tagAddButtonText}>Add</Text>
+              </TouchableOpacity>
+            </View>
+
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={styles.modalCancelButton}
                 onPress={() => {
-                  setNoteEditId(null);
-                  setNoteText('');
+                  setEditId(null);
+                  setEditNote('');
+                  setEditTags([]);
+                  setNewTagText('');
                 }}
               >
                 <Text style={styles.modalCancelText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.modalResumeButton}
-                onPress={handleSaveNote}
+                onPress={handleSaveEdit}
               >
                 <Text style={styles.modalResumeText}>Save</Text>
               </TouchableOpacity>
@@ -582,6 +606,51 @@ const styles = StyleSheet.create({
     borderColor: '#3a3a5a',
     alignItems: 'center',
   },
+  favoriteItemContainer: {
+    position: 'relative',
+    backgroundColor: 'rgba(26, 26, 46, 0.9)',
+    borderRadius: 8,
+    padding: 12,
+    paddingTop: 8,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#3a3a5a',
+  },
+  favoriteItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  editIconButton: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 28,
+    height: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  editIcon: {
+    color: '#888',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  tagsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 6,
+    gap: 4,
+  },
+  tagBadge: {
+    backgroundColor: '#3a3a6a',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  tagText: {
+    color: '#aaccff',
+    fontSize: 11,
+  },
   iconButton: {
     width: 36,
     height: 36,
@@ -598,17 +667,6 @@ const styles = StyleSheet.create({
   },
   trashIcon: {
     fontSize: 18,
-  },
-  menuButton: {
-    width: 32,
-    height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  menuButtonText: {
-    color: '#888',
-    fontSize: 20,
-    fontWeight: 'bold',
   },
   fieldBorder: {
     borderWidth: 1,
@@ -674,31 +732,80 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#3a3a5a',
   },
-  menuModalContent: {
+  editModalContent: {
     backgroundColor: '#1a1a2e',
     borderRadius: 12,
-    width: 200,
+    padding: 24,
+    width: 320,
     borderWidth: 1,
     borderColor: '#3a3a5a',
-    overflow: 'hidden',
   },
-  menuItem: {
-    paddingVertical: 16,
-    paddingHorizontal: 20,
+  editSectionLabel: {
+    color: '#aaa',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginTop: 12,
+    marginBottom: 6,
+    alignSelf: 'flex-start',
   },
-  menuItemText: {
+  tagsEditContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    minHeight: 30,
+  },
+  tagEditBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#3a3a6a',
+    paddingLeft: 10,
+    paddingRight: 4,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  tagEditText: {
+    color: '#aaccff',
+    fontSize: 13,
+  },
+  tagRemoveButton: {
+    marginLeft: 4,
+    width: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tagRemoveText: {
+    color: '#ff6666',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  tagInputRow: {
+    flexDirection: 'row',
+    marginTop: 8,
+    gap: 8,
+  },
+  tagInput: {
+    flex: 1,
+    backgroundColor: '#0a0a1a',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#3a3a5a',
     color: '#fff',
-    fontSize: 16,
-    textAlign: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 14,
   },
-  menuItemTextDanger: {
-    color: '#ff4444',
-    fontSize: 16,
-    textAlign: 'center',
+  tagAddButton: {
+    backgroundColor: '#4488ff',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    justifyContent: 'center',
   },
-  menuDivider: {
-    height: 1,
-    backgroundColor: '#3a3a5a',
+  tagAddButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   modalTitle: {
     color: '#fff',
