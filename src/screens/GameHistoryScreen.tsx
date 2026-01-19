@@ -17,7 +17,7 @@ import {
   HIDDEN_ROWS,
   PuyoColor,
 } from '../logic/types';
-import { DismissableModal } from '../components';
+import { DismissableModal, GameHeader } from '../components';
 
 interface GameHistoryScreenProps {
   onBack: () => void;
@@ -377,13 +377,7 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <Text style={styles.backButtonText}>Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>Game History</Text>
-        <View style={styles.headerPlaceholder} />
-      </View>
+      <GameHeader onBack={onBack} title="Game History" showConfig={false} />
 
       {/* タブ */}
       <View style={styles.tabContainer}>
@@ -682,35 +676,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0a0a1a',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 60,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#333',
-  },
-  backButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#666',
-  },
-  backButtonText: {
-    color: '#888',
-    fontSize: 16,
-  },
-  title: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  headerPlaceholder: {
-    width: 60,
   },
   tabContainer: {
     flexDirection: 'row',

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Field as FieldType, FallingPuyo, ErasingPuyo, FIELD_COLS, VISIBLE_ROWS, HIDDEN_ROWS } from '../../logic/types';
+import { Field as FieldType, FallingPuyo, ErasingPuyo, FIELD_COLS, VISIBLE_ROWS, HIDDEN_ROWS, TOTAL_ROWS } from '../../logic/types';
 import { getSatellitePosition, hardDropPuyo } from '../../logic/puyo';
 import { Puyo } from './Puyo';
 import { DisappearEffect } from './DisappearEffect';
@@ -14,10 +14,12 @@ interface FieldProps {
 }
 
 const BORDER_WIDTH = 3;
+const HIDDEN_BORDER_WIDTH = 2;
 
 export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize, erasingPuyos = [], onEffectComplete }) => {
   const fieldWidth = FIELD_COLS * cellSize + BORDER_WIDTH * 2;
-  const fieldHeight = VISIBLE_ROWS * cellSize + BORDER_WIDTH * 2;
+  // フィールドの高さは隠しマスも含む
+  const fieldHeight = TOTAL_ROWS * cellSize + BORDER_WIDTH * 2;
 
   // ゴースト（落下予定位置）の位置
   const ghostPositions: { x: number; y: number; color: string }[] = [];
@@ -50,30 +52,61 @@ export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize, eras
         },
       ]}
     >
-      {/* グリッド背景（表示行のみ） */}
-      {Array.from({ length: VISIBLE_ROWS }).map((_, y) => (
-        <View key={y} style={styles.row}>
-          {Array.from({ length: FIELD_COLS }).map((_, x) => (
-            <View
-              key={x}
-              style={[
-                styles.cell,
-                {
-                  width: cellSize,
-                  height: cellSize,
-                },
-              ]}
-            />
-          ))}
-        </View>
-      ))}
+      {/* 隠しマスのグリッド背景（上部 HIDDEN_ROWS 行） */}
+      <View style={[styles.hiddenArea, { height: HIDDEN_ROWS * cellSize }]}>
+        {Array.from({ length: HIDDEN_ROWS }).map((_, y) => (
+          <View key={`hidden-${y}`} style={styles.row}>
+            {Array.from({ length: FIELD_COLS }).map((_, x) => (
+              <View
+                key={x}
+                style={[
+                  styles.hiddenCell,
+                  {
+                    width: cellSize,
+                    height: cellSize,
+                  },
+                ]}
+              />
+            ))}
+          </View>
+        ))}
+      </View>
+
+      {/* 隠しマスと可視マスの境界線 */}
+      <View
+        style={[
+          styles.hiddenBorder,
+          {
+            top: HIDDEN_ROWS * cellSize - HIDDEN_BORDER_WIDTH / 2,
+            height: HIDDEN_BORDER_WIDTH,
+          },
+        ]}
+      />
+
+      {/* 可視マスのグリッド背景（下部 VISIBLE_ROWS 行） */}
+      <View style={[styles.visibleArea, { top: HIDDEN_ROWS * cellSize }]}>
+        {Array.from({ length: VISIBLE_ROWS }).map((_, y) => (
+          <View key={y} style={styles.row}>
+            {Array.from({ length: FIELD_COLS }).map((_, x) => (
+              <View
+                key={x}
+                style={[
+                  styles.cell,
+                  {
+                    width: cellSize,
+                    height: cellSize,
+                  },
+                ]}
+              />
+            ))}
+          </View>
+        ))}
+      </View>
 
       {/* フィールド上のぷよ（隠し行も含めて表示） */}
       {field.map((row, y) =>
         row.map((color, x) => {
           if (color === null) return null;
-          // 隠し行（y=0）はdisplayY=-1となり、フィールド上部に表示される
-          const displayY = y - HIDDEN_ROWS;
           return (
             <View
               key={`${x}-${y}`}
@@ -81,7 +114,7 @@ export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize, eras
                 styles.puyoContainer,
                 {
                   left: x * cellSize,
-                  top: displayY * cellSize,
+                  top: y * cellSize,
                   width: cellSize,
                   height: cellSize,
                 },
@@ -95,7 +128,6 @@ export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize, eras
 
       {/* ゴースト（落下予定位置） */}
       {ghostPositions.map((pos, index) => {
-        const displayY = pos.y - HIDDEN_ROWS;
         return (
           <View
             key={`ghost-${index}`}
@@ -103,7 +135,7 @@ export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize, eras
               styles.puyoContainer,
               {
                 left: pos.x * cellSize,
-                top: displayY * cellSize,
+                top: pos.y * cellSize,
                 width: cellSize,
                 height: cellSize,
               },
@@ -123,14 +155,14 @@ export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize, eras
             key={`effect-${puyo.pos.x}-${puyo.pos.y}-${index}`}
             color={puyo.color}
             x={puyo.pos.x}
-            y={puyo.pos.y - HIDDEN_ROWS}
+            y={puyo.pos.y}
             cellSize={cellSize}
             onComplete={index === 0 ? onEffectComplete : undefined}
           />
         );
       })}
 
-      {/* ゲームオーバーゾーンのバツ印（ぷよの上にオーバーレイ表示） */}
+      {/* ゲームオーバーゾーンのバツ印（可視マスの最上行に表示） */}
       {[2, 3].map((x) => (
         <View
           key={`gameover-mark-${x}`}
@@ -138,7 +170,7 @@ export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize, eras
             styles.gameOverMarkOverlay,
             {
               left: x * cellSize,
-              top: 0,
+              top: HIDDEN_ROWS * cellSize,
               width: cellSize,
               height: cellSize,
             },
@@ -158,7 +190,26 @@ const styles = StyleSheet.create({
     borderWidth: BORDER_WIDTH,
     borderColor: '#4a4a6a',
     position: 'relative',
-    overflow: 'visible', // 隠しマス（上部）のぷよを表示するため
+    overflow: 'hidden',
+  },
+  hiddenArea: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#0d0d1a',
+  },
+  visibleArea: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+  },
+  hiddenBorder: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    backgroundColor: '#6a6a8a',
+    zIndex: 10,
   },
   row: {
     flexDirection: 'row',
@@ -166,6 +217,12 @@ const styles = StyleSheet.create({
   cell: {
     borderWidth: 0.5,
     borderColor: '#2a2a4a',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  hiddenCell: {
+    borderWidth: 0.5,
+    borderColor: '#1a1a3a',
     justifyContent: 'center',
     alignItems: 'center',
   },

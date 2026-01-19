@@ -36,34 +36,6 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({ visible, onClose }) 
               <TouchableOpacity
                 style={[
                   styles.optionButton,
-                  handedness === 'right' && styles.optionButtonSelected,
-                ]}
-                onPress={() => handleSelectHandedness('right')}
-              >
-                <View style={styles.optionContent}>
-                  <View style={styles.previewContainer}>
-                    <View style={styles.previewLeft}>
-                      <View style={styles.previewHistory} />
-                    </View>
-                    <View style={styles.previewRight}>
-                      <View style={styles.previewField} />
-                    </View>
-                  </View>
-                  <Text
-                    style={[
-                      styles.optionText,
-                      handedness === 'right' && styles.optionTextSelected,
-                    ]}
-                  >
-                    Right-handed
-                  </Text>
-                  <Text style={styles.optionSubtext}>Field on right</Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.optionButton,
                   handedness === 'left' && styles.optionButtonSelected,
                 ]}
                 onPress={() => handleSelectHandedness('left')}
@@ -86,6 +58,34 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({ visible, onClose }) 
                     Left-handed
                   </Text>
                   <Text style={styles.optionSubtext}>Field on left</Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.optionButton,
+                  handedness === 'right' && styles.optionButtonSelected,
+                ]}
+                onPress={() => handleSelectHandedness('right')}
+              >
+                <View style={styles.optionContent}>
+                  <View style={styles.previewContainer}>
+                    <View style={styles.previewLeft}>
+                      <View style={styles.previewHistory} />
+                    </View>
+                    <View style={styles.previewRight}>
+                      <View style={styles.previewField} />
+                    </View>
+                  </View>
+                  <Text
+                    style={[
+                      styles.optionText,
+                      handedness === 'right' && styles.optionTextSelected,
+                    ]}
+                  >
+                    Right-handed
+                  </Text>
+                  <Text style={styles.optionSubtext}>Field on right</Text>
                 </View>
               </TouchableOpacity>
             </View>

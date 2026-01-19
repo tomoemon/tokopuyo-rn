@@ -81,7 +81,7 @@ export default function App() {
         />
       )}
       {currentScreen === 'replay' && replayEntry && (
-        <GameReplayScreen entry={replayEntry} onBack={handleBackFromReplay} />
+        <GameReplayScreen entry={replayEntry} onBack={handleBackFromReplay} onOpenConfig={handleOpenConfig} />
       )}
       <ConfigScreen visible={configVisible} onClose={handleCloseConfig} />
     </>
