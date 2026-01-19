@@ -153,9 +153,9 @@ const HistoryItem: React.FC<{
 const FavoriteItem: React.FC<{
   entry: GameHistoryEntry;
   onPress: () => void;
-  onRemoveFavorite: () => void;
+  onDelete: () => void;
   onOpenMenu: () => void;
-}> = ({ entry, onPress, onRemoveFavorite, onOpenMenu }) => {
+}> = ({ entry, onPress, onDelete, onOpenMenu }) => {
   return (
     <TouchableOpacity style={styles.itemContainer} onPress={onPress} activeOpacity={0.7}>
       <FieldThumbnail entry={entry} />
@@ -175,13 +175,13 @@ const FavoriteItem: React.FC<{
         )}
       </View>
       <TouchableOpacity
-        style={styles.favoriteButton}
+        style={styles.iconButton}
         onPress={(e) => {
           e.stopPropagation();
-          onRemoveFavorite();
+          onDelete();
         }}
       >
-        <Text style={[styles.favoriteIcon, styles.favoriteIconActive]}>★</Text>
+        <Text style={styles.trashIcon}>🗑</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.menuButton}
@@ -202,7 +202,6 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
   const deleteEntry = useGameHistoryStore((state) => state.deleteEntry);
   const deleteFavorite = useGameHistoryStore((state) => state.deleteFavorite);
   const addToFavorites = useGameHistoryStore((state) => state.addToFavorites);
-  const removeFromFavorites = useGameHistoryStore((state) => state.removeFromFavorites);
   const isInFavorites = useGameHistoryStore((state) => state.isInFavorites);
   const updateNote = useGameHistoryStore((state) => state.updateNote);
 
@@ -346,7 +345,10 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
                     setResumeConfirmId(entry.id);
                     setResumeFromFavorites(true);
                   }}
-                  onRemoveFavorite={() => removeFromFavorites(entry.id)}
+                  onDelete={() => {
+                    setDeleteConfirmId(entry.id);
+                    setDeleteFromFavorites(true);
+                  }}
                   onOpenMenu={() => {
                     setMenuOpenId(entry.id);
                     setMenuFromFavorites(true);
@@ -596,19 +598,6 @@ const styles = StyleSheet.create({
   },
   trashIcon: {
     fontSize: 18,
-  },
-  favoriteButton: {
-    width: 36,
-    height: 36,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  favoriteIcon: {
-    fontSize: 24,
-    color: '#666',
-  },
-  favoriteIconActive: {
-    color: '#ffcc00',
   },
   menuButton: {
     width: 32,
