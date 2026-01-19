@@ -496,25 +496,31 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
         animationType="fade"
         onRequestClose={() => setDeleteConfirmId(null)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Delete this entry?</Text>
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={styles.modalCancelButton}
-                onPress={() => setDeleteConfirmId(null)}
-              >
-                <Text style={styles.modalCancelText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalDeleteButton}
-                onPress={handleDeleteConfirm}
-              >
-                <Text style={styles.modalDeleteText}>Delete</Text>
-              </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setDeleteConfirmId(null)}
+        >
+          <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Delete this entry?</Text>
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={styles.modalCancelButton}
+                  onPress={() => setDeleteConfirmId(null)}
+                >
+                  <Text style={styles.modalCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.modalDeleteButton}
+                  onPress={handleDeleteConfirm}
+                >
+                  <Text style={styles.modalDeleteText}>Delete</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-        </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
     </View>
   );
