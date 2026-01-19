@@ -4,6 +4,7 @@ import * as Haptics from 'expo-haptics';
 import { useConfigStore } from '../store';
 import { GameHistoryEntry } from '../store/gameHistoryStore';
 import { Field, NextDisplay, OperationHistory } from '../renderer';
+import { GameHeader } from '../components';
 import { FIELD_COLS, VISIBLE_ROWS, ErasingPuyo, Field as FieldType } from '../logic/types';
 import { findErasableGroups, flattenGroups } from '../logic/chain';
 import { getPuyo, applyGravity, removePuyos, cloneField } from '../logic/field';
@@ -11,12 +12,13 @@ import { getPuyo, applyGravity, removePuyos, cloneField } from '../logic/field';
 interface GameReplayScreenProps {
   entry: GameHistoryEntry;
   onBack: () => void;
+  onOpenConfig: () => void;
 }
 
 // 連鎖アニメーションの遅延時間（ミリ秒）
 const CHAIN_DELAY = 200;
 
-export const GameReplayScreen: React.FC<GameReplayScreenProps> = ({ entry, onBack }) => {
+export const GameReplayScreen: React.FC<GameReplayScreenProps> = ({ entry, onBack, onOpenConfig }) => {
   const { width, height } = useWindowDimensions();
   const handedness = useConfigStore((state) => state.handedness);
 
@@ -81,6 +83,13 @@ export const GameReplayScreen: React.FC<GameReplayScreenProps> = ({ entry, onBac
   // コントロールエリアの幅
   const BORDER_WIDTH = 3;
   const controlAreaWidth = cellSize * FIELD_COLS + BORDER_WIDTH * 2;
+
+  // フィールドの高さ
+  const fieldHeight = cellSize * VISIBLE_ROWS + BORDER_WIDTH * 2;
+  // 再生コントロールの高さ（概算）
+  const replayControlsHeight = 80;
+  // 履歴枠の高さ = フィールド + 再生コントロール
+  const historyHeight = fieldHeight + replayControlsHeight;
 
   // 消えるぷよを検出
   const detectErasingPuyos = useCallback((field: FieldType): ErasingPuyo[] => {
@@ -283,7 +292,10 @@ export const GameReplayScreen: React.FC<GameReplayScreenProps> = ({ entry, onBac
   const renderGameArea = (marginSide: 'left' | 'right') => (
     <View style={styles.gameAreaContainer}>
       {/* フィールド */}
-      <View style={styles.fieldContainer}>
+      <View style={[
+        styles.fieldContainer,
+        marginSide === 'left' ? { marginLeft: largeMargin } : { marginRight: largeMargin, alignSelf: 'flex-end' }
+      ]}>
         <Field
           field={displayField}
           fallingPuyo={null}
@@ -294,6 +306,13 @@ export const GameReplayScreen: React.FC<GameReplayScreenProps> = ({ entry, onBac
         <View style={[styles.nextOverlay, styles.nextOverlayRight]}>
           <NextDisplay nextQueue={currentSnapshot.nextQueue} cellSize={cellSize * 0.6} />
         </View>
+        {/* 連鎖数オーバレイ（左上） */}
+        {displayChainCount > 0 && (
+          <View style={styles.chainOverlay}>
+            <Text style={styles.chainCount}>{displayChainCount}</Text>
+            <Text style={styles.chainLabel}>連鎖</Text>
+          </View>
+        )}
       </View>
 
       {/* 再生コントロール */}
@@ -303,40 +322,18 @@ export const GameReplayScreen: React.FC<GameReplayScreenProps> = ({ entry, onBac
       ]}>
         {renderControls()}
       </View>
-
-      {/* スコアと連鎖数 */}
-      <View style={[
-        styles.scoreRow,
-        { width: controlAreaWidth },
-        marginSide === 'left' ? { marginLeft: largeMargin } : { alignSelf: 'flex-end', marginRight: largeMargin }
-      ]}>
-        <View style={[styles.chainContainer, { opacity: displayChainCount > 0 ? 1 : 0 }]}>
-          <Text style={styles.chainCount}>{displayChainCount || 1}</Text>
-          <Text style={styles.chainLabel}>連鎖</Text>
-        </View>
-        <Text style={styles.score}>{displayScore.toLocaleString()}</Text>
-      </View>
-
-      {/* 戻るボタン */}
-      <View style={[
-        styles.buttonRow,
-        { width: controlAreaWidth },
-        marginSide === 'left' ? { marginLeft: largeMargin } : { alignSelf: 'flex-end', marginRight: largeMargin }
-      ]}>
-        <TouchableOpacity style={styles.smallButton} onPress={onBack} disabled={isAnimating}>
-          <Text style={[styles.smallButtonText, isAnimating && styles.smallButtonTextDisabled]}>Back</Text>
-        </TouchableOpacity>
-        <View style={styles.replayBadge}>
-          <Text style={styles.replayBadgeText}>REPLAY</Text>
-        </View>
-      </View>
     </View>
   );
 
   return (
     <View style={styles.container}>
-      {/* 上部スペーサー（ノッチ対策 + 1マス分のマージン） */}
-      <View style={[styles.topSpacer, { height: 50 + cellSize }]} />
+      {/* ヘッダー */}
+      <GameHeader
+        onBack={onBack}
+        onConfig={onOpenConfig}
+        score={displayScore}
+        backDisabled={isAnimating}
+      />
 
       {/* メインエリア（履歴 + ゲームフィールド） */}
       <View style={styles.mainArea}>
@@ -346,7 +343,7 @@ export const GameReplayScreen: React.FC<GameReplayScreenProps> = ({ entry, onBac
         {/* 履歴エリア */}
         <View style={[
           styles.historyContainer,
-          { width: historyWidth },
+          { width: historyWidth, height: historyHeight },
           isRightHanded ? { marginLeft: 8 } : { marginRight: 8 }
         ]}>
           <OperationHistory
@@ -370,9 +367,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#0a0a1a',
     paddingBottom: 24,
   },
-  topSpacer: {
-    // height is set dynamically based on cellSize
-  },
   mainArea: {
     flex: 1,
     flexDirection: 'row',
@@ -385,7 +379,6 @@ const styles = StyleSheet.create({
   },
   fieldContainer: {
     position: 'relative',
-    alignSelf: 'center',
   },
   controlsWrapper: {
     marginTop: 12,
@@ -433,19 +426,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 8,
   },
-  scoreRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-    marginTop: 8,
-    paddingHorizontal: 4,
+  nextOverlay: {
+    position: 'absolute',
+    top: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 8,
+    padding: 4,
   },
-  score: {
-    color: '#ffffff',
-    fontSize: 24,
-    fontWeight: 'bold',
+  nextOverlayRight: {
+    right: 8,
   },
-  chainContainer: {
+  chainOverlay: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     flexDirection: 'row',
     alignItems: 'baseline',
   },
@@ -458,50 +456,5 @@ const styles = StyleSheet.create({
     color: '#ffff00',
     fontSize: 14,
     marginLeft: 2,
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 12,
-    paddingHorizontal: 4,
-  },
-  smallButton: {
-    backgroundColor: 'transparent',
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#666666',
-  },
-  smallButtonText: {
-    color: '#888888',
-    fontSize: 14,
-  },
-  smallButtonTextDisabled: {
-    color: '#444444',
-  },
-  replayBadge: {
-    backgroundColor: 'rgba(68, 136, 255, 0.3)',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#4488ff',
-  },
-  replayBadgeText: {
-    color: '#4488ff',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  nextOverlay: {
-    position: 'absolute',
-    top: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRadius: 8,
-    padding: 4,
-  },
-  nextOverlayRight: {
-    right: 8,
   },
 });
