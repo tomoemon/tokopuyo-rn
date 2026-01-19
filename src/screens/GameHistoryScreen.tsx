@@ -440,10 +440,10 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
               {autocompleteSuggestions.slice(0, 5).map((tag, index) => (
                 <TouchableOpacity
                   key={index}
-                  style={styles.suggestionTag}
+                  style={styles.selectableTag}
                   onPress={() => handleAddFilterTag(tag)}
                 >
-                  <Text style={styles.suggestionTagText}>{tag}</Text>
+                  <Text style={styles.selectableTagText}>{tag}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -459,10 +459,10 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
                   .map((tag, index) => (
                     <TouchableOpacity
                       key={index}
-                      style={styles.popularTag}
+                      style={styles.selectableTag}
                       onPress={() => handleAddFilterTag(tag)}
                     >
-                      <Text style={styles.popularTagText}>{tag}</Text>
+                      <Text style={styles.selectableTagText}>{tag}</Text>
                     </TouchableOpacity>
                   ))}
               </View>
@@ -777,27 +777,17 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 6,
   },
-  suggestionTag: {
-    backgroundColor: '#2a2a4a',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  suggestionTagText: {
-    color: '#aaccff',
-    fontSize: 12,
-  },
   popularTagsList: {
     flexDirection: 'row',
     gap: 6,
   },
-  popularTag: {
+  selectableTag: {
     backgroundColor: '#2a2a4a',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
   },
-  popularTagText: {
+  selectableTagText: {
     color: '#aaccff',
     fontSize: 12,
   },
@@ -1039,11 +1029,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 8,
-  },
-  modalSubtext: {
-    color: '#888',
-    fontSize: 14,
-    marginBottom: 16,
   },
   resumeInfo: {
     marginBottom: 8,
