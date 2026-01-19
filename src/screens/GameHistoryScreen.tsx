@@ -722,7 +722,8 @@ const styles = StyleSheet.create({
   filterContainer: {
     backgroundColor: '#0a0a1a',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 12,
+    paddingBottom: 0,
   },
   selectedFilterTags: {
     flexDirection: 'row',
@@ -807,7 +808,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    paddingTop: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
   emptyContainer: {
     flex: 1,
