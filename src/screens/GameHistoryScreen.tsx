@@ -120,11 +120,6 @@ const HistoryItem: React.FC<{
             <Text style={styles.chainText}>Chain: {entry.maxChainCount}</Text>
           )}
         </View>
-        {entry.note && (
-          <Text style={styles.noteText} numberOfLines={1}>
-            {entry.note}
-          </Text>
-        )}
       </View>
       {isInFavorites ? (
         <View style={styles.iconButton}>
