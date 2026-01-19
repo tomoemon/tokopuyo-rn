@@ -776,7 +776,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
-    marginBottom: 8,
   },
   suggestionTag: {
     backgroundColor: '#2a2a4a',
