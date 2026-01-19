@@ -375,39 +375,36 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
       )}
 
       {/* 再開確認モーダル */}
-      <Modal
+      <DismissableModal
         visible={resumeConfirmId !== null}
-        transparent
+        onDismiss={() => setResumeConfirmId(null)}
         animationType="fade"
-        onRequestClose={() => setResumeConfirmId(null)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Resume this game?</Text>
-            {resumeEntry && (
-              <View style={styles.resumeInfo}>
-                <Text style={styles.resumeInfoText}>
-                  Score: {resumeEntry.score} | Drops: {resumeEntry.dropCount}
-                </Text>
-              </View>
-            )}
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={styles.modalCancelButton}
-                onPress={() => setResumeConfirmId(null)}
-              >
-                <Text style={styles.modalCancelText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalResumeButton}
-                onPress={handleResumeConfirm}
-              >
-                <Text style={styles.modalResumeText}>Resume</Text>
-              </TouchableOpacity>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>Resume this game?</Text>
+          {resumeEntry && (
+            <View style={styles.resumeInfo}>
+              <Text style={styles.resumeInfoText}>
+                Score: {resumeEntry.score} | Drops: {resumeEntry.dropCount}
+              </Text>
             </View>
+          )}
+          <View style={styles.modalButtons}>
+            <TouchableOpacity
+              style={styles.modalCancelButton}
+              onPress={() => setResumeConfirmId(null)}
+            >
+              <Text style={styles.modalCancelText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.modalResumeButton}
+              onPress={handleResumeConfirm}
+            >
+              <Text style={styles.modalResumeText}>Resume</Text>
+            </TouchableOpacity>
           </View>
         </View>
-      </Modal>
+      </DismissableModal>
 
       {/* 編集モーダル */}
       <Modal
