@@ -17,6 +17,7 @@ import {
   HIDDEN_ROWS,
   PuyoColor,
 } from '../logic/types';
+import { DismissableModal } from '../components';
 
 interface GameHistoryScreenProps {
   onBack: () => void;
@@ -490,38 +491,29 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
       </Modal>
 
       {/* 削除確認モーダル */}
-      <Modal
+      <DismissableModal
         visible={deleteConfirmId !== null}
-        transparent
+        onDismiss={() => setDeleteConfirmId(null)}
         animationType="fade"
-        onRequestClose={() => setDeleteConfirmId(null)}
       >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setDeleteConfirmId(null)}
-        >
-          <TouchableOpacity activeOpacity={1} onPress={() => {}}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Delete this entry?</Text>
-              <View style={styles.modalButtons}>
-                <TouchableOpacity
-                  style={styles.modalCancelButton}
-                  onPress={() => setDeleteConfirmId(null)}
-                >
-                  <Text style={styles.modalCancelText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.modalDeleteButton}
-                  onPress={handleDeleteConfirm}
-                >
-                  <Text style={styles.modalDeleteText}>Delete</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>Delete this entry?</Text>
+          <View style={styles.modalButtons}>
+            <TouchableOpacity
+              style={styles.modalCancelButton}
+              onPress={() => setDeleteConfirmId(null)}
+            >
+              <Text style={styles.modalCancelText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.modalDeleteButton}
+              onPress={handleDeleteConfirm}
+            >
+              <Text style={styles.modalDeleteText}>Delete</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </DismissableModal>
     </View>
   );
 };
