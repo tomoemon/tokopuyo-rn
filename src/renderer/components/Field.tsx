@@ -162,7 +162,7 @@ export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize, eras
         );
       })}
 
-      {/* ゲームオーバーゾーンのバツ印（隠しマスの最下行に表示） */}
+      {/* ゲームオーバーゾーンのバツ印（可視マスの最上行に表示） */}
       {[2, 3].map((x) => (
         <View
           key={`gameover-mark-${x}`}
@@ -170,7 +170,7 @@ export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize, eras
             styles.gameOverMarkOverlay,
             {
               left: x * cellSize,
-              top: (HIDDEN_ROWS - 1) * cellSize,
+              top: HIDDEN_ROWS * cellSize,
               width: cellSize,
               height: cellSize,
             },
