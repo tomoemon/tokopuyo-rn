@@ -18,7 +18,7 @@ import {
 
 interface GameHistoryScreenProps {
   onBack: () => void;
-  onResumeGame: (gameId: string) => void;
+  onResumeGame: (gameId: string, fromFavorites: boolean) => void;
 }
 
 type TabType = 'history' | 'favorite';
@@ -100,13 +100,14 @@ const FieldThumbnail: React.FC<{ entry: GameHistoryEntry }> = ({ entry }) => {
   );
 };
 
-// ゲーム履歴アイテムコンポーネント
-const GameHistoryItem: React.FC<{
+// ゲーム履歴アイテムコンポーネント（History用）
+const HistoryItem: React.FC<{
   entry: GameHistoryEntry;
+  isInFavorites: boolean;
   onPress: () => void;
   onToggleFavorite: () => void;
   onOpenMenu: () => void;
-}> = ({ entry, onPress, onToggleFavorite, onOpenMenu }) => {
+}> = ({ entry, isInFavorites, onPress, onToggleFavorite, onOpenMenu }) => {
   return (
     <TouchableOpacity style={styles.itemContainer} onPress={onPress} activeOpacity={0.7}>
       <FieldThumbnail entry={entry} />
@@ -132,9 +133,56 @@ const GameHistoryItem: React.FC<{
           onToggleFavorite();
         }}
       >
-        <Text style={[styles.favoriteIcon, entry.isFavorite && styles.favoriteIconActive]}>
-          {entry.isFavorite ? '★' : '☆'}
+        <Text style={[styles.favoriteIcon, isInFavorites && styles.favoriteIconActive]}>
+          {isInFavorites ? '★' : '☆'}
         </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.menuButton}
+        onPress={(e) => {
+          e.stopPropagation();
+          onOpenMenu();
+        }}
+      >
+        <Text style={styles.menuButtonText}>…</Text>
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
+};
+
+// お気に入りアイテムコンポーネント（Favorite用）
+const FavoriteItem: React.FC<{
+  entry: GameHistoryEntry;
+  onPress: () => void;
+  onRemoveFavorite: () => void;
+  onOpenMenu: () => void;
+}> = ({ entry, onPress, onRemoveFavorite, onOpenMenu }) => {
+  return (
+    <TouchableOpacity style={styles.itemContainer} onPress={onPress} activeOpacity={0.7}>
+      <FieldThumbnail entry={entry} />
+      <View style={styles.itemInfo}>
+        <Text style={styles.dateText}>{formatDate(entry.lastPlayedAt)}</Text>
+        <Text style={styles.scoreText}>Score: {entry.score}</Text>
+        <View style={styles.statsRow}>
+          <Text style={styles.dropCountText}>Drops: {entry.dropCount}</Text>
+          {entry.maxChainCount > 0 && (
+            <Text style={styles.chainText}>Chain: {entry.maxChainCount}</Text>
+          )}
+        </View>
+        {entry.note && (
+          <Text style={styles.noteText} numberOfLines={1}>
+            {entry.note}
+          </Text>
+        )}
+      </View>
+      <TouchableOpacity
+        style={styles.favoriteButton}
+        onPress={(e) => {
+          e.stopPropagation();
+          onRemoveFavorite();
+        }}
+      >
+        <Text style={[styles.favoriteIcon, styles.favoriteIconActive]}>★</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.menuButton}
@@ -151,40 +199,52 @@ const GameHistoryItem: React.FC<{
 
 export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, onResumeGame }) => {
   const entries = useGameHistoryStore((state) => state.entries);
+  const favorites = useGameHistoryStore((state) => state.favorites);
   const deleteEntry = useGameHistoryStore((state) => state.deleteEntry);
+  const deleteFavorite = useGameHistoryStore((state) => state.deleteFavorite);
   const clearAllHistory = useGameHistoryStore((state) => state.clearAllHistory);
-  const toggleFavorite = useGameHistoryStore((state) => state.toggleFavorite);
+  const addToFavorites = useGameHistoryStore((state) => state.addToFavorites);
+  const removeFromFavorites = useGameHistoryStore((state) => state.removeFromFavorites);
+  const isInFavorites = useGameHistoryStore((state) => state.isInFavorites);
   const updateNote = useGameHistoryStore((state) => state.updateNote);
 
   const [activeTab, setActiveTab] = useState<TabType>('history');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [deleteFromFavorites, setDeleteFromFavorites] = useState(false);
   const [resumeConfirmId, setResumeConfirmId] = useState<string | null>(null);
+  const [resumeFromFavorites, setResumeFromFavorites] = useState(false);
   const [showClearAllModal, setShowClearAllModal] = useState(false);
   const [noteEditId, setNoteEditId] = useState<string | null>(null);
+  const [noteEditFromFavorites, setNoteEditFromFavorites] = useState(false);
   const [noteText, setNoteText] = useState('');
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [menuFromFavorites, setMenuFromFavorites] = useState(false);
 
-  // タブに応じてフィルタリング
-  const filteredEntries = entries.filter(e =>
-    activeTab === 'favorite' ? e.isFavorite : true
-  );
+  // 現在のタブに応じたリスト
+  const currentList = activeTab === 'favorite' ? favorites : entries;
 
   // 新しい順にソート
-  const sortedEntries = [...filteredEntries].sort(
+  const sortedList = [...currentList].sort(
     (a, b) => new Date(b.lastPlayedAt).getTime() - new Date(a.lastPlayedAt).getTime()
   );
 
   const handleDeleteConfirm = () => {
     if (deleteConfirmId) {
-      deleteEntry(deleteConfirmId);
+      if (deleteFromFavorites) {
+        deleteFavorite(deleteConfirmId);
+      } else {
+        deleteEntry(deleteConfirmId);
+      }
       setDeleteConfirmId(null);
+      setDeleteFromFavorites(false);
     }
   };
 
   const handleResumeConfirm = () => {
     if (resumeConfirmId) {
-      onResumeGame(resumeConfirmId);
+      onResumeGame(resumeConfirmId, resumeFromFavorites);
       setResumeConfirmId(null);
+      setResumeFromFavorites(false);
     }
   };
 
@@ -193,10 +253,12 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
     setShowClearAllModal(false);
   };
 
-  const handleOpenNoteEditor = (entryId: string) => {
-    const entry = entries.find(e => e.id === entryId);
+  const handleOpenNoteEditor = (entryId: string, fromFavorites: boolean) => {
+    const list = fromFavorites ? favorites : entries;
+    const entry = list.find(e => e.id === entryId);
     if (entry) {
       setNoteEditId(entry.id);
+      setNoteEditFromFavorites(fromFavorites);
       setNoteText(entry.note);
     }
     setMenuOpenId(null);
@@ -204,18 +266,30 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
 
   const handleSaveNote = () => {
     if (noteEditId) {
-      updateNote(noteEditId, noteText);
+      updateNote(noteEditId, noteText, noteEditFromFavorites);
       setNoteEditId(null);
+      setNoteEditFromFavorites(false);
       setNoteText('');
     }
   };
 
-  const handleDeleteFromMenu = (entryId: string) => {
+  const handleDeleteFromMenu = (entryId: string, fromFavorites: boolean) => {
     setMenuOpenId(null);
     setDeleteConfirmId(entryId);
+    setDeleteFromFavorites(fromFavorites);
   };
 
-  const resumeEntry = sortedEntries.find(e => e.id === resumeConfirmId);
+  const handleToggleFavorite = (id: string) => {
+    if (isInFavorites(id)) {
+      removeFromFavorites(id);
+    } else {
+      addToFavorites(id);
+    }
+  };
+
+  const resumeEntry = resumeFromFavorites
+    ? favorites.find(e => e.id === resumeConfirmId)
+    : entries.find(e => e.id === resumeConfirmId);
 
   return (
     <View style={styles.container}>
@@ -257,7 +331,7 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
         </TouchableOpacity>
       </View>
 
-      {sortedEntries.length === 0 ? (
+      {sortedList.length === 0 ? (
         <View style={styles.emptyContainer}>
           {activeTab === 'history' ? (
             <>
@@ -273,15 +347,38 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
         </View>
       ) : (
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-          {sortedEntries.map((entry) => (
-            <GameHistoryItem
-              key={entry.id}
-              entry={entry}
-              onPress={() => setResumeConfirmId(entry.id)}
-              onToggleFavorite={() => toggleFavorite(entry.id)}
-              onOpenMenu={() => setMenuOpenId(entry.id)}
-            />
-          ))}
+          {activeTab === 'history'
+            ? sortedList.map((entry) => (
+                <HistoryItem
+                  key={entry.id}
+                  entry={entry}
+                  isInFavorites={isInFavorites(entry.id)}
+                  onPress={() => {
+                    setResumeConfirmId(entry.id);
+                    setResumeFromFavorites(false);
+                  }}
+                  onToggleFavorite={() => handleToggleFavorite(entry.id)}
+                  onOpenMenu={() => {
+                    setMenuOpenId(entry.id);
+                    setMenuFromFavorites(false);
+                  }}
+                />
+              ))
+            : sortedList.map((entry) => (
+                <FavoriteItem
+                  key={entry.id}
+                  entry={entry}
+                  onPress={() => {
+                    setResumeConfirmId(entry.id);
+                    setResumeFromFavorites(true);
+                  }}
+                  onRemoveFavorite={() => removeFromFavorites(entry.id)}
+                  onOpenMenu={() => {
+                    setMenuOpenId(entry.id);
+                    setMenuFromFavorites(true);
+                  }}
+                />
+              ))}
         </ScrollView>
       )}
 
@@ -335,14 +432,14 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
           <View style={styles.menuModalContent}>
             <TouchableOpacity
               style={styles.menuItem}
-              onPress={() => menuOpenId && handleOpenNoteEditor(menuOpenId)}
+              onPress={() => menuOpenId && handleOpenNoteEditor(menuOpenId, menuFromFavorites)}
             >
               <Text style={styles.menuItemText}>Edit note</Text>
             </TouchableOpacity>
             <View style={styles.menuDivider} />
             <TouchableOpacity
               style={styles.menuItem}
-              onPress={() => menuOpenId && handleDeleteFromMenu(menuOpenId)}
+              onPress={() => menuOpenId && handleDeleteFromMenu(menuOpenId, menuFromFavorites)}
             >
               <Text style={styles.menuItemTextDanger}>Delete</Text>
             </TouchableOpacity>

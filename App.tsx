@@ -36,8 +36,8 @@ export default function App() {
     setCurrentScreen('title');
   }, []);
 
-  const handleResumeGame = useCallback((gameId: string) => {
-    const success = resumeFromHistory(gameId);
+  const handleResumeGame = useCallback((gameId: string, fromFavorites: boolean) => {
+    const success = resumeFromHistory(gameId, fromFavorites);
     if (success) {
       setCurrentScreen('game');
     }

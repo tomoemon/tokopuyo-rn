@@ -17,18 +17,19 @@ export type GameHistoryEntry = {
   lastPlayedAt: string; // ISO 8601 形式
   operationHistory: GameSnapshot[]; // フィールドの操作履歴
   nextSnapshotId: number; // 次のスナップショットID
-  isFavorite: boolean; // お気に入りフラグ
   note: string; // メモ
 };
 
 interface GameHistoryStore {
-  // ゲーム履歴一覧
+  // ゲーム履歴一覧（History タブ）
   entries: GameHistoryEntry[];
+  // お気に入り一覧（Favorite タブ）- 独立して管理
+  favorites: GameHistoryEntry[];
   // 現在のゲームID
   currentGameId: string | null;
 
   // アクション
-  startNewGame: () => string; // 新しいゲームを開始し、IDを返す
+  startNewGame: () => string;
   updateCurrentGame: (
     field: Field,
     score: number,
@@ -40,8 +41,14 @@ interface GameHistoryStore {
   clearAllHistory: () => void;
   getEntry: (id: string) => GameHistoryEntry | undefined;
   setCurrentGameId: (id: string | null) => void;
-  toggleFavorite: (id: string) => void;
-  updateNote: (id: string, note: string) => void;
+  updateNote: (id: string, note: string, isFavoriteList: boolean) => void;
+
+  // お気に入り関連
+  addToFavorites: (id: string) => void;
+  removeFromFavorites: (id: string) => void;
+  deleteFavorite: (id: string) => void;
+  isInFavorites: (id: string) => boolean;
+  getFavoriteEntry: (id: string) => GameHistoryEntry | undefined;
 }
 
 // ユニークIDを生成
@@ -49,10 +56,23 @@ function generateGameId(): string {
   return `game_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 }
 
+// エントリをディープコピー
+function cloneEntry(entry: GameHistoryEntry): GameHistoryEntry {
+  return {
+    ...entry,
+    field: cloneField(entry.field),
+    operationHistory: entry.operationHistory.map(s => ({
+      ...s,
+      field: cloneField(s.field),
+    })),
+  };
+}
+
 export const useGameHistoryStore = create<GameHistoryStore>()(
   persist(
     (set, get) => ({
       entries: [],
+      favorites: [],
       currentGameId: null,
 
       startNewGame: () => {
@@ -74,7 +94,6 @@ export const useGameHistoryStore = create<GameHistoryStore>()(
 
         const now = new Date().toISOString();
         const existingIndex = state.entries.findIndex(e => e.id === currentGameId);
-        // ツモ数は操作履歴の長さ - 1（初期状態のスナップショットを除く）
         const dropCount = Math.max(0, operationHistory.length - 1);
 
         if (existingIndex >= 0) {
@@ -102,26 +121,16 @@ export const useGameHistoryStore = create<GameHistoryStore>()(
             lastPlayedAt: now,
             operationHistory: operationHistory.map(s => ({ ...s, field: cloneField(s.field) })),
             nextSnapshotId,
-            isFavorite: false,
             note: '',
           };
           let newEntries = [...state.entries, newEntry];
 
-          // 100件を超えたら古い非お気に入りを削除
+          // 100件を超えたら古いものを削除
           if (newEntries.length > MAX_HISTORY_ENTRIES) {
-            // お気に入りと非お気に入りを分離
-            const favorites = newEntries.filter(e => e.isFavorite);
-            const nonFavorites = newEntries.filter(e => !e.isFavorite);
-
-            // 非お気に入りを日時でソートして古いものを削除
-            nonFavorites.sort((a, b) =>
+            newEntries.sort((a, b) =>
               new Date(b.lastPlayedAt).getTime() - new Date(a.lastPlayedAt).getTime()
             );
-
-            const maxNonFavorites = MAX_HISTORY_ENTRIES - favorites.length;
-            const trimmedNonFavorites = nonFavorites.slice(0, Math.max(0, maxNonFavorites));
-
-            newEntries = [...favorites, ...trimmedNonFavorites];
+            newEntries = newEntries.slice(0, MAX_HISTORY_ENTRIES);
           }
 
           set({ entries: newEntries });
@@ -146,20 +155,53 @@ export const useGameHistoryStore = create<GameHistoryStore>()(
         set({ currentGameId: id });
       },
 
-      toggleFavorite: (id: string) => {
+      updateNote: (id: string, note: string, isFavoriteList: boolean) => {
         const state = get();
-        const newEntries = state.entries.map(e =>
-          e.id === id ? { ...e, isFavorite: !e.isFavorite } : e
-        );
-        set({ entries: newEntries });
+        if (isFavoriteList) {
+          const newFavorites = state.favorites.map(e =>
+            e.id === id ? { ...e, note } : e
+          );
+          set({ favorites: newFavorites });
+        } else {
+          const newEntries = state.entries.map(e =>
+            e.id === id ? { ...e, note } : e
+          );
+          set({ entries: newEntries });
+        }
       },
 
-      updateNote: (id: string, note: string) => {
+      addToFavorites: (id: string) => {
         const state = get();
-        const newEntries = state.entries.map(e =>
-          e.id === id ? { ...e, note } : e
-        );
-        set({ entries: newEntries });
+        // 既にお気に入りにある場合は何もしない
+        if (state.favorites.some(e => e.id === id)) {
+          return;
+        }
+        const entry = state.entries.find(e => e.id === id);
+        if (entry) {
+          // エントリをコピーしてお気に入りに追加
+          const favoriteCopy = cloneEntry(entry);
+          set({ favorites: [...state.favorites, favoriteCopy] });
+        }
+      },
+
+      removeFromFavorites: (id: string) => {
+        const state = get();
+        set({ favorites: state.favorites.filter(e => e.id !== id) });
+      },
+
+      deleteFavorite: (id: string) => {
+        const state = get();
+        set({ favorites: state.favorites.filter(e => e.id !== id) });
+      },
+
+      isInFavorites: (id: string) => {
+        const state = get();
+        return state.favorites.some(e => e.id === id);
+      },
+
+      getFavoriteEntry: (id: string) => {
+        const state = get();
+        return state.favorites.find(e => e.id === id);
       },
     }),
     {

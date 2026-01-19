@@ -51,7 +51,7 @@ interface GameStore extends GameState {
   // 履歴への復元
   restoreToSnapshot: (snapshotId: number) => void;
   // ゲーム履歴からゲームを再開
-  resumeFromHistory: (gameHistoryId: string) => boolean;
+  resumeFromHistory: (gameHistoryId: string, fromFavorites?: boolean) => boolean;
 
   // 内部メソッド
   tick: () => void;
@@ -383,9 +383,11 @@ export const useGameStore = create<GameStore>()(
   },
 
   // ゲーム履歴からゲームを再開
-  resumeFromHistory: (gameHistoryId: string) => {
+  resumeFromHistory: (gameHistoryId: string, fromFavorites: boolean = false) => {
     const gameHistoryStore = useGameHistoryStore.getState();
-    const entry = gameHistoryStore.getEntry(gameHistoryId);
+    const entry = fromFavorites
+      ? gameHistoryStore.getFavoriteEntry(gameHistoryId)
+      : gameHistoryStore.getEntry(gameHistoryId);
     if (!entry || entry.operationHistory.length === 0) {
       return false;
     }
