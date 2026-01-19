@@ -221,8 +221,14 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
   const [activeTab, setActiveTab] = useState<TabType>('history');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [deleteFromFavorites, setDeleteFromFavorites] = useState(false);
-  const [resumeConfirmId, setResumeConfirmId] = useState<string | null>(null);
-  const [resumeFromFavorites, setResumeFromFavorites] = useState(false);
+  // Resume モーダル用の状態（キャッシュでアニメーション中もデータを保持）
+  const [resumeModalVisible, setResumeModalVisible] = useState(false);
+  const [resumeEntryCache, setResumeEntryCache] = useState<{
+    id: string;
+    score: number;
+    dropCount: number;
+    fromFavorites: boolean;
+  } | null>(null);
   // 編集モーダル用の状態
   const [editId, setEditId] = useState<string | null>(null);
   const [editNote, setEditNote] = useState('');
@@ -249,11 +255,25 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
     }
   };
 
+  const handleOpenResumeModal = (entry: GameHistoryEntry, fromFavorites: boolean) => {
+    setResumeEntryCache({
+      id: entry.id,
+      score: entry.score,
+      dropCount: entry.dropCount,
+      fromFavorites,
+    });
+    setResumeModalVisible(true);
+  };
+
+  const handleCloseResumeModal = () => {
+    setResumeModalVisible(false);
+    // キャッシュはクリアしない（アニメーション中に表示を維持するため）
+  };
+
   const handleResumeConfirm = () => {
-    if (resumeConfirmId) {
-      onResumeGame(resumeConfirmId, resumeFromFavorites);
-      setResumeConfirmId(null);
-      setResumeFromFavorites(false);
+    if (resumeEntryCache) {
+      onResumeGame(resumeEntryCache.id, resumeEntryCache.fromFavorites);
+      setResumeModalVisible(false);
     }
   };
 
@@ -288,10 +308,6 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
   const handleRemoveTag = (tagToRemove: string) => {
     setEditTags(editTags.filter(tag => tag !== tagToRemove));
   };
-
-  const resumeEntry = resumeFromFavorites
-    ? favorites.find(e => e.id === resumeConfirmId)
-    : entries.find(e => e.id === resumeConfirmId);
 
   return (
     <View style={styles.container}>
@@ -345,10 +361,7 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
                   key={entry.id}
                   entry={entry}
                   isInFavorites={isInFavorites(entry.id)}
-                  onPress={() => {
-                    setResumeConfirmId(entry.id);
-                    setResumeFromFavorites(false);
-                  }}
+                  onPress={() => handleOpenResumeModal(entry, false)}
                   onAddToFavorite={() => addToFavorites(entry.id)}
                   onMenuPress={() => {
                     setDeleteConfirmId(entry.id);
@@ -360,10 +373,7 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
                 <FavoriteItem
                   key={entry.id}
                   entry={entry}
-                  onPress={() => {
-                    setResumeConfirmId(entry.id);
-                    setResumeFromFavorites(true);
-                  }}
+                  onPress={() => handleOpenResumeModal(entry, true)}
                   onMenuPress={() => {
                     setDeleteConfirmId(entry.id);
                     setDeleteFromFavorites(true);
@@ -376,23 +386,23 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
 
       {/* 再開確認モーダル */}
       <DismissableModal
-        visible={resumeConfirmId !== null}
-        onDismiss={() => setResumeConfirmId(null)}
+        visible={resumeModalVisible}
+        onDismiss={handleCloseResumeModal}
         animationType="fade"
       >
         <View style={styles.modalContent}>
           <Text style={styles.modalTitle}>Resume this game?</Text>
-          {resumeEntry && (
+          {resumeEntryCache && (
             <View style={styles.resumeInfo}>
               <Text style={styles.resumeInfoText}>
-                Score: {resumeEntry.score} | Drops: {resumeEntry.dropCount}
+                Score: {resumeEntryCache.score} | Drops: {resumeEntryCache.dropCount}
               </Text>
             </View>
           )}
           <View style={styles.modalButtons}>
             <TouchableOpacity
               style={styles.modalCancelButton}
-              onPress={() => setResumeConfirmId(null)}
+              onPress={handleCloseResumeModal}
             >
               <Text style={styles.modalCancelText}>Cancel</Text>
             </TouchableOpacity>
