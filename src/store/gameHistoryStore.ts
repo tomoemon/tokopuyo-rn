@@ -100,6 +100,15 @@ export const useGameHistoryStore = create<GameHistoryStore>()(
         const existingIndex = state.entries.findIndex(e => e.id === currentGameId);
         const dropCount = Math.max(0, operationHistory.length - 1);
 
+        // dropCount が 0 の場合は履歴に記録しない
+        if (dropCount === 0) {
+          // 既存のエントリがあれば削除
+          if (existingIndex >= 0) {
+            set({ entries: state.entries.filter(e => e.id !== currentGameId) });
+          }
+          return;
+        }
+
         if (existingIndex >= 0) {
           // 既存のエントリを更新
           const newEntries = [...state.entries];
