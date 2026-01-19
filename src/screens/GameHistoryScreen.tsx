@@ -721,8 +721,6 @@ const styles = StyleSheet.create({
   },
   filterContainer: {
     backgroundColor: '#0a0a1a',
-    borderBottomWidth: 1,
-    borderBottomColor: '#333',
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
