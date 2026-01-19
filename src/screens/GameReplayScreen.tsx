@@ -292,17 +292,20 @@ export const GameReplayScreen: React.FC<GameReplayScreenProps> = ({ entry, onBac
   const renderGameArea = (marginSide: 'left' | 'right') => (
     <View style={styles.gameAreaContainer}>
       {/* フィールド */}
-      <GameFieldLayout
-        field={displayField}
-        fallingPuyo={null}
-        cellSize={cellSize}
-        erasingPuyos={erasingPuyos}
-        onEffectComplete={handleEffectComplete}
-        nextQueue={currentSnapshot.nextQueue}
-        chainCount={displayChainCount}
-        isRightHanded={marginSide === 'right'}
-        sideMargin={largeMargin}
-      />
+      <View style={[
+        styles.fieldWrapper,
+        marginSide === 'left' ? { marginLeft: largeMargin } : { alignSelf: 'flex-end', marginRight: largeMargin }
+      ]}>
+        <GameFieldLayout
+          field={displayField}
+          fallingPuyo={null}
+          cellSize={cellSize}
+          erasingPuyos={erasingPuyos}
+          onEffectComplete={handleEffectComplete}
+          nextQueue={currentSnapshot.nextQueue}
+          chainCount={displayChainCount}
+        />
+      </View>
 
       {/* 再生コントロール */}
       <View style={[
@@ -366,6 +369,9 @@ const styles = StyleSheet.create({
   },
   gameAreaContainer: {
     flex: 1,
+  },
+  fieldWrapper: {
+    // フィールドの配置用ラッパー
   },
   controlsWrapper: {
     marginTop: 12,

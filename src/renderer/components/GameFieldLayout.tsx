@@ -14,9 +14,6 @@ interface GameFieldLayoutProps {
   nextQueue: [PuyoColor, PuyoColor][];
   chainCount: number;
   isGameOver?: boolean;
-  // レイアウト
-  isRightHanded: boolean;
-  sideMargin: number;
 }
 
 export const GameFieldLayout: React.FC<GameFieldLayoutProps> = ({
@@ -28,20 +25,11 @@ export const GameFieldLayout: React.FC<GameFieldLayoutProps> = ({
   nextQueue,
   chainCount,
   isGameOver = false,
-  isRightHanded,
-  sideMargin,
 }) => {
   const overlayTop = HIDDEN_ROWS * cellSize + 8;
 
   return (
-    <View
-      style={[
-        styles.fieldContainer,
-        isRightHanded
-          ? { marginRight: sideMargin, alignSelf: 'flex-end' }
-          : { marginLeft: sideMargin, alignSelf: 'flex-start' },
-      ]}
-    >
+    <View style={styles.fieldContainer}>
       <Field
         field={field}
         fallingPuyo={fallingPuyo}

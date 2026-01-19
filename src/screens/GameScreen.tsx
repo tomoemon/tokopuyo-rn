@@ -105,8 +105,6 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToTitle, onOpenCon
             nextQueue={nextQueue}
             chainCount={chainCount}
             isGameOver={isGameOver}
-            isRightHanded={marginSide === 'right'}
-            sideMargin={largeMargin}
           />
         </ControlArea>
       </View>
