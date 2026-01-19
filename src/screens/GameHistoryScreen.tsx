@@ -105,9 +105,9 @@ const HistoryItem: React.FC<{
   entry: GameHistoryEntry;
   isInFavorites: boolean;
   onPress: () => void;
-  onToggleFavorite: () => void;
-  onOpenMenu: () => void;
-}> = ({ entry, isInFavorites, onPress, onToggleFavorite, onOpenMenu }) => {
+  onAddToFavorite: () => void;
+  onDelete: () => void;
+}> = ({ entry, isInFavorites, onPress, onAddToFavorite, onDelete }) => {
   return (
     <TouchableOpacity style={styles.itemContainer} onPress={onPress} activeOpacity={0.7}>
       <FieldThumbnail entry={entry} />
@@ -126,25 +126,25 @@ const HistoryItem: React.FC<{
           </Text>
         )}
       </View>
+      {!isInFavorites && (
+        <TouchableOpacity
+          style={styles.iconButton}
+          onPress={(e) => {
+            e.stopPropagation();
+            onAddToFavorite();
+          }}
+        >
+          <Text style={styles.starIcon}>☆</Text>
+        </TouchableOpacity>
+      )}
       <TouchableOpacity
-        style={styles.favoriteButton}
+        style={styles.iconButton}
         onPress={(e) => {
           e.stopPropagation();
-          onToggleFavorite();
+          onDelete();
         }}
       >
-        <Text style={[styles.favoriteIcon, isInFavorites && styles.favoriteIconActive]}>
-          {isInFavorites ? '★' : '☆'}
-        </Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.menuButton}
-        onPress={(e) => {
-          e.stopPropagation();
-          onOpenMenu();
-        }}
-      >
-        <Text style={styles.menuButtonText}>…</Text>
+        <Text style={styles.trashIcon}>🗑</Text>
       </TouchableOpacity>
     </TouchableOpacity>
   );
@@ -279,14 +279,6 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
     setDeleteFromFavorites(fromFavorites);
   };
 
-  const handleToggleFavorite = (id: string) => {
-    if (isInFavorites(id)) {
-      removeFromFavorites(id);
-    } else {
-      addToFavorites(id);
-    }
-  };
-
   const resumeEntry = resumeFromFavorites
     ? favorites.find(e => e.id === resumeConfirmId)
     : entries.find(e => e.id === resumeConfirmId);
@@ -357,10 +349,10 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
                     setResumeConfirmId(entry.id);
                     setResumeFromFavorites(false);
                   }}
-                  onToggleFavorite={() => handleToggleFavorite(entry.id)}
-                  onOpenMenu={() => {
-                    setMenuOpenId(entry.id);
-                    setMenuFromFavorites(false);
+                  onAddToFavorite={() => addToFavorites(entry.id)}
+                  onDelete={() => {
+                    setDeleteConfirmId(entry.id);
+                    setDeleteFromFavorites(false);
                   }}
                 />
               ))
@@ -645,6 +637,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#3a3a5a',
     alignItems: 'center',
+  },
+  iconButton: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  starIcon: {
+    fontSize: 22,
+    color: '#ffcc00',
+  },
+  trashIcon: {
+    fontSize: 18,
   },
   favoriteButton: {
     width: 36,
