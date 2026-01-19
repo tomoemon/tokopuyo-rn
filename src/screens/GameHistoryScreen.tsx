@@ -126,7 +126,11 @@ const HistoryItem: React.FC<{
           </Text>
         )}
       </View>
-      {!isInFavorites && (
+      {isInFavorites ? (
+        <View style={styles.iconButton}>
+          <Text style={styles.checkIcon}>✓</Text>
+        </View>
+      ) : (
         <TouchableOpacity
           style={styles.iconButton}
           onPress={(e) => {
@@ -647,6 +651,10 @@ const styles = StyleSheet.create({
   starIcon: {
     fontSize: 22,
     color: '#ffcc00',
+  },
+  checkIcon: {
+    fontSize: 20,
+    color: '#44cc44',
   },
   trashIcon: {
     fontSize: 18,
