@@ -3,9 +3,9 @@ import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions } from 'r
 import * as Haptics from 'expo-haptics';
 import { useConfigStore } from '../store';
 import { GameHistoryEntry } from '../store/gameHistoryStore';
-import { Field, NextDisplay, OperationHistory } from '../renderer';
+import { GameFieldLayout, OperationHistory } from '../renderer';
 import { GameHeader } from '../components';
-import { FIELD_COLS, TOTAL_ROWS, HIDDEN_ROWS, ErasingPuyo, Field as FieldType } from '../logic/types';
+import { FIELD_COLS, TOTAL_ROWS, ErasingPuyo, Field as FieldType } from '../logic/types';
 import { findErasableGroups, flattenGroups } from '../logic/chain';
 import { getPuyo, applyGravity, removePuyos, cloneField } from '../logic/field';
 
@@ -292,28 +292,17 @@ export const GameReplayScreen: React.FC<GameReplayScreenProps> = ({ entry, onBac
   const renderGameArea = (marginSide: 'left' | 'right') => (
     <View style={styles.gameAreaContainer}>
       {/* フィールド */}
-      <View style={[
-        styles.fieldContainer,
-        marginSide === 'left' ? { marginLeft: largeMargin } : { marginRight: largeMargin, alignSelf: 'flex-end' }
-      ]}>
-        <Field
-          field={displayField}
-          fallingPuyo={null}
-          cellSize={cellSize}
-          erasingPuyos={erasingPuyos}
-          onEffectComplete={handleEffectComplete}
-        />
-        <View style={[styles.nextOverlay, { top: HIDDEN_ROWS * cellSize + 8, right: 8 }]}>
-          <NextDisplay nextQueue={currentSnapshot.nextQueue} cellSize={cellSize * 0.6} />
-        </View>
-        {/* 連鎖数オーバレイ（可視マスの左上） */}
-        {displayChainCount > 0 && (
-          <View style={[styles.chainOverlay, { top: HIDDEN_ROWS * cellSize + 8 }]}>
-            <Text style={styles.chainCount}>{displayChainCount}</Text>
-            <Text style={styles.chainLabel}>連鎖</Text>
-          </View>
-        )}
-      </View>
+      <GameFieldLayout
+        field={displayField}
+        fallingPuyo={null}
+        cellSize={cellSize}
+        erasingPuyos={erasingPuyos}
+        onEffectComplete={handleEffectComplete}
+        nextQueue={currentSnapshot.nextQueue}
+        chainCount={displayChainCount}
+        isRightHanded={marginSide === 'right'}
+        sideMargin={largeMargin}
+      />
 
       {/* 再生コントロール */}
       <View style={[
@@ -378,9 +367,6 @@ const styles = StyleSheet.create({
   gameAreaContainer: {
     flex: 1,
   },
-  fieldContainer: {
-    position: 'relative',
-  },
   controlsWrapper: {
     marginTop: 12,
   },
@@ -426,31 +412,5 @@ const styles = StyleSheet.create({
     color: '#888',
     fontSize: 14,
     marginTop: 8,
-  },
-  nextOverlay: {
-    position: 'absolute',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRadius: 8,
-    padding: 4,
-  },
-  chainOverlay: {
-    position: 'absolute',
-    left: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    flexDirection: 'row',
-    alignItems: 'baseline',
-  },
-  chainCount: {
-    color: '#ffff00',
-    fontSize: 28,
-    fontWeight: 'bold',
-  },
-  chainLabel: {
-    color: '#ffff00',
-    fontSize: 14,
-    marginLeft: 2,
   },
 });
