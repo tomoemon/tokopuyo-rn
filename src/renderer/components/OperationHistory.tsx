@@ -7,13 +7,18 @@ interface OperationHistoryProps {
   history: GameSnapshot[];
   cellSize: number;
   onRestoreToSnapshot: (snapshotId: number) => void;
+  /** 再生モードで使用。現在選択中のスナップショットIDをハイライト表示し、確認モーダルをスキップ */
+  currentSnapshotId?: number;
 }
 
 export const OperationHistory: React.FC<OperationHistoryProps> = ({
   history,
   cellSize,
   onRestoreToSnapshot,
+  currentSnapshotId,
 }) => {
+  // 再生モードかどうか
+  const isReplayMode = currentSnapshotId !== undefined;
   const scrollViewRef = useRef<ScrollView>(null);
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
   const [selectedSnapshotId, setSelectedSnapshotId] = useState<number | null>(null);
@@ -26,8 +31,14 @@ export const OperationHistory: React.FC<OperationHistoryProps> = ({
   }, [history.length]);
 
   const handleThumbnailPress = (snapshotId: number) => {
-    setSelectedSnapshotId(snapshotId);
-    setConfirmModalVisible(true);
+    if (isReplayMode) {
+      // 再生モードでは確認なしで直接ナビゲート
+      onRestoreToSnapshot(snapshotId);
+    } else {
+      // ゲームモードでは確認モーダルを表示
+      setSelectedSnapshotId(snapshotId);
+      setConfirmModalVisible(true);
+    }
   };
 
   const handleConfirmRestore = () => {
@@ -60,6 +71,7 @@ export const OperationHistory: React.FC<OperationHistoryProps> = ({
             snapshot={snapshot}
             cellSize={cellSize}
             onPress={() => handleThumbnailPress(snapshot.id)}
+            isSelected={currentSnapshotId === snapshot.id}
           />
         ))}
       </ScrollView>

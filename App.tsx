@@ -1,15 +1,19 @@
 import React, { useState, useCallback } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { TitleScreen, GameScreen, ConfigScreen, GameHistoryScreen } from './src/screens';
-import { useGameStore } from './src/store';
+import { TitleScreen, GameScreen, ConfigScreen, GameHistoryScreen, GameReplayScreen } from './src/screens';
+import { useGameStore, useGameHistoryStore } from './src/store';
+import { GameHistoryEntry } from './src/store/gameHistoryStore';
 
-type Screen = 'title' | 'game' | 'history';
+type Screen = 'title' | 'game' | 'history' | 'replay';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('title');
   const [configVisible, setConfigVisible] = useState(false);
+  const [replayEntry, setReplayEntry] = useState<GameHistoryEntry | null>(null);
   const dispatch = useGameStore((state) => state.dispatch);
   const resumeFromHistory = useGameStore((state) => state.resumeFromHistory);
+  const getEntry = useGameHistoryStore((state) => state.getEntry);
+  const getFavoriteEntry = useGameHistoryStore((state) => state.getFavoriteEntry);
 
   const handleStartGame = useCallback(() => {
     dispatch({ type: 'START_GAME' });
@@ -43,6 +47,19 @@ export default function App() {
     }
   }, [resumeFromHistory]);
 
+  const handleReplayGame = useCallback((gameId: string, fromFavorites: boolean) => {
+    const entry = fromFavorites ? getFavoriteEntry(gameId) : getEntry(gameId);
+    if (entry && entry.operationHistory.length > 0) {
+      setReplayEntry(entry);
+      setCurrentScreen('replay');
+    }
+  }, [getEntry, getFavoriteEntry]);
+
+  const handleBackFromReplay = useCallback(() => {
+    setReplayEntry(null);
+    setCurrentScreen('history');
+  }, []);
+
   return (
     <>
       <StatusBar style="light" />
@@ -57,7 +74,14 @@ export default function App() {
         <GameScreen onBackToTitle={handleBackToTitle} onOpenConfig={handleOpenConfig} />
       )}
       {currentScreen === 'history' && (
-        <GameHistoryScreen onBack={handleBackFromHistory} onResumeGame={handleResumeGame} />
+        <GameHistoryScreen
+          onBack={handleBackFromHistory}
+          onResumeGame={handleResumeGame}
+          onReplayGame={handleReplayGame}
+        />
+      )}
+      {currentScreen === 'replay' && replayEntry && (
+        <GameReplayScreen entry={replayEntry} onBack={handleBackFromReplay} />
       )}
       <ConfigScreen visible={configVisible} onClose={handleCloseConfig} />
     </>
