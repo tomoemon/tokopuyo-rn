@@ -159,54 +159,41 @@ const FavoriteItem: React.FC<{
   onEdit: () => void;
 }> = ({ entry, onPress, onDelete, onEdit }) => {
   const tags = entry.tags || [];
+  const hasDetails = entry.note || tags.length > 0;
   return (
-    <TouchableOpacity style={styles.favoriteItemContainer} onPress={onPress} activeOpacity={0.7}>
-      {/* 右上のメニューアイコン */}
+    <TouchableOpacity style={styles.itemContainer} onPress={onPress} activeOpacity={0.7}>
+      <FieldThumbnail entry={entry} />
+      <View style={styles.itemInfo}>
+        <Text style={styles.dateText}>{formatDate(entry.lastPlayedAt)}</Text>
+        <Text style={styles.scoreText}>Score: {entry.score}</Text>
+        <View style={styles.statsRow}>
+          <Text style={styles.dropCountText}>Drops: {entry.dropCount}</Text>
+          {entry.maxChainCount > 0 && (
+            <Text style={styles.chainText}>Chain: {entry.maxChainCount}</Text>
+          )}
+        </View>
+        {hasDetails && (
+          <Text style={styles.detailsIndicator}>📝</Text>
+        )}
+      </View>
       <TouchableOpacity
-        style={styles.editIconButton}
+        style={styles.iconButton}
         onPress={(e) => {
           e.stopPropagation();
           onEdit();
         }}
       >
-        <Text style={styles.editIcon}>⋮</Text>
+        <Text style={styles.penIcon}>✎</Text>
       </TouchableOpacity>
-      <View style={styles.favoriteItemContent}>
-        <FieldThumbnail entry={entry} />
-        <View style={styles.itemInfo}>
-          <Text style={styles.dateText}>{formatDate(entry.lastPlayedAt)}</Text>
-          <Text style={styles.scoreText}>Score: {entry.score}</Text>
-          <View style={styles.statsRow}>
-            <Text style={styles.dropCountText}>Drops: {entry.dropCount}</Text>
-            {entry.maxChainCount > 0 && (
-              <Text style={styles.chainText}>Chain: {entry.maxChainCount}</Text>
-            )}
-          </View>
-          {entry.note && (
-            <Text style={styles.noteText} numberOfLines={1}>
-              {entry.note}
-            </Text>
-          )}
-          {tags.length > 0 && (
-            <View style={styles.tagsRow}>
-              {tags.map((tag, index) => (
-                <View key={index} style={styles.tagBadge}>
-                  <Text style={styles.tagText}>{tag}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-        </View>
-        <TouchableOpacity
-          style={styles.iconButton}
-          onPress={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
-        >
-          <Text style={styles.trashIcon}>🗑</Text>
-        </TouchableOpacity>
-      </View>
+      <TouchableOpacity
+        style={styles.iconButton}
+        onPress={(e) => {
+          e.stopPropagation();
+          onDelete();
+        }}
+      >
+        <Text style={styles.trashIcon}>🗑</Text>
+      </TouchableOpacity>
     </TouchableOpacity>
   );
 };
@@ -610,50 +597,9 @@ const styles = StyleSheet.create({
     borderColor: '#3a3a5a',
     alignItems: 'center',
   },
-  favoriteItemContainer: {
-    position: 'relative',
-    backgroundColor: 'rgba(26, 26, 46, 0.9)',
-    borderRadius: 8,
-    padding: 12,
-    paddingTop: 8,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#3a3a5a',
-  },
-  favoriteItemContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  editIconButton: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 28,
-    height: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1,
-  },
-  editIcon: {
-    color: '#888',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  tagsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 6,
-    gap: 4,
-  },
-  tagBadge: {
-    backgroundColor: '#3a3a6a',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-  },
-  tagText: {
-    color: '#aaccff',
-    fontSize: 11,
+  detailsIndicator: {
+    fontSize: 12,
+    marginTop: 4,
   },
   iconButton: {
     width: 36,
@@ -668,6 +614,10 @@ const styles = StyleSheet.create({
   checkIcon: {
     fontSize: 20,
     color: '#44cc44',
+  },
+  penIcon: {
+    fontSize: 18,
+    color: '#aaa',
   },
   trashIcon: {
     fontSize: 18,
