@@ -398,7 +398,7 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
       </View>
 
       {/* Favorite タブ用のタグ検索バー */}
-      {activeTab === 'favorite' && tagsByFrequency.length > 0 && (
+      {activeTab === 'favorite' && (
         <View style={styles.filterContainer}>
           {/* 選択中のフィルタータグ */}
           {filterTags.length > 0 && (
@@ -449,8 +449,8 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
             </View>
           )}
 
-          {/* 人気のタグ（検索中でない場合） */}
-          {!filterSearchText && (
+          {/* 人気のタグ（検索中でない場合、タグがある場合のみ） */}
+          {!filterSearchText && tagsByFrequency.length > 0 && (
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View style={styles.popularTagsList}>
                 {tagsByFrequency
