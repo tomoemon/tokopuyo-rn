@@ -606,6 +606,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#3a3a5a',
     alignItems: 'center',
+    height: 122,
   },
   favoriteItemContainer: {
     flexDirection: 'row',
@@ -615,13 +616,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: '#3a3a5a',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    height: 122,
+    overflow: 'hidden',
   },
   tagsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 6,
+    flexWrap: 'nowrap',
+    marginTop: 4,
     gap: 4,
+    overflow: 'hidden',
   },
   tagBadge: {
     backgroundColor: '#3a3a6a',
@@ -699,8 +703,8 @@ const styles = StyleSheet.create({
   },
   noteText: {
     color: '#aaa',
-    fontSize: 12,
-    marginTop: 4,
+    fontSize: 11,
+    marginTop: 2,
     fontStyle: 'italic',
   },
   modalOverlay: {
