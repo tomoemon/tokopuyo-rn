@@ -294,7 +294,9 @@ export const GameReplayScreen: React.FC<GameReplayScreenProps> = ({ entry, onBac
       {/* フィールド */}
       <View style={[
         styles.fieldWrapper,
-        marginSide === 'left' ? { marginLeft: largeMargin } : { alignSelf: 'flex-end', marginRight: largeMargin }
+        marginSide === 'left'
+          ? { alignSelf: 'flex-start', marginLeft: largeMargin }
+          : { alignSelf: 'flex-end', marginRight: largeMargin }
       ]}>
         <GameFieldLayout
           field={displayField}
