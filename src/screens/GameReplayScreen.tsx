@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useConfigStore } from '../store';
@@ -51,8 +51,13 @@ export const GameReplayScreen: React.FC<GameReplayScreenProps> = ({ entry, onBac
   // 現在のスナップショット
   const currentSnapshot = history[currentIndex];
 
-  // 表示用のフィールド（優先順位: アニメーション中 > キャッシュ > スナップショット）
-  const displayField = animatingField ?? finalFieldCache.get(currentIndex) ?? currentSnapshot.field;
+  // スナップショットのフィールドに重力を適用（メモ化）
+  const snapshotFieldWithGravity = useMemo(() => {
+    return applyGravity(cloneField(currentSnapshot.field));
+  }, [currentSnapshot.field]);
+
+  // 表示用のフィールド（優先順位: アニメーション中 > キャッシュ > 重力適用済みスナップショット）
+  const displayField = animatingField ?? finalFieldCache.get(currentIndex) ?? snapshotFieldWithGravity;
   const displayChainCount = isAnimating ? animatingChainCount : currentSnapshot.chainCount;
   const displayScore = isAnimating ? animatingScore : currentSnapshot.score;
 
