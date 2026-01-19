@@ -1,14 +1,20 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { useConfigStore } from '../store';
 import { GameHistoryEntry } from '../store/gameHistoryStore';
 import { Field, NextDisplay, OperationHistory } from '../renderer';
-import { FIELD_COLS, VISIBLE_ROWS } from '../logic/types';
+import { FIELD_COLS, VISIBLE_ROWS, ErasingPuyo, Field as FieldType } from '../logic/types';
+import { findErasableGroups, flattenGroups } from '../logic/chain';
+import { getPuyo, applyGravity, removePuyos, cloneField } from '../logic/field';
 
 interface GameReplayScreenProps {
   entry: GameHistoryEntry;
   onBack: () => void;
 }
+
+// 連鎖アニメーションの遅延時間（ミリ秒）
+const CHAIN_DELAY = 200;
 
 export const GameReplayScreen: React.FC<GameReplayScreenProps> = ({ entry, onBack }) => {
   const { width, height } = useWindowDimensions();
@@ -17,11 +23,35 @@ export const GameReplayScreen: React.FC<GameReplayScreenProps> = ({ entry, onBac
   // 現在表示中のスナップショットインデックス
   const [currentIndex, setCurrentIndex] = useState(0);
 
+  // 連鎖アニメーション用の状態
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [animatingField, setAnimatingField] = useState<FieldType | null>(null);
+  const [erasingPuyos, setErasingPuyos] = useState<ErasingPuyo[]>([]);
+  const [animatingChainCount, setAnimatingChainCount] = useState(0);
+  const [animatingScore, setAnimatingScore] = useState(0);
+
+  // タイマー参照
+  const chainTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // クリーンアップ
+  useEffect(() => {
+    return () => {
+      if (chainTimerRef.current) {
+        clearTimeout(chainTimerRef.current);
+      }
+    };
+  }, []);
+
   const history = entry.operationHistory;
   const maxIndex = history.length - 1;
 
   // 現在のスナップショット
   const currentSnapshot = history[currentIndex];
+
+  // 表示用のフィールド（アニメーション中はアニメーション用フィールドを使用）
+  const displayField = animatingField ?? currentSnapshot.field;
+  const displayChainCount = isAnimating ? animatingChainCount : currentSnapshot.chainCount;
+  const displayScore = isAnimating ? animatingScore : currentSnapshot.score;
 
   // 履歴エリアの幅
   const historyWidth = 80;
@@ -44,75 +74,191 @@ export const GameReplayScreen: React.FC<GameReplayScreenProps> = ({ entry, onBac
   const BORDER_WIDTH = 3;
   const controlAreaWidth = cellSize * FIELD_COLS + BORDER_WIDTH * 2;
 
+  // 消えるぷよを検出
+  const detectErasingPuyos = useCallback((field: FieldType): ErasingPuyo[] => {
+    const groups = findErasableGroups(field);
+    if (groups.length === 0) {
+      return [];
+    }
+    const positions = flattenGroups(groups);
+    return positions
+      .map((pos) => {
+        const color = getPuyo(field, pos);
+        if (color !== null) {
+          return { pos, color };
+        }
+        return null;
+      })
+      .filter((p): p is ErasingPuyo => p !== null);
+  }, []);
+
+  // スコア計算（簡易版）
+  const calculateChainScore = useCallback((puyoCount: number, chainCount: number): number => {
+    // 基本点: ぷよ数 × 10 × 連鎖ボーナス
+    const chainBonus = Math.min(999, chainCount === 1 ? 0 : Math.pow(2, chainCount + 1));
+    return puyoCount * 10 * Math.max(1, chainBonus);
+  }, []);
+
+  // 連鎖アニメーションを開始
+  const startChainAnimation = useCallback((targetIndex: number) => {
+    const targetSnapshot = history[targetIndex];
+
+    // 重力を適用したフィールドから開始
+    let field = applyGravity(cloneField(targetSnapshot.field));
+
+    // 消えるぷよを検出
+    const erasing = detectErasingPuyos(field);
+
+    if (erasing.length === 0) {
+      // 連鎖なし - 直接移動
+      setCurrentIndex(targetIndex);
+      return;
+    }
+
+    // 連鎖アニメーション開始
+    setIsAnimating(true);
+    setAnimatingField(field);
+    setErasingPuyos(erasing);
+    setAnimatingChainCount(1);
+    setAnimatingScore(targetSnapshot.score);
+
+    // Haptic feedback
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, [history, detectErasingPuyos]);
+
+  // 連鎖アニメーション完了時のコールバック
+  const handleEffectComplete = useCallback(() => {
+    if (!animatingField || !isAnimating) return;
+
+    // 消えるぷよを削除
+    const positions = erasingPuyos.map(p => p.pos);
+    let newField = removePuyos(animatingField, positions);
+
+    // 重力適用
+    newField = applyGravity(newField);
+
+    // スコア加算
+    const chainScore = calculateChainScore(erasingPuyos.length, animatingChainCount);
+    const newScore = animatingScore + chainScore;
+
+    // 次の消えるぷよを検出
+    const nextErasing = detectErasingPuyos(newField);
+
+    if (nextErasing.length > 0) {
+      // 次の連鎖あり
+      const newChainCount = animatingChainCount + 1;
+
+      // Haptic feedback（連鎖数に応じて強度を変える）
+      if (newChainCount >= 3) {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      } else {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      }
+
+      setAnimatingField(newField);
+      setAnimatingScore(newScore);
+      setAnimatingChainCount(newChainCount);
+
+      // 少し遅延してから次の消去アニメーションを開始
+      chainTimerRef.current = setTimeout(() => {
+        setErasingPuyos(nextErasing);
+      }, CHAIN_DELAY);
+    } else {
+      // 連鎖終了 - 次のスナップショットに移動
+      setIsAnimating(false);
+      setAnimatingField(null);
+      setErasingPuyos([]);
+      setAnimatingChainCount(0);
+      setAnimatingScore(0);
+      setCurrentIndex((prev) => Math.min(maxIndex, prev + 1));
+    }
+  }, [animatingField, isAnimating, erasingPuyos, animatingChainCount, animatingScore,
+      detectErasingPuyos, calculateChainScore, maxIndex]);
+
   // ナビゲーション関数
   const goToFirst = useCallback(() => {
+    if (isAnimating) return;
     setCurrentIndex(0);
-  }, []);
+  }, [isAnimating]);
 
   const goToPrevious = useCallback(() => {
+    if (isAnimating) return;
     setCurrentIndex((prev) => Math.max(0, prev - 1));
-  }, []);
+  }, [isAnimating]);
 
   const goToNext = useCallback(() => {
-    setCurrentIndex((prev) => Math.min(maxIndex, prev + 1));
-  }, [maxIndex]);
+    if (isAnimating) return;
+    if (currentIndex >= maxIndex) return;
+
+    // 次のスナップショットで連鎖アニメーションを開始
+    startChainAnimation(currentIndex + 1);
+  }, [isAnimating, currentIndex, maxIndex, startChainAnimation]);
 
   const goToLast = useCallback(() => {
+    if (isAnimating) return;
     setCurrentIndex(maxIndex);
-  }, [maxIndex]);
+  }, [isAnimating, maxIndex]);
 
   // 履歴サムネイルタップでその位置にジャンプ
   const handleHistoryTap = useCallback((snapshotId: number) => {
+    if (isAnimating) return;
     const index = history.findIndex((s) => s.id === snapshotId);
     if (index >= 0) {
       setCurrentIndex(index);
     }
-  }, [history]);
+  }, [history, isAnimating]);
+
+  // ボタンの無効状態
+  const isFirstDisabled = currentIndex === 0 || isAnimating;
+  const isPrevDisabled = currentIndex === 0 || isAnimating;
+  const isNextDisabled = currentIndex === maxIndex || isAnimating;
+  const isLastDisabled = currentIndex === maxIndex || isAnimating;
 
   // 再生コントロールボタン
   const renderControls = () => (
     <View style={[styles.controlsContainer, { width: controlAreaWidth }]}>
       <View style={styles.controlsRow}>
         <TouchableOpacity
-          style={[styles.controlButton, currentIndex === 0 && styles.controlButtonDisabled]}
+          style={[styles.controlButton, isFirstDisabled && styles.controlButtonDisabled]}
           onPress={goToFirst}
-          disabled={currentIndex === 0}
+          disabled={isFirstDisabled}
         >
-          <Text style={[styles.controlIcon, currentIndex === 0 && styles.controlIconDisabled]}>⏮</Text>
-          <Text style={[styles.controlLabel, currentIndex === 0 && styles.controlLabelDisabled]}>First</Text>
+          <Text style={[styles.controlIcon, isFirstDisabled && styles.controlIconDisabled]}>⏮</Text>
+          <Text style={[styles.controlLabel, isFirstDisabled && styles.controlLabelDisabled]}>First</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.controlButton, currentIndex === 0 && styles.controlButtonDisabled]}
+          style={[styles.controlButton, isPrevDisabled && styles.controlButtonDisabled]}
           onPress={goToPrevious}
-          disabled={currentIndex === 0}
+          disabled={isPrevDisabled}
         >
-          <Text style={[styles.controlIcon, currentIndex === 0 && styles.controlIconDisabled]}>◀</Text>
-          <Text style={[styles.controlLabel, currentIndex === 0 && styles.controlLabelDisabled]}>Prev</Text>
+          <Text style={[styles.controlIcon, isPrevDisabled && styles.controlIconDisabled]}>◀</Text>
+          <Text style={[styles.controlLabel, isPrevDisabled && styles.controlLabelDisabled]}>Prev</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.controlButton, currentIndex === maxIndex && styles.controlButtonDisabled]}
+          style={[styles.controlButton, isNextDisabled && styles.controlButtonDisabled]}
           onPress={goToNext}
-          disabled={currentIndex === maxIndex}
+          disabled={isNextDisabled}
         >
-          <Text style={[styles.controlIcon, currentIndex === maxIndex && styles.controlIconDisabled]}>▶</Text>
-          <Text style={[styles.controlLabel, currentIndex === maxIndex && styles.controlLabelDisabled]}>Next</Text>
+          <Text style={[styles.controlIcon, isNextDisabled && styles.controlIconDisabled]}>▶</Text>
+          <Text style={[styles.controlLabel, isNextDisabled && styles.controlLabelDisabled]}>Next</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.controlButton, currentIndex === maxIndex && styles.controlButtonDisabled]}
+          style={[styles.controlButton, isLastDisabled && styles.controlButtonDisabled]}
           onPress={goToLast}
-          disabled={currentIndex === maxIndex}
+          disabled={isLastDisabled}
         >
-          <Text style={[styles.controlIcon, currentIndex === maxIndex && styles.controlIconDisabled]}>⏭</Text>
-          <Text style={[styles.controlLabel, currentIndex === maxIndex && styles.controlLabelDisabled]}>Last</Text>
+          <Text style={[styles.controlIcon, isLastDisabled && styles.controlIconDisabled]}>⏭</Text>
+          <Text style={[styles.controlLabel, isLastDisabled && styles.controlLabelDisabled]}>Last</Text>
         </TouchableOpacity>
       </View>
 
       {/* 進捗インジケーター */}
       <Text style={styles.progressText}>
         {currentIndex + 1} / {history.length}
+        {isAnimating && ` (${animatingChainCount}連鎖)`}
       </Text>
     </View>
   );
@@ -123,9 +269,11 @@ export const GameReplayScreen: React.FC<GameReplayScreenProps> = ({ entry, onBac
       {/* フィールド */}
       <View style={styles.fieldContainer}>
         <Field
-          field={currentSnapshot.field}
+          field={displayField}
           fallingPuyo={null}
           cellSize={cellSize}
+          erasingPuyos={erasingPuyos}
+          onEffectComplete={handleEffectComplete}
         />
         <View style={[styles.nextOverlay, styles.nextOverlayRight]}>
           <NextDisplay nextQueue={currentSnapshot.nextQueue} cellSize={cellSize * 0.6} />
@@ -146,11 +294,11 @@ export const GameReplayScreen: React.FC<GameReplayScreenProps> = ({ entry, onBac
         { width: controlAreaWidth },
         marginSide === 'left' ? { marginLeft: largeMargin } : { alignSelf: 'flex-end', marginRight: largeMargin }
       ]}>
-        <View style={[styles.chainContainer, { opacity: currentSnapshot.chainCount > 0 ? 1 : 0 }]}>
-          <Text style={styles.chainCount}>{currentSnapshot.chainCount || 1}</Text>
+        <View style={[styles.chainContainer, { opacity: displayChainCount > 0 ? 1 : 0 }]}>
+          <Text style={styles.chainCount}>{displayChainCount || 1}</Text>
           <Text style={styles.chainLabel}>連鎖</Text>
         </View>
-        <Text style={styles.score}>{currentSnapshot.score.toLocaleString()}</Text>
+        <Text style={styles.score}>{displayScore.toLocaleString()}</Text>
       </View>
 
       {/* 戻るボタン */}
@@ -159,8 +307,8 @@ export const GameReplayScreen: React.FC<GameReplayScreenProps> = ({ entry, onBac
         { width: controlAreaWidth },
         marginSide === 'left' ? { marginLeft: largeMargin } : { alignSelf: 'flex-end', marginRight: largeMargin }
       ]}>
-        <TouchableOpacity style={styles.smallButton} onPress={onBack}>
-          <Text style={styles.smallButtonText}>Back</Text>
+        <TouchableOpacity style={styles.smallButton} onPress={onBack} disabled={isAnimating}>
+          <Text style={[styles.smallButtonText, isAnimating && styles.smallButtonTextDisabled]}>Back</Text>
         </TouchableOpacity>
         <View style={styles.replayBadge}>
           <Text style={styles.replayBadgeText}>REPLAY</Text>
@@ -313,6 +461,9 @@ const styles = StyleSheet.create({
   smallButtonText: {
     color: '#888888',
     fontSize: 14,
+  },
+  smallButtonTextDisabled: {
+    color: '#444444',
   },
   replayBadge: {
     backgroundColor: 'rgba(68, 136, 255, 0.3)',
