@@ -7,6 +7,8 @@ import {
   ScrollView,
   Modal,
   TextInput,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { useGameHistoryStore, GameHistoryEntry } from '../store';
 import {
@@ -416,76 +418,78 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
         animationType="fade"
         onRequestClose={() => setEditId(null)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.editModalContent}>
-            <Text style={styles.modalTitle}>Edit Favorite</Text>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.editModalContent}>
+              <Text style={styles.modalTitle}>Edit Favorite</Text>
 
-            {/* Note セクション */}
-            <Text style={styles.editSectionLabel}>Note</Text>
-            <TextInput
-              style={styles.noteInput}
-              value={editNote}
-              onChangeText={setEditNote}
-              placeholder="Enter a note..."
-              placeholderTextColor="#666"
-              multiline
-              maxLength={200}
-            />
-
-            {/* Tags セクション */}
-            <Text style={styles.editSectionLabel}>Tags</Text>
-            <View style={styles.tagsEditContainer}>
-              {editTags.map((tag, index) => (
-                <View key={index} style={styles.tagEditBadge}>
-                  <Text style={styles.tagEditText}>{tag}</Text>
-                  <TouchableOpacity
-                    style={styles.tagRemoveButton}
-                    onPress={() => handleRemoveTag(tag)}
-                  >
-                    <Text style={styles.tagRemoveText}>×</Text>
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </View>
-            <View style={styles.tagInputRow}>
+              {/* Note セクション */}
+              <Text style={styles.editSectionLabel}>Note</Text>
               <TextInput
-                style={styles.tagInput}
-                value={newTagText}
-                onChangeText={setNewTagText}
-                placeholder="Add a tag..."
+                style={styles.noteInput}
+                value={editNote}
+                onChangeText={setEditNote}
+                placeholder="Enter a note..."
                 placeholderTextColor="#666"
-                maxLength={20}
-                onSubmitEditing={handleAddTag}
+                multiline
+                maxLength={200}
               />
-              <TouchableOpacity
-                style={styles.tagAddButton}
-                onPress={handleAddTag}
-              >
-                <Text style={styles.tagAddButtonText}>Add</Text>
-              </TouchableOpacity>
-            </View>
 
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={styles.modalCancelButton}
-                onPress={() => {
-                  setEditId(null);
-                  setEditNote('');
-                  setEditTags([]);
-                  setNewTagText('');
-                }}
-              >
-                <Text style={styles.modalCancelText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalResumeButton}
-                onPress={handleSaveEdit}
-              >
-                <Text style={styles.modalResumeText}>Save</Text>
-              </TouchableOpacity>
+              {/* Tags セクション */}
+              <Text style={styles.editSectionLabel}>Tags</Text>
+              <View style={styles.tagsEditContainer}>
+                {editTags.map((tag, index) => (
+                  <View key={index} style={styles.tagEditBadge}>
+                    <Text style={styles.tagEditText}>{tag}</Text>
+                    <TouchableOpacity
+                      style={styles.tagRemoveButton}
+                      onPress={() => handleRemoveTag(tag)}
+                    >
+                      <Text style={styles.tagRemoveText}>×</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+              <View style={styles.tagInputRow}>
+                <TextInput
+                  style={styles.tagInput}
+                  value={newTagText}
+                  onChangeText={setNewTagText}
+                  placeholder="Add a tag..."
+                  placeholderTextColor="#666"
+                  maxLength={20}
+                  onSubmitEditing={handleAddTag}
+                />
+                <TouchableOpacity
+                  style={styles.tagAddButton}
+                  onPress={handleAddTag}
+                >
+                  <Text style={styles.tagAddButtonText}>Add</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={styles.modalCancelButton}
+                  onPress={() => {
+                    setEditId(null);
+                    setEditNote('');
+                    setEditTags([]);
+                    setNewTagText('');
+                  }}
+                >
+                  <Text style={styles.modalCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.modalResumeButton}
+                  onPress={handleSaveEdit}
+                >
+                  <Text style={styles.modalResumeText}>Save</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
+        </TouchableWithoutFeedback>
       </Modal>
 
       {/* 削除確認モーダル */}
