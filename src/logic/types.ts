@@ -61,6 +61,7 @@ export type ChainResult = {
   chainCount: number;
   score: number;
   colors: number; // 同時消し色数
+  isAllClear: boolean; // 全消しかどうか
 };
 
 // 消えているぷよ（エフェクト表示用）

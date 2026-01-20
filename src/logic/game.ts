@@ -12,6 +12,7 @@ import {
   removePuyos,
   isGameOver,
   cloneField,
+  isFieldEmpty,
 } from './field';
 import {
   findErasableGroups,
@@ -19,7 +20,7 @@ import {
   countErasedPuyos,
   flattenGroups,
 } from './chain';
-import { calculateScore } from './score';
+import { calculateScore, ALL_CLEAR_BONUS } from './score';
 import {
   createFallingPuyo,
   getSatellitePosition,
@@ -152,18 +153,24 @@ export function processChain(state: GameState): {
   const positions = flattenGroups(groups);
   const newField = removePuyos(state.field, positions);
 
+  // 全消しチェック（消去後にフィールドが空かどうか）
+  const isAllClear = isFieldEmpty(newField);
+  const allClearBonus = isAllClear ? ALL_CLEAR_BONUS : 0;
+  const totalScore = chainScore + allClearBonus;
+
   const result: ChainResult = {
     groups,
     chainCount: newChainCount,
-    score: chainScore,
+    score: totalScore,
     colors,
+    isAllClear,
   };
 
   return {
     state: {
       ...state,
       field: newField,
-      score: state.score + chainScore,
+      score: state.score + totalScore,
       chainCount: newChainCount,
       phase: 'chaining',
     },
