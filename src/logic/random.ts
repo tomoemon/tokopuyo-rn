@@ -61,6 +61,38 @@ export class PuyoRng {
   nextPuyoPair(): [PuyoColor, PuyoColor] {
     return [this.nextColor(), this.nextColor()];
   }
+
+  /**
+   * 指定された色の配列からランダムに色を選択
+   */
+  nextColorFrom(colors: PuyoColor[]): PuyoColor {
+    return colors[this.nextInt(colors.length)];
+  }
+
+  /**
+   * 最初の2手分のぷよペアを生成（最大3色制限あり）
+   * ぷよぷよ通の仕様に準拠：最初の2手（4つのぷよ）は最大3色まで
+   */
+  generateInitialPairs(): [[PuyoColor, PuyoColor], [PuyoColor, PuyoColor]] {
+    const firstPair: [PuyoColor, PuyoColor] = this.nextPuyoPair();
+    const secondPair: [PuyoColor, PuyoColor] = this.nextPuyoPair();
+
+    // 使用されている色を収集
+    const allColors = [...firstPair, ...secondPair];
+    const uniqueColors = new Set<PuyoColor>(allColors);
+
+    // 4色使われていたら、最後のぷよを許可された色に変更
+    if (uniqueColors.size > 3) {
+      // 許可された色（最初の3つのぷよの色）
+      const allowedColors = new Set<PuyoColor>([firstPair[0], firstPair[1], secondPair[0]]);
+      const allowedColorsArray = [...allowedColors];
+
+      // 最後のぷよの色を許可された色からランダムに選択
+      secondPair[1] = this.nextColorFrom(allowedColorsArray);
+    }
+
+    return [firstPair, secondPair];
+  }
 }
 
 /**
