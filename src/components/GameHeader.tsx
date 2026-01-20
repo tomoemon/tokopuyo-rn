@@ -24,13 +24,13 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
   showBorder = true,
 }) => {
   return (
-    <View style={[styles.header, showBorder && styles.headerBorder]}>
+    <View style={[styles.header, showBorder ? styles.headerBorder : undefined]}>
       <TouchableOpacity
-        style={[styles.button, backDisabled && styles.buttonDisabled]}
+        style={[styles.button, backDisabled ? styles.buttonDisabled : undefined]}
         onPress={onBack}
         disabled={backDisabled}
       >
-        <Text style={[styles.buttonText, backDisabled && styles.buttonTextDisabled]}>Back</Text>
+        <Text style={[styles.buttonText, backDisabled ? styles.buttonTextDisabled : undefined]}>Back</Text>
       </TouchableOpacity>
 
       {/* 中央コンテンツ */}
