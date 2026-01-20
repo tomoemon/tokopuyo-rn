@@ -116,9 +116,11 @@ function createSnapshot(
 // 初期状態を作成するヘルパー関数
 function createInitialState(): GameState & { history: GameSnapshot[]; nextSnapshotId: number } {
   rng = new PuyoRng(generateSeed());
+  // 最初の2手は最大3色制限（ぷよぷよ通の仕様）
+  const [firstPair, secondPair] = rng.generateInitialPairs();
   const nextQueue: [PuyoColor, PuyoColor][] = [
-    rng.nextPuyoPair(),
-    rng.nextPuyoPair(),
+    firstPair,
+    secondPair,
     rng.nextPuyoPair(),
   ];
   const gameState = createInitialGameState(nextQueue);

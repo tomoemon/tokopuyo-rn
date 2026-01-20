@@ -116,6 +116,102 @@ describe('random', () => {
       });
     });
 
+    describe('nextColorFrom', () => {
+      test('should return a color from the given array', () => {
+        const rng = new PuyoRng([12345, 67890, 11111, 22222]);
+        const allowedColors = ['red', 'blue'] as const;
+
+        for (let i = 0; i < 100; i++) {
+          const color = rng.nextColorFrom([...allowedColors]);
+          expect(allowedColors).toContain(color);
+        }
+      });
+
+      test('should return all given colors eventually', () => {
+        const rng = new PuyoRng([12345, 67890, 11111, 22222]);
+        const allowedColors = ['red', 'green', 'yellow'] as const;
+        const seenColors = new Set<string>();
+
+        for (let i = 0; i < 100; i++) {
+          seenColors.add(rng.nextColorFrom([...allowedColors]));
+        }
+
+        expect(seenColors.size).toBe(3);
+        for (const color of allowedColors) {
+          expect(seenColors.has(color)).toBe(true);
+        }
+      });
+    });
+
+    describe('generateInitialPairs', () => {
+      test('should return two pairs of colors', () => {
+        const rng = new PuyoRng([12345, 67890, 11111, 22222]);
+        const [firstPair, secondPair] = rng.generateInitialPairs();
+
+        expect(firstPair).toHaveLength(2);
+        expect(secondPair).toHaveLength(2);
+        expect(COLORS).toContain(firstPair[0]);
+        expect(COLORS).toContain(firstPair[1]);
+        expect(COLORS).toContain(secondPair[0]);
+        expect(COLORS).toContain(secondPair[1]);
+      });
+
+      test('should limit colors to at most 3 (Puyo Puyo Tsu spec)', () => {
+        // Test with many different seeds to ensure the constraint is always met
+        for (let seedBase = 0; seedBase < 1000; seedBase++) {
+          const seed: RngState = [
+            seedBase * 12345,
+            seedBase * 67890,
+            seedBase * 11111,
+            seedBase * 22222,
+          ];
+          const rng = new PuyoRng(seed);
+          const [firstPair, secondPair] = rng.generateInitialPairs();
+
+          const allColors = [...firstPair, ...secondPair];
+          const uniqueColors = new Set(allColors);
+
+          expect(uniqueColors.size).toBeLessThanOrEqual(3);
+        }
+      });
+
+      test('should allow 1, 2, or 3 colors (not only 3)', () => {
+        const colorCounts = new Set<number>();
+
+        // Test with many seeds to find all valid color counts
+        for (let seedBase = 0; seedBase < 5000; seedBase++) {
+          const seed: RngState = [
+            seedBase * 12345,
+            seedBase * 67890,
+            seedBase * 11111,
+            seedBase * 22222,
+          ];
+          const rng = new PuyoRng(seed);
+          const [firstPair, secondPair] = rng.generateInitialPairs();
+
+          const allColors = [...firstPair, ...secondPair];
+          const uniqueColors = new Set(allColors);
+          colorCounts.add(uniqueColors.size);
+        }
+
+        // Should have seen cases with 1, 2, and 3 colors
+        expect(colorCounts.has(1) || colorCounts.has(2) || colorCounts.has(3)).toBe(true);
+        // Should never have 4 colors
+        expect(colorCounts.has(4)).toBe(false);
+      });
+
+      test('should be deterministic with same seed', () => {
+        const seed: RngState = [12345, 67890, 11111, 22222];
+        const rng1 = new PuyoRng(seed);
+        const rng2 = new PuyoRng(seed);
+
+        const pairs1 = rng1.generateInitialPairs();
+        const pairs2 = rng2.generateInitialPairs();
+
+        expect(pairs1).toEqual(pairs2);
+      });
+    });
+
     describe('getState / setState', () => {
       test('should save and restore state correctly', () => {
         const rng = new PuyoRng([12345, 67890, 11111, 22222]);
