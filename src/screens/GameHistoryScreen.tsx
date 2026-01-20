@@ -10,6 +10,7 @@ import {
   Keyboard,
   TouchableWithoutFeedback,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useGameHistoryStore, GameHistoryEntry } from '../store';
 import {
   FIELD_COLS,
@@ -127,7 +128,7 @@ const HistoryItem: React.FC<{
       </View>
       {isInFavorites ? (
         <View style={styles.iconButton}>
-          <Text style={styles.checkIcon}>✓</Text>
+          <Ionicons name="checkmark" size={20} color="#44cc44" />
         </View>
       ) : (
         <TouchableOpacity
@@ -137,7 +138,7 @@ const HistoryItem: React.FC<{
             onAddToFavorite();
           }}
         >
-          <Text style={styles.starIcon}>☆</Text>
+          <Ionicons name="star-outline" size={22} color="#ffcc00" />
         </TouchableOpacity>
       )}
       <TouchableOpacity
@@ -147,7 +148,7 @@ const HistoryItem: React.FC<{
           onMenuPress();
         }}
       >
-        <Text style={styles.menuIcon}>⋮</Text>
+        <Ionicons name="ellipsis-vertical" size={20} color="#888" />
       </TouchableOpacity>
     </TouchableOpacity>
   );
@@ -195,7 +196,7 @@ const FavoriteItem: React.FC<{
           onEdit();
         }}
       >
-        <Text style={styles.penIcon}>✎</Text>
+        <Ionicons name="pencil" size={18} color="#aaa" />
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.menuIconButton}
@@ -204,7 +205,7 @@ const FavoriteItem: React.FC<{
           onMenuPress();
         }}
       >
-        <Text style={styles.menuIcon}>⋮</Text>
+        <Ionicons name="ellipsis-vertical" size={20} color="#888" />
       </TouchableOpacity>
     </TouchableOpacity>
   );
@@ -412,7 +413,7 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
                   onPress={() => handleRemoveFilterTag(tag)}
                 >
                   <Text style={styles.selectedFilterTagText}>{tag}</Text>
-                  <Text style={styles.selectedFilterTagRemove}>×</Text>
+                  <Ionicons name="close" size={16} color="#fff" style={styles.selectedFilterTagRemoveIcon} />
                 </TouchableOpacity>
               ))}
               <TouchableOpacity style={styles.clearFilterButton} onPress={handleClearFilter}>
@@ -597,7 +598,7 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
                       style={styles.tagRemoveButton}
                       onPress={() => handleRemoveTag(tag)}
                     >
-                      <Text style={styles.tagRemoveText}>×</Text>
+                      <Ionicons name="close" size={14} color="#ff6666" />
                     </TouchableOpacity>
                   </View>
                 ))}
@@ -725,11 +726,8 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 13,
   },
-  selectedFilterTagRemove: {
-    color: '#fff',
-    fontSize: 16,
-    marginLeft: 6,
-    fontWeight: 'bold',
+  selectedFilterTagRemoveIcon: {
+    marginLeft: 4,
   },
   clearFilterButton: {
     paddingHorizontal: 8,
@@ -840,18 +838,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  starIcon: {
-    fontSize: 22,
-    color: '#ffcc00',
-  },
-  checkIcon: {
-    fontSize: 20,
-    color: '#44cc44',
-  },
-  penIcon: {
-    fontSize: 18,
-    color: '#aaa',
-  },
   menuIconButton: {
     position: 'absolute',
     top: 4,
@@ -860,11 +846,6 @@ const styles = StyleSheet.create({
     height: 32,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  menuIcon: {
-    fontSize: 20,
-    color: '#888',
-    fontWeight: 'bold',
   },
   fieldBorder: {
     borderWidth: 1,
@@ -971,11 +952,6 @@ const styles = StyleSheet.create({
     height: 18,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  tagRemoveText: {
-    color: '#ff6666',
-    fontSize: 14,
-    fontWeight: 'bold',
   },
   tagInputRow: {
     flexDirection: 'row',
