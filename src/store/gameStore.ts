@@ -372,6 +372,9 @@ export const useGameStore = create<GameStore>()(
       rotation: 0,
     };
 
+    // 次のスナップショットIDを更新
+    const newNextSnapshotId = snapshotIndex + 1;
+
     set({
       field: restoredField,
       fallingPuyo,
@@ -382,7 +385,17 @@ export const useGameStore = create<GameStore>()(
       erasingPuyos: [],
       currentChainResult: null,
       history: trimmedHistory,
+      nextSnapshotId: newNextSnapshotId,
     });
+
+    // ゲーム履歴を更新（trimmed された履歴を永続化）
+    useGameHistoryStore.getState().updateCurrentGame(
+      restoredField,
+      snapshot.score,
+      snapshot.chainCount,
+      trimmedHistory,
+      newNextSnapshotId
+    );
   },
 
   // ゲーム履歴からゲームを再開
