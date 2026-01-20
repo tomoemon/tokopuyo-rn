@@ -3,6 +3,7 @@
     "name": "tokopuyo-rn",
     "slug": "tokopuyo-rn",
     "version": "1.0.0",
+    "scheme": "tokopuyo",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
