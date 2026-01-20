@@ -141,7 +141,7 @@ export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize, eras
               },
             ]}
           >
-            <Puyo color={pos.color as any} size={cellSize - 4} isGhost />
+            <Puyo color={pos.color as any} size={cellSize - 4} isGhost={true} />
           </View>
         );
       })}
