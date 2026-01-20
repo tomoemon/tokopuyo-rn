@@ -245,7 +245,7 @@ export const GameReplayScreen: React.FC<GameReplayScreenProps> = ({ entry, onBac
     <View style={[styles.controlsContainer, { width: controlAreaWidth }]}>
       <View style={styles.controlsRow}>
         <TouchableOpacity
-          style={[styles.controlButton, isFirstDisabled ? styles.controlButtonDisabled : undefined]}
+          style={[styles.controlButton, isFirstDisabled && styles.controlButtonDisabled]}
           onPress={goToFirst}
           disabled={isFirstDisabled}
         >
@@ -254,11 +254,11 @@ export const GameReplayScreen: React.FC<GameReplayScreenProps> = ({ entry, onBac
             size={18}
             color={isFirstDisabled ? '#555' : '#4488ff'}
           />
-          <Text style={[styles.controlLabel, isFirstDisabled ? styles.controlLabelDisabled : undefined]}>First</Text>
+          <Text style={[styles.controlLabel, isFirstDisabled && styles.controlLabelDisabled]}>First</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.controlButton, isPrevDisabled ? styles.controlButtonDisabled : undefined]}
+          style={[styles.controlButton, isPrevDisabled && styles.controlButtonDisabled]}
           onPress={goToPrevious}
           disabled={isPrevDisabled}
         >
@@ -267,11 +267,11 @@ export const GameReplayScreen: React.FC<GameReplayScreenProps> = ({ entry, onBac
             size={18}
             color={isPrevDisabled ? '#555' : '#4488ff'}
           />
-          <Text style={[styles.controlLabel, isPrevDisabled ? styles.controlLabelDisabled : undefined]}>Prev</Text>
+          <Text style={[styles.controlLabel, isPrevDisabled && styles.controlLabelDisabled]}>Prev</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.controlButton, isNextDisabled ? styles.controlButtonDisabled : undefined]}
+          style={[styles.controlButton, isNextDisabled && styles.controlButtonDisabled]}
           onPress={goToNext}
           disabled={isNextDisabled}
         >
@@ -280,11 +280,11 @@ export const GameReplayScreen: React.FC<GameReplayScreenProps> = ({ entry, onBac
             size={18}
             color={isNextDisabled ? '#555' : '#4488ff'}
           />
-          <Text style={[styles.controlLabel, isNextDisabled ? styles.controlLabelDisabled : undefined]}>Next</Text>
+          <Text style={[styles.controlLabel, isNextDisabled && styles.controlLabelDisabled]}>Next</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.controlButton, isLastDisabled ? styles.controlButtonDisabled : undefined]}
+          style={[styles.controlButton, isLastDisabled && styles.controlButtonDisabled]}
           onPress={goToLast}
           disabled={isLastDisabled}
         >
@@ -293,7 +293,7 @@ export const GameReplayScreen: React.FC<GameReplayScreenProps> = ({ entry, onBac
             size={18}
             color={isLastDisabled ? '#555' : '#4488ff'}
           />
-          <Text style={[styles.controlLabel, isLastDisabled ? styles.controlLabelDisabled : undefined]}>Last</Text>
+          <Text style={[styles.controlLabel, isLastDisabled && styles.controlLabelDisabled]}>Last</Text>
         </TouchableOpacity>
       </View>
 

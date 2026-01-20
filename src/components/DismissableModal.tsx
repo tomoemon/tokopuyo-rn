@@ -25,7 +25,7 @@ export const DismissableModal: React.FC<DismissableModalProps> = ({
   return (
     <Modal
       visible={visible}
-      transparent={true}
+      transparent
       onRequestClose={onDismiss}
       {...modalProps}
     >

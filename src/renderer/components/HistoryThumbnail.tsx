@@ -42,7 +42,7 @@ export const HistoryThumbnail: React.FC<HistoryThumbnailProps> = ({
   return (
     <TouchableOpacity
       onPress={onPress}
-      style={[styles.container, isSelected ? styles.containerSelected : undefined]}
+      style={[styles.container, isSelected && styles.containerSelected]}
       activeOpacity={0.7}
     >
       {/* ミニフィールド */}

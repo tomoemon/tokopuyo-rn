@@ -36,7 +36,7 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({ visible, onClose }) 
               <TouchableOpacity
                 style={[
                   styles.optionButton,
-                  handedness === 'left' ? styles.optionButtonSelected : undefined,
+                  handedness === 'left' && styles.optionButtonSelected,
                 ]}
                 onPress={() => handleSelectHandedness('left')}
               >
@@ -52,7 +52,7 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({ visible, onClose }) 
                   <Text
                     style={[
                       styles.optionText,
-                      handedness === 'left' ? styles.optionTextSelected : undefined,
+                      handedness === 'left' && styles.optionTextSelected,
                     ]}
                   >
                     Left-handed
@@ -64,7 +64,7 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({ visible, onClose }) 
               <TouchableOpacity
                 style={[
                   styles.optionButton,
-                  handedness === 'right' ? styles.optionButtonSelected : undefined,
+                  handedness === 'right' && styles.optionButtonSelected,
                 ]}
                 onPress={() => handleSelectHandedness('right')}
               >
@@ -80,7 +80,7 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({ visible, onClose }) 
                   <Text
                     style={[
                       styles.optionText,
-                      handedness === 'right' ? styles.optionTextSelected : undefined,
+                      handedness === 'right' && styles.optionTextSelected,
                     ]}
                   >
                     Right-handed
