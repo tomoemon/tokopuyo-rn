@@ -11,7 +11,7 @@ import {
   RngState,
   Position,
 } from '../logic/types';
-import { cloneField } from '../logic/field';
+import { cloneField, applyGravity } from '../logic/field';
 import {
   createInitialGameState,
   startGame,
@@ -437,8 +437,8 @@ export const useGameStore = create<GameStore>()(
     const [pivotColor, satelliteColor] = restoredNextQueue[0];
     const newNextQueue = [...restoredNextQueue.slice(1), newPair];
 
-    // フィールドを復元
-    const restoredField = cloneField(lastSnapshot.field);
+    // フィールドを復元（重力を適用して空中のぷよを落下させる）
+    const restoredField = applyGravity(cloneField(lastSnapshot.field));
 
     // 操作履歴を復元（ディープコピー）
     const restoredHistory = entry.operationHistory.map(s => ({
@@ -515,8 +515,8 @@ export const useGameStore = create<GameStore>()(
     const [pivotColor, satelliteColor] = restoredNextQueue[0];
     const newNextQueue = [...restoredNextQueue.slice(1), newPair];
 
-    // フィールドを復元
-    const restoredField = cloneField(lastSnapshot.field);
+    // フィールドを復元（重力を適用して空中のぷよを落下させる）
+    const restoredField = applyGravity(cloneField(lastSnapshot.field));
 
     // 操作履歴を復元（ディープコピー）
     const restoredHistory = entry.operationHistory.map(s => ({
@@ -598,8 +598,8 @@ export const useGameStore = create<GameStore>()(
     const newPair3 = rng.nextPuyoPair();
     const newNextQueue: [PuyoColor, PuyoColor][] = [newPair1, newPair2, newPair3];
 
-    // フィールドを復元
-    const restoredField = cloneField(lastSnapshot.field);
+    // フィールドを復元（重力を適用して空中のぷよを落下させる）
+    const restoredField = applyGravity(cloneField(lastSnapshot.field));
 
     // 操作履歴を復元（ディープコピー）- 新しいシードの RNG 状態で最後のスナップショットを更新
     const restoredHistory = entry.operationHistory.map((s, index) => {
