@@ -1,7 +1,7 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback } from 'react';
-import { ConfigScreen } from '../src/screens';
+import { ConfigScreen } from '../src/components';
 
 // Config モーダルのコンテキスト
 import { createContext, useContext } from 'react';
