@@ -600,8 +600,8 @@ export default function GameHistoryScreen() {
               style={styles.actionButton}
               onPress={handleForkNewSeedConfirm}
             >
-              <Text style={styles.actionButtonText}>Retry</Text>
-              <Text style={styles.actionButtonSubtext}>New pieces to practice</Text>
+              <Text style={styles.actionButtonText}>Shuffle</Text>
+              <Text style={styles.actionButtonSubtext}>New game, new pieces</Text>
             </TouchableOpacity>
           </View>
           <TouchableOpacity
