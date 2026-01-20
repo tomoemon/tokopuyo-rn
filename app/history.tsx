@@ -209,6 +209,8 @@ type TabType = 'history' | 'favorite';
 export default function GameHistoryScreen() {
   const router = useRouter();
   const resumeFromHistory = useGameStore((state) => state.resumeFromHistory);
+  const forkFromHistory = useGameStore((state) => state.forkFromHistory);
+  const forkWithNewSeedFromHistory = useGameStore((state) => state.forkWithNewSeedFromHistory);
   const entries = useGameHistoryStore((state) => state.entries);
   const favorites = useGameHistoryStore((state) => state.favorites);
   const deleteEntry = useGameHistoryStore((state) => state.deleteEntry);
@@ -332,6 +334,26 @@ export default function GameHistoryScreen() {
           pathname: '/replay',
           params: { gameId: resumeEntryCache.id, fromFavorites: resumeEntryCache.fromFavorites ? '1' : '0' },
         });
+      }
+    }
+  };
+
+  const handleForkConfirm = () => {
+    if (resumeEntryCache) {
+      const success = forkFromHistory(resumeEntryCache.id, resumeEntryCache.fromFavorites);
+      if (success) {
+        setResumeModalVisible(false);
+        router.push('/game');
+      }
+    }
+  };
+
+  const handleForkNewSeedConfirm = () => {
+    if (resumeEntryCache) {
+      const success = forkWithNewSeedFromHistory(resumeEntryCache.id, resumeEntryCache.fromFavorites);
+      if (success) {
+        setResumeModalVisible(false);
+        router.push('/game');
       }
     }
   };
@@ -552,7 +574,7 @@ export default function GameHistoryScreen() {
               </Text>
             </View>
           )}
-          <View style={styles.actionButtons}>
+          <View style={styles.actionButtonsGrid}>
             <TouchableOpacity
               style={styles.actionButton}
               onPress={handleResumeConfirm}
@@ -562,10 +584,24 @@ export default function GameHistoryScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.actionButton}
+              onPress={handleForkConfirm}
+            >
+              <Text style={styles.actionButtonText}>Fork</Text>
+              <Text style={styles.actionButtonSubtext}>New game from here</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionButton}
               onPress={handleReplayConfirm}
             >
               <Text style={styles.actionButtonText}>Replay</Text>
               <Text style={styles.actionButtonSubtext}>Watch the game</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={handleForkNewSeedConfirm}
+            >
+              <Text style={styles.actionButtonText}>Shuffle</Text>
+              <Text style={styles.actionButtonSubtext}>New game, new pieces from here</Text>
             </TouchableOpacity>
           </View>
           <TouchableOpacity
@@ -1007,19 +1043,20 @@ const styles = StyleSheet.create({
     color: '#aaa',
     fontSize: 14,
   },
-  actionButtons: {
+  actionButtonsGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
     marginBottom: 16,
   },
   actionButton: {
-    flex: 1,
+    width: '47%',
     backgroundColor: 'rgba(68, 136, 255, 0.2)',
     borderWidth: 1,
     borderColor: '#4488ff',
     borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
     alignItems: 'center',
   },
   actionButtonText: {

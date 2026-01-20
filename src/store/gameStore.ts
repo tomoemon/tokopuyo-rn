@@ -11,7 +11,7 @@ import {
   RngState,
   Position,
 } from '../logic/types';
-import { cloneField } from '../logic/field';
+import { cloneField, applyGravity } from '../logic/field';
 import {
   createInitialGameState,
   startGame,
@@ -52,6 +52,10 @@ interface GameStore extends GameState {
   restoreToSnapshot: (snapshotId: number) => void;
   // ゲーム履歴からゲームを再開
   resumeFromHistory: (gameHistoryId: string, fromFavorites?: boolean) => boolean;
+  // ゲーム履歴から状態を複製して新しいゲームとして開始
+  forkFromHistory: (gameHistoryId: string, fromFavorites?: boolean) => boolean;
+  // ゲーム履歴から新しいシードで状態を複製して新しいゲームとして開始
+  forkWithNewSeedFromHistory: (gameHistoryId: string, fromFavorites?: boolean) => boolean;
 
   // 内部メソッド
   tick: () => void;
@@ -433,8 +437,8 @@ export const useGameStore = create<GameStore>()(
     const [pivotColor, satelliteColor] = restoredNextQueue[0];
     const newNextQueue = [...restoredNextQueue.slice(1), newPair];
 
-    // フィールドを復元
-    const restoredField = cloneField(lastSnapshot.field);
+    // フィールドを復元（重力を適用して空中のぷよを落下させる）
+    const restoredField = applyGravity(cloneField(lastSnapshot.field));
 
     // 操作履歴を復元（ディープコピー）
     const restoredHistory = entry.operationHistory.map(s => ({
@@ -471,6 +475,188 @@ export const useGameStore = create<GameStore>()(
 
     // ゲーム履歴の現在のゲームIDを設定
     gameHistoryStore.setCurrentGameId(gameHistoryId);
+
+    // ゲームループを開始
+    get().startGameLoop();
+
+    return true;
+  },
+
+  // ゲーム履歴から状態を複製して新しいゲームとして開始
+  forkFromHistory: (gameHistoryId: string, fromFavorites: boolean = false) => {
+    const gameHistoryStore = useGameHistoryStore.getState();
+    const entry = fromFavorites
+      ? gameHistoryStore.getFavoriteEntry(gameHistoryId)
+      : gameHistoryStore.getEntry(gameHistoryId);
+    if (!entry || entry.operationHistory.length === 0) {
+      return false;
+    }
+
+    // 現在のゲームループを停止
+    get().stopGameLoop();
+    if (erasingDelayId !== null) {
+      clearTimeout(erasingDelayId);
+      erasingDelayId = null;
+    }
+
+    // 最後のスナップショットを取得
+    const lastSnapshot = entry.operationHistory[entry.operationHistory.length - 1];
+
+    // 乱数生成器の状態を復元（同じシードで継続）
+    rng.setState(lastSnapshot.rngState);
+
+    // NEXTキューを復元（ディープコピー）
+    const restoredNextQueue = lastSnapshot.nextQueue.map(
+      pair => [...pair] as [PuyoColor, PuyoColor]
+    );
+
+    // 新しいぷよペアを生成してゲームを開始
+    const newPair = rng.nextPuyoPair();
+    const [pivotColor, satelliteColor] = restoredNextQueue[0];
+    const newNextQueue = [...restoredNextQueue.slice(1), newPair];
+
+    // フィールドを復元（重力を適用して空中のぷよを落下させる）
+    const restoredField = applyGravity(cloneField(lastSnapshot.field));
+
+    // 操作履歴を復元（ディープコピー）
+    const restoredHistory = entry.operationHistory.map(s => ({
+      ...s,
+      field: cloneField(s.field),
+      nextQueue: s.nextQueue.map(pair => [...pair] as [PuyoColor, PuyoColor]),
+      rngState: [...s.rngState] as RngState,
+    }));
+
+    // fallingPuyoを作成
+    const fallingPuyo: FallingPuyo = {
+      pivot: {
+        pos: { x: 2, y: 0 },
+        color: pivotColor,
+      },
+      satellite: {
+        color: satelliteColor,
+      },
+      rotation: 0,
+    };
+
+    set({
+      field: restoredField,
+      fallingPuyo,
+      nextQueue: newNextQueue,
+      score: lastSnapshot.score,
+      chainCount: lastSnapshot.chainCount,
+      phase: 'falling',
+      erasingPuyos: [],
+      currentChainResult: null,
+      history: restoredHistory,
+      nextSnapshotId: entry.nextSnapshotId,
+    });
+
+    // 新しいゲームIDを生成して設定（新しいゲームとして記録）
+    const newGameId = gameHistoryStore.startNewGame();
+
+    // 新しいゲームとして履歴を保存
+    gameHistoryStore.updateCurrentGame(
+      restoredField,
+      lastSnapshot.score,
+      lastSnapshot.chainCount,
+      restoredHistory,
+      entry.nextSnapshotId
+    );
+
+    // ゲームループを開始
+    get().startGameLoop();
+
+    return true;
+  },
+
+  // ゲーム履歴から新しいシードで状態を複製して新しいゲームとして開始
+  forkWithNewSeedFromHistory: (gameHistoryId: string, fromFavorites: boolean = false) => {
+    const gameHistoryStore = useGameHistoryStore.getState();
+    const entry = fromFavorites
+      ? gameHistoryStore.getFavoriteEntry(gameHistoryId)
+      : gameHistoryStore.getEntry(gameHistoryId);
+    if (!entry || entry.operationHistory.length === 0) {
+      return false;
+    }
+
+    // 現在のゲームループを停止
+    get().stopGameLoop();
+    if (erasingDelayId !== null) {
+      clearTimeout(erasingDelayId);
+      erasingDelayId = null;
+    }
+
+    // 最後のスナップショットを取得
+    const lastSnapshot = entry.operationHistory[entry.operationHistory.length - 1];
+
+    // 新しいシードで乱数生成器を初期化
+    rng = new PuyoRng(generateSeed());
+
+    // 新しいぷよペアを生成（新しいシードから）
+    const newPair1 = rng.nextPuyoPair();
+    const newPair2 = rng.nextPuyoPair();
+    const newPair3 = rng.nextPuyoPair();
+    const newNextQueue: [PuyoColor, PuyoColor][] = [newPair1, newPair2, newPair3];
+
+    // フィールドを復元（重力を適用して空中のぷよを落下させる）
+    const restoredField = applyGravity(cloneField(lastSnapshot.field));
+
+    // 操作履歴を復元（ディープコピー）- 新しいシードの RNG 状態で最後のスナップショットを更新
+    const restoredHistory = entry.operationHistory.map((s, index) => {
+      if (index === entry.operationHistory.length - 1) {
+        // 最後のスナップショットは新しいシードの状態で更新
+        return {
+          ...s,
+          field: cloneField(s.field),
+          nextQueue: newNextQueue.map(pair => [...pair] as [PuyoColor, PuyoColor]),
+          rngState: rng.getState(),
+        };
+      }
+      return {
+        ...s,
+        field: cloneField(s.field),
+        nextQueue: s.nextQueue.map(pair => [...pair] as [PuyoColor, PuyoColor]),
+        rngState: [...s.rngState] as RngState,
+      };
+    });
+
+    // fallingPuyoを作成（新しいシードの最初のペアを使用）
+    const [pivotColor, satelliteColor] = newPair1;
+    const fallingPuyo: FallingPuyo = {
+      pivot: {
+        pos: { x: 2, y: 0 },
+        color: pivotColor,
+      },
+      satellite: {
+        color: satelliteColor,
+      },
+      rotation: 0,
+    };
+
+    set({
+      field: restoredField,
+      fallingPuyo,
+      nextQueue: [newPair2, newPair3],
+      score: lastSnapshot.score,
+      chainCount: lastSnapshot.chainCount,
+      phase: 'falling',
+      erasingPuyos: [],
+      currentChainResult: null,
+      history: restoredHistory,
+      nextSnapshotId: entry.nextSnapshotId,
+    });
+
+    // 新しいゲームIDを生成して設定（新しいゲームとして記録）
+    const newGameId = gameHistoryStore.startNewGame();
+
+    // 新しいゲームとして履歴を保存
+    gameHistoryStore.updateCurrentGame(
+      restoredField,
+      lastSnapshot.score,
+      lastSnapshot.chainCount,
+      restoredHistory,
+      entry.nextSnapshotId
+    );
 
     // ゲームループを開始
     get().startGameLoop();
