@@ -378,7 +378,7 @@ export const GameHistoryScreen: React.FC<GameHistoryScreenProps> = ({ onBack, on
 
   return (
     <View style={styles.container}>
-      <GameHeader onBack={onBack} title="Game History" showConfig={false} />
+      <GameHeader onBack={onBack} showConfig={false} />
 
       {/* タブ */}
       <View style={styles.tabContainer}>
