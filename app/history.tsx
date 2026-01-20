@@ -391,7 +391,7 @@ export default function GameHistoryScreen() {
 
   return (
     <View style={styles.container}>
-      <GameHeader onBack={handleBack} title="Game History" showConfig={false} />
+      <GameHeader onBack={handleBack} showConfig={false} />
 
       {/* タブ */}
       <View style={styles.tabContainer}>
