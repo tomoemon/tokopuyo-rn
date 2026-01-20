@@ -3,7 +3,7 @@ import { Position } from './types';
 /**
  * 全消しボーナス（ぷよぷよ通準拠）
  */
-export const ALL_CLEAR_BONUS = 3600;
+export const ALL_CLEAR_BONUS = 2100;
 
 /**
  * 連鎖ボーナステーブル（ぷよぷよ通準拠）
