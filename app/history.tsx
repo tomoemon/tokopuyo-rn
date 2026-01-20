@@ -601,7 +601,7 @@ export default function GameHistoryScreen() {
               onPress={handleForkNewSeedConfirm}
             >
               <Text style={styles.actionButtonText}>Shuffle</Text>
-              <Text style={styles.actionButtonSubtext}>New game, new pieces</Text>
+              <Text style={styles.actionButtonSubtext}>New game, new pieces from here</Text>
             </TouchableOpacity>
           </View>
           <TouchableOpacity
