@@ -10,6 +10,8 @@ export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('title');
   const [configVisible, setConfigVisible] = useState(false);
   const [replayEntry, setReplayEntry] = useState<GameHistoryEntry | null>(null);
+  // game 画面の遷移元を記憶（Back ボタンで戻る先）
+  const [gameSourceScreen, setGameSourceScreen] = useState<'title' | 'history'>('title');
   const dispatch = useGameStore((state) => state.dispatch);
   const resumeFromHistory = useGameStore((state) => state.resumeFromHistory);
   const getEntry = useGameHistoryStore((state) => state.getEntry);
@@ -17,12 +19,13 @@ export default function App() {
 
   const handleStartGame = useCallback(() => {
     dispatch({ type: 'START_GAME' });
+    setGameSourceScreen('title');
     setCurrentScreen('game');
   }, [dispatch]);
 
-  const handleBackToTitle = useCallback(() => {
-    setCurrentScreen('title');
-  }, []);
+  const handleBackFromGame = useCallback(() => {
+    setCurrentScreen(gameSourceScreen);
+  }, [gameSourceScreen]);
 
   const handleOpenConfig = useCallback(() => {
     setConfigVisible(true);
@@ -43,6 +46,7 @@ export default function App() {
   const handleResumeGame = useCallback((gameId: string, fromFavorites: boolean) => {
     const success = resumeFromHistory(gameId, fromFavorites);
     if (success) {
+      setGameSourceScreen('history');
       setCurrentScreen('game');
     }
   }, [resumeFromHistory]);
@@ -71,7 +75,7 @@ export default function App() {
         />
       )}
       {currentScreen === 'game' && (
-        <GameScreen onBackToTitle={handleBackToTitle} onOpenConfig={handleOpenConfig} />
+        <GameScreen onBackToTitle={handleBackFromGame} onOpenConfig={handleOpenConfig} />
       )}
       {currentScreen === 'history' && (
         <GameHistoryScreen
