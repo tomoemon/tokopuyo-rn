@@ -93,7 +93,7 @@ export default function GameScreen() {
   // ゲームエリアを描画
   const renderGameArea = (marginSide: 'left' | 'right') => (
     <View style={styles.gameAreaContainer}>
-      <View style={[styles.controlWrapper, isGameOver && styles.grayedOut]} pointerEvents={isGameOver ? 'none' : 'auto'}>
+      <View style={[styles.controlWrapper, isGameOver ? styles.grayedOut : undefined]} pointerEvents={isGameOver ? 'none' : 'auto'}>
         <ControlArea cellSize={cellSize} sideMargin={largeMargin} isRightHanded={marginSide === 'right'}>
           <GameFieldLayout
             field={field}

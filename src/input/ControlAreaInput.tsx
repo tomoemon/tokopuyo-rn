@@ -286,9 +286,9 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, sideMargin, 
                   borderRightWidth: i < FIELD_COLS - 1 ? 1 : 0,
                 },
                 // アクティブな列をハイライト（キャンセル時は点滅色）
-                activeColumn === i && (cancelFlash ? styles.cancelColumn : styles.activeColumn),
+                activeColumn === i ? (cancelFlash ? styles.cancelColumn : styles.activeColumn) : undefined,
                 // ブロックされた列を赤くハイライト
-                blockedColumn === i && styles.blockedColumn,
+                blockedColumn === i ? styles.blockedColumn : undefined,
               ]}
             />
           ))}
@@ -296,19 +296,19 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, sideMargin, 
 
         {/* 回転ガイド矢印（スワイプ方向と同じ方向をハイライト） */}
         <View style={styles.swipeGuideContainer} pointerEvents="none">
-          <View style={[styles.swipeArrow, styles.swipeArrowUp, swipeDirection === 'up' && styles.swipeArrowActive]}>
+          <View style={[styles.swipeArrow, styles.swipeArrowUp, swipeDirection === 'up' ? styles.swipeArrowActive : undefined]}>
             <View style={styles.arrowUp} />
           </View>
           <View style={styles.swipeArrowRow}>
-            <View style={[styles.swipeArrow, styles.swipeArrowLeft, swipeDirection === 'left' && styles.swipeArrowActive]}>
+            <View style={[styles.swipeArrow, styles.swipeArrowLeft, swipeDirection === 'left' ? styles.swipeArrowActive : undefined]}>
               <View style={styles.arrowLeft} />
             </View>
             <View style={styles.centerDot} />
-            <View style={[styles.swipeArrow, styles.swipeArrowRight, swipeDirection === 'right' && styles.swipeArrowActive]}>
+            <View style={[styles.swipeArrow, styles.swipeArrowRight, swipeDirection === 'right' ? styles.swipeArrowActive : undefined]}>
               <View style={styles.arrowRight} />
             </View>
           </View>
-          <View style={[styles.swipeArrow, styles.swipeArrowDown, swipeDirection === 'down' && styles.swipeArrowActive]}>
+          <View style={[styles.swipeArrow, styles.swipeArrowDown, swipeDirection === 'down' ? styles.swipeArrowActive : undefined]}>
             <View style={styles.arrowDown} />
           </View>
         </View>

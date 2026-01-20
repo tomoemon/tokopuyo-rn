@@ -269,7 +269,7 @@ export default function GameReplayScreen() {
     <View style={[styles.controlsContainer, { width: controlAreaWidth }]}>
       <View style={styles.controlsRow}>
         <TouchableOpacity
-          style={[styles.controlButton, isFirstDisabled && styles.controlButtonDisabled]}
+          style={[styles.controlButton, isFirstDisabled ? styles.controlButtonDisabled : undefined]}
           onPress={goToFirst}
           disabled={isFirstDisabled}
         >
@@ -278,11 +278,11 @@ export default function GameReplayScreen() {
             size={18}
             color={isFirstDisabled ? '#555' : '#4488ff'}
           />
-          <Text style={[styles.controlLabel, isFirstDisabled && styles.controlLabelDisabled]}>First</Text>
+          <Text style={[styles.controlLabel, isFirstDisabled ? styles.controlLabelDisabled : undefined]}>First</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.controlButton, isPrevDisabled && styles.controlButtonDisabled]}
+          style={[styles.controlButton, isPrevDisabled ? styles.controlButtonDisabled : undefined]}
           onPress={goToPrevious}
           disabled={isPrevDisabled}
         >
@@ -291,11 +291,11 @@ export default function GameReplayScreen() {
             size={18}
             color={isPrevDisabled ? '#555' : '#4488ff'}
           />
-          <Text style={[styles.controlLabel, isPrevDisabled && styles.controlLabelDisabled]}>Prev</Text>
+          <Text style={[styles.controlLabel, isPrevDisabled ? styles.controlLabelDisabled : undefined]}>Prev</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.controlButton, isNextDisabled && styles.controlButtonDisabled]}
+          style={[styles.controlButton, isNextDisabled ? styles.controlButtonDisabled : undefined]}
           onPress={goToNext}
           disabled={isNextDisabled}
         >
@@ -304,11 +304,11 @@ export default function GameReplayScreen() {
             size={18}
             color={isNextDisabled ? '#555' : '#4488ff'}
           />
-          <Text style={[styles.controlLabel, isNextDisabled && styles.controlLabelDisabled]}>Next</Text>
+          <Text style={[styles.controlLabel, isNextDisabled ? styles.controlLabelDisabled : undefined]}>Next</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.controlButton, isLastDisabled && styles.controlButtonDisabled]}
+          style={[styles.controlButton, isLastDisabled ? styles.controlButtonDisabled : undefined]}
           onPress={goToLast}
           disabled={isLastDisabled}
         >
@@ -317,7 +317,7 @@ export default function GameReplayScreen() {
             size={18}
             color={isLastDisabled ? '#555' : '#4488ff'}
           />
-          <Text style={[styles.controlLabel, isLastDisabled && styles.controlLabelDisabled]}>Last</Text>
+          <Text style={[styles.controlLabel, isLastDisabled ? styles.controlLabelDisabled : undefined]}>Last</Text>
         </TouchableOpacity>
       </View>
 

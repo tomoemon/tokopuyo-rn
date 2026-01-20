@@ -396,18 +396,18 @@ export default function GameHistoryScreen() {
       {/* タブ */}
       <View style={styles.tabContainer}>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'history' && styles.tabActive]}
+          style={[styles.tab, activeTab === 'history' ? styles.tabActive : undefined]}
           onPress={() => setActiveTab('history')}
         >
-          <Text style={[styles.tabText, activeTab === 'history' && styles.tabTextActive]}>
+          <Text style={[styles.tabText, activeTab === 'history' ? styles.tabTextActive : undefined]}>
             History
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'favorite' && styles.tabActive]}
+          style={[styles.tab, activeTab === 'favorite' ? styles.tabActive : undefined]}
           onPress={() => setActiveTab('favorite')}
         >
-          <Text style={[styles.tabText, activeTab === 'favorite' && styles.tabTextActive]}>
+          <Text style={[styles.tabText, activeTab === 'favorite' ? styles.tabTextActive : undefined]}>
             Favorite
           </Text>
         </TouchableOpacity>
