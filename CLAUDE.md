@@ -91,18 +91,6 @@ npm run ios      # iOSで実行
 - `react-native-gesture-handler`: ジェスチャー処理
 - `xorshift`: 疑似乱数生成
 
-## 依存パッケージの注意事項
-
-### react-native-screens のバージョン固定
-
-`react-native-screens` は **4.16.0** に固定する必要がある。
-
-**理由**: バージョン 4.17.0 以降で Expo SDK 54 + React Native の新アーキテクチャ（Fabric）との組み合わせでクラッシュが発生するリグレッションバグがある。エラーメッセージは `TypeError: expected dynamic type 'boolean', but had type 'string'`。
-
-**参考**: https://github.com/software-mansion/react-native-screens/issues/3470
-
-バージョンを上げる場合は、上記 issue が解決されているか確認すること。
-
 ## コーディング規約
 
 ### アイコン
