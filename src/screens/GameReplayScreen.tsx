@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useConfigStore } from '../store';
 import { GameHistoryEntry } from '../store/gameHistoryStore';
@@ -248,7 +249,11 @@ export const GameReplayScreen: React.FC<GameReplayScreenProps> = ({ entry, onBac
           onPress={goToFirst}
           disabled={isFirstDisabled}
         >
-          <Text style={[styles.controlIcon, isFirstDisabled && styles.controlIconDisabled]}>⏮</Text>
+          <Ionicons
+            name="play-skip-back"
+            size={18}
+            color={isFirstDisabled ? '#555' : '#4488ff'}
+          />
           <Text style={[styles.controlLabel, isFirstDisabled && styles.controlLabelDisabled]}>First</Text>
         </TouchableOpacity>
 
@@ -257,7 +262,11 @@ export const GameReplayScreen: React.FC<GameReplayScreenProps> = ({ entry, onBac
           onPress={goToPrevious}
           disabled={isPrevDisabled}
         >
-          <Text style={[styles.controlIcon, isPrevDisabled && styles.controlIconDisabled]}>◀</Text>
+          <Ionicons
+            name="play-back"
+            size={18}
+            color={isPrevDisabled ? '#555' : '#4488ff'}
+          />
           <Text style={[styles.controlLabel, isPrevDisabled && styles.controlLabelDisabled]}>Prev</Text>
         </TouchableOpacity>
 
@@ -266,7 +275,11 @@ export const GameReplayScreen: React.FC<GameReplayScreenProps> = ({ entry, onBac
           onPress={goToNext}
           disabled={isNextDisabled}
         >
-          <Text style={[styles.controlIcon, isNextDisabled && styles.controlIconDisabled]}>▶</Text>
+          <Ionicons
+            name="play-forward"
+            size={18}
+            color={isNextDisabled ? '#555' : '#4488ff'}
+          />
           <Text style={[styles.controlLabel, isNextDisabled && styles.controlLabelDisabled]}>Next</Text>
         </TouchableOpacity>
 
@@ -275,7 +288,11 @@ export const GameReplayScreen: React.FC<GameReplayScreenProps> = ({ entry, onBac
           onPress={goToLast}
           disabled={isLastDisabled}
         >
-          <Text style={[styles.controlIcon, isLastDisabled && styles.controlIconDisabled]}>⏭</Text>
+          <Ionicons
+            name="play-skip-forward"
+            size={18}
+            color={isLastDisabled ? '#555' : '#4488ff'}
+          />
           <Text style={[styles.controlLabel, isLastDisabled && styles.controlLabelDisabled]}>Last</Text>
         </TouchableOpacity>
       </View>
@@ -400,13 +417,6 @@ const styles = StyleSheet.create({
   controlButtonDisabled: {
     backgroundColor: 'rgba(100, 100, 100, 0.1)',
     borderColor: '#444',
-  },
-  controlIcon: {
-    fontSize: 18,
-    color: '#4488ff',
-  },
-  controlIconDisabled: {
-    color: '#555',
   },
   controlLabel: {
     fontSize: 10,
