@@ -90,3 +90,9 @@ npm run ios      # iOSで実行
 - `expo-haptics`: 触覚フィードバック
 - `react-native-gesture-handler`: ジェスチャー処理
 - `xorshift`: 疑似乱数生成
+
+## コーディング規約
+
+### アイコン
+- アイコンを使用する際は `@expo/vector-icons` の **Ionicons** を使用すること
+- Unicode 文字やテキストベースのアイコンは使用しない（端末によって表示が異なるため）
