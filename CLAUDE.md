@@ -91,6 +91,8 @@ npm run ios      # iOSで実行
 - `react-native-gesture-handler`: ジェスチャー処理
 - `xorshift`: 疑似乱数生成
 
+依存パッケージのバージョン固定に関する注意事項は `DEPENDENCY_NOTES.md` を参照。
+
 ## コーディング規約
 
 ### アイコン
