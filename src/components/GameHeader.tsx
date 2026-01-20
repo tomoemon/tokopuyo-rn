@@ -36,10 +36,12 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
       {/* 中央コンテンツ */}
       {title ? (
         <Text style={styles.title}>{title}</Text>
-      ) : (
+      ) : score !== undefined ? (
         <View style={styles.scoreContainer}>
-          <Text style={styles.score}>{(score ?? 0).toLocaleString()}</Text>
+          <Text style={styles.score}>{score.toLocaleString()}</Text>
         </View>
+      ) : (
+        <View style={styles.placeholder} />
       )}
 
       {/* 右側コンテンツ */}
