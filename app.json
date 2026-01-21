@@ -1,18 +1,13 @@
 {
   "expo": {
-    "name": "tokopuyo-rn",
-    "slug": "tokopuyo-rn",
+    "name": "連連",
+    "slug": "renren",
     "version": "1.0.0",
-    "scheme": "tokopuyo",
+    "scheme": "renren",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
     "ios": {
       "supportsTablet": true
     },

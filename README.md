@@ -1,6 +1,6 @@
-# tokopuyo-rn
+# 連連 (RenRen)
 
-React Native (Expo) で作るぷよぷよ風パズルゲーム
+同じ色を4つつなげて消すパズルゲームの練習アプリ
 
 ## 前提条件
 

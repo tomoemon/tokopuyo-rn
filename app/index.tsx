@@ -20,8 +20,8 @@ export default function TitleScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.titleContainer}>
-        <Text style={styles.title}>とこぷよ</Text>
-        <Text style={styles.subtitle}>TOKOPUYO</Text>
+        <Text style={styles.title}>連連</Text>
+        <Text style={styles.subtitle}>RenRen</Text>
       </View>
 
       <TouchableOpacity style={styles.startButton} onPress={handleStartGame}>
