@@ -48,6 +48,7 @@ interface GameStore extends GameState {
   pendingSnapshot: {
     droppedPositions: Position[];
     rngState: RngState;
+    nextQueue: [PuyoColor, PuyoColor][];
   } | null;
 
   // アクション
@@ -109,12 +110,13 @@ function createSnapshot(
   state: GameState,
   id: number,
   rngState: RngState,
-  droppedPositions: Position[]
+  droppedPositions: Position[],
+  nextQueue: [PuyoColor, PuyoColor][]  // advancePhase 前の nextQueue を渡す
 ): GameSnapshot {
   return {
     id,
     field: cloneField(state.field),
-    nextQueue: state.nextQueue.map(pair => [...pair] as [PuyoColor, PuyoColor]),
+    nextQueue: nextQueue.map(pair => [...pair] as [PuyoColor, PuyoColor]),
     score: state.score,
     chainCount: state.chainCount,
     rngState: [...rngState] as RngState,
@@ -161,7 +163,7 @@ export const useGameStore = create<GameStore>()(
 
           // ゲーム開始前のスナップショットを保存（初期状態なので落下位置は空）
           const rngState = rng.getState();
-          const initialSnapshot = createSnapshot(state, state.nextSnapshotId, rngState, []);
+          const initialSnapshot = createSnapshot(state, state.nextSnapshotId, rngState, [], state.nextQueue);
 
           const newPair = rng.nextPuyoPair();
           const newState = startGame(state, newPair);
@@ -274,11 +276,13 @@ export const useGameStore = create<GameStore>()(
           // chainingフェーズになったら連鎖完了後にスナップショットを作成
           if (nextState.phase === 'chaining') {
             // pendingSnapshot に一時保存（連鎖完了後にスナップショット作成）
+            // lockedState.nextQueue は advancePhase 前の nextQueue
             set({
               ...nextState,
               pendingSnapshot: {
                 droppedPositions,
                 rngState: rngStateBeforeDrop,
+                nextQueue: lockedState.nextQueue,
               },
             });
 
@@ -304,7 +308,8 @@ export const useGameStore = create<GameStore>()(
           }
 
           // 連鎖なしの場合は即座にスナップショットを作成
-          const snapshot = createSnapshot(nextState, state.nextSnapshotId, rngStateBeforeDrop, droppedPositions);
+          // lockedState.nextQueue は advancePhase 前の nextQueue
+          const snapshot = createSnapshot(nextState, state.nextSnapshotId, rngStateBeforeDrop, droppedPositions, lockedState.nextQueue);
           const newHistory = [...state.history, snapshot];
 
           set({
@@ -717,7 +722,8 @@ export const useGameStore = create<GameStore>()(
           afterChainState,
           state.nextSnapshotId,
           state.pendingSnapshot.rngState,
-          state.pendingSnapshot.droppedPositions
+          state.pendingSnapshot.droppedPositions,
+          state.pendingSnapshot.nextQueue
         );
         const newHistory = [...state.history, snapshot];
 
