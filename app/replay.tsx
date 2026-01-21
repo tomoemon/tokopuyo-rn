@@ -227,12 +227,20 @@ export default function GameReplayScreen() {
       setReplayPhase('showing_erasing');
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     } else {
-      // 連鎖なし → 即座に次のスナップショットへ
-      setReplayPhase('idle');
+      // 連鎖なし → 次のスナップショットへ
+      const nextIndex = currentIndex + 1;
       setWorkingField(null);
-      setCurrentIndex(currentIndex + 1);
+      if (nextIndex >= maxIndex) {
+        // 最後のスナップショット → idle
+        setReplayPhase('idle');
+        setCurrentIndex(nextIndex);
+      } else {
+        // まだ続きがある → showing_drop のまま次の配置を表示
+        setReplayPhase('showing_drop');
+        setCurrentIndex(nextIndex);
+      }
     }
-  }, [currentIndex, detectErasingPuyos]);
+  }, [currentIndex, maxIndex, detectErasingPuyos]);
 
   const goToNext = useCallback(() => {
     if (currentIndex >= maxIndex && replayPhase === 'idle') return;
