@@ -312,9 +312,13 @@ export default function GameReplayScreen() {
   }, [replayPhase, currentIndex, maxIndex, nextSnapshot, currentSnapshot, workingField, createFieldWithDroppedPuyos, detectErasingPuyos, checkChainAndTransition]);
 
   const goToLast = useCallback(() => {
-    if (isAnimating) return;
+    // 状態をリセットして最後に移動
+    setReplayPhase('idle');
+    setWorkingField(null);
+    setErasingPuyos([]);
+    setCurrentChainCount(0);
     setCurrentIndex(maxIndex);
-  }, [isAnimating, maxIndex]);
+  }, [maxIndex]);
 
   // 履歴サムネイルタップでその位置にジャンプ
   const handleHistoryTap = useCallback((snapshotId: number) => {
@@ -334,7 +338,7 @@ export default function GameReplayScreen() {
   const isPrevDisabled = currentIndex === 0 && replayPhase === 'idle';
   // Nextは最後のインデックスでない限り有効（連鎖アニメーション中も進められる）
   const isNextDisabled = currentIndex === maxIndex && replayPhase === 'idle';
-  const isLastDisabled = currentIndex === maxIndex || isAnimating;
+  const isLastDisabled = currentIndex === maxIndex && replayPhase === 'idle';
 
   // 再生コントロールボタン
   const renderControls = () => (
