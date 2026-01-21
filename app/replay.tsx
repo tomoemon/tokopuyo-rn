@@ -115,6 +115,18 @@ export default function GameReplayScreen() {
   const displayScore = currentSnapshot.score;
   const displayChainCount = replayPhase === 'showing_erasing' ? currentChainCount : 0;
 
+  // 表示用のNEXTキュー
+  // idle: currentSnapshot.nextQueue（次に落とすぷよを表示）
+  // showing_drop以降: nextSnapshot.nextQueue（落としたぷよの次を表示）
+  const displayNextQueue = useMemo(() => {
+    if (replayPhase === 'idle') {
+      return currentSnapshot.nextQueue;
+    } else if (nextSnapshot) {
+      return nextSnapshot.nextQueue;
+    }
+    return currentSnapshot.nextQueue;
+  }, [replayPhase, currentSnapshot.nextQueue, nextSnapshot]);
+
   // 履歴エリアの幅
   const historyWidth = 80;
   // 履歴サムネイルのセルサイズ
@@ -423,7 +435,7 @@ export default function GameReplayScreen() {
           cellSize={cellSize}
           erasingPuyos={erasingPuyos}
           onEffectComplete={handleEffectComplete}
-          nextQueue={currentSnapshot.nextQueue}
+          nextQueue={displayNextQueue}
           chainCount={displayChainCount}
         />
       </View>
