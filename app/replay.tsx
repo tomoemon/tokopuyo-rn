@@ -15,7 +15,18 @@ import { useConfig } from './_layout';
 type ReplayPhase =
   | 'idle'              // 静止状態（スナップショットのfieldを表示）
   | 'showing_drop'      // droppedPositions のぷよを表示中（重力適用前）
+  | 'showing_gravity'   // 重力適用後のフィールドを表示中（落下があった場合）
   | 'showing_erasing';  // 消えるぷよをハイライト表示中（重力適用後）
+
+// フィールドが同じかどうかを比較
+function fieldsEqual(a: FieldType, b: FieldType): boolean {
+  for (let y = 0; y < a.length; y++) {
+    for (let x = 0; x < a[y].length; x++) {
+      if (a[y][x] !== b[y][x]) return false;
+    }
+  }
+  return true;
+}
 
 export default function GameReplayScreen() {
   const router = useRouter();
@@ -90,6 +101,9 @@ export default function GameReplayScreen() {
         nextSnapshot.droppedPositions,
         currentSnapshot.nextQueue
       );
+    } else if (replayPhase === 'showing_gravity' && workingField) {
+      // 重力適用後のフィールドを表示
+      return workingField;
     } else if (replayPhase === 'showing_erasing' && workingField) {
       // 連鎖表示中: workingFieldを表示
       return workingField;
@@ -185,8 +199,10 @@ export default function GameReplayScreen() {
     }
   }, [replayPhase, workingField, erasingPuyos, currentChainCount, currentIndex, detectErasingPuyos]);
 
-  // アニメーション中かどうか
+  // アニメーション中かどうか（First/Prev/Lastボタンを無効にする）
   const isAnimating = replayPhase !== 'idle';
+  // Nextボタンは showing_erasing 以外では有効
+  const isNextProcessing = replayPhase === 'showing_erasing';
 
   // ナビゲーション関数
   const goToFirst = useCallback(() => {
@@ -199,15 +215,34 @@ export default function GameReplayScreen() {
     setCurrentIndex((prev) => Math.max(0, prev - 1));
   }, [isAnimating]);
 
+  // 連鎖判定を行い、適切なフェーズに遷移する共通処理
+  const checkChainAndTransition = useCallback((fieldAfterGravity: FieldType) => {
+    const erasing = detectErasingPuyos(fieldAfterGravity);
+
+    if (erasing.length > 0) {
+      // 連鎖あり → showing_erasing
+      setWorkingField(fieldAfterGravity);
+      setErasingPuyos(erasing);
+      setCurrentChainCount(1);
+      setReplayPhase('showing_erasing');
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } else {
+      // 連鎖なし → 即座に次のスナップショットへ
+      setReplayPhase('idle');
+      setWorkingField(null);
+      setCurrentIndex(currentIndex + 1);
+    }
+  }, [currentIndex, detectErasingPuyos]);
+
   const goToNext = useCallback(() => {
-    if (currentIndex >= maxIndex) return;
+    if (currentIndex >= maxIndex && replayPhase === 'idle') return;
 
     if (replayPhase === 'idle') {
       // idle → showing_drop: droppedPositions のぷよを表示
       setReplayPhase('showing_drop');
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } else if (replayPhase === 'showing_drop' && nextSnapshot) {
-      // showing_drop → 重力適用 → 連鎖チェック
+      // showing_drop → 重力判定
       const fieldWithDrops = createFieldWithDroppedPuyos(
         currentSnapshot.field,
         nextSnapshot.droppedPositions,
@@ -215,24 +250,21 @@ export default function GameReplayScreen() {
       );
       const fieldAfterGravity = applyGravity(fieldWithDrops);
 
-      // 消えるぷよを検出
-      const erasing = detectErasingPuyos(fieldAfterGravity);
-
-      if (erasing.length > 0) {
-        // 連鎖あり → showing_erasing
+      // 重力で落下があったかチェック
+      if (!fieldsEqual(fieldWithDrops, fieldAfterGravity)) {
+        // 落下あり → showing_gravity（タップ待ち）
         setWorkingField(fieldAfterGravity);
-        setErasingPuyos(erasing);
-        setCurrentChainCount(1);
-        setReplayPhase('showing_erasing');
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        setReplayPhase('showing_gravity');
       } else {
-        // 連鎖なし → 次のスナップショットへ
-        setReplayPhase('idle');
-        setCurrentIndex(currentIndex + 1);
+        // 落下なし → 連鎖判定へ
+        checkChainAndTransition(fieldAfterGravity);
       }
+    } else if (replayPhase === 'showing_gravity' && workingField) {
+      // showing_gravity → 連鎖判定
+      checkChainAndTransition(workingField);
     }
     // showing_erasing の場合は handleEffectComplete で処理される
-  }, [replayPhase, currentIndex, maxIndex, nextSnapshot, currentSnapshot, createFieldWithDroppedPuyos, detectErasingPuyos]);
+  }, [replayPhase, currentIndex, maxIndex, nextSnapshot, currentSnapshot, workingField, createFieldWithDroppedPuyos, checkChainAndTransition]);
 
   const goToLast = useCallback(() => {
     if (isAnimating) return;
@@ -320,6 +352,7 @@ export default function GameReplayScreen() {
       <Text style={styles.progressText}>
         {currentIndex + 1} / {history.length}
         {replayPhase === 'showing_drop' && ' (配置)'}
+        {replayPhase === 'showing_gravity' && ' (落下)'}
         {replayPhase === 'showing_erasing' && ` (${currentChainCount}連鎖)`}
       </Text>
     </View>
