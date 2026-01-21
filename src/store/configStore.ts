@@ -9,8 +9,8 @@ export type ChainAnimationSpeed = 'short' | 'middle' | 'long';
 // 連鎖アニメーション速度に対応する遅延時間（ミリ秒）
 export const CHAIN_ANIMATION_DELAYS: Record<ChainAnimationSpeed, number> = {
   short: 0,
-  middle: 200,
-  long: 400,
+  middle: 300,
+  long: 600,
 };
 
 interface ConfigState {

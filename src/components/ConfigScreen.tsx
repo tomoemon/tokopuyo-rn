@@ -137,7 +137,7 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({ visible, onClose }) 
                 >
                   Middle
                 </Text>
-                <Text style={styles.optionSubtext}>200ms</Text>
+                <Text style={styles.optionSubtext}>300ms</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -155,7 +155,7 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({ visible, onClose }) 
                 >
                   Long
                 </Text>
-                <Text style={styles.optionSubtext}>400ms</Text>
+                <Text style={styles.optionSubtext}>600ms</Text>
               </TouchableOpacity>
             </View>
           </View>
