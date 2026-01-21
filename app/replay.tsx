@@ -206,14 +206,30 @@ export default function GameReplayScreen() {
 
   // ナビゲーション関数
   const goToFirst = useCallback(() => {
-    if (isAnimating) return;
+    // 状態をリセットして最初に戻る
+    setReplayPhase('idle');
+    setWorkingField(null);
+    setErasingPuyos([]);
+    setCurrentChainCount(0);
     setCurrentIndex(0);
-  }, [isAnimating]);
+  }, []);
 
   const goToPrevious = useCallback(() => {
-    if (isAnimating) return;
-    setCurrentIndex((prev) => Math.max(0, prev - 1));
-  }, [isAnimating]);
+    if (currentIndex === 0 && replayPhase === 'idle') return;
+
+    // 状態をリセット
+    setWorkingField(null);
+    setErasingPuyos([]);
+    setCurrentChainCount(0);
+
+    if (replayPhase === 'idle') {
+      // idle 状態なら1つ前に戻る
+      setCurrentIndex((prev) => Math.max(0, prev - 1));
+    } else {
+      // 途中状態なら現在のスナップショットの idle に戻る
+      setReplayPhase('idle');
+    }
+  }, [currentIndex, replayPhase]);
 
   // 連鎖判定を行い、適切なフェーズに遷移する共通処理
   const checkChainAndTransition = useCallback((fieldAfterGravity: FieldType) => {
@@ -314,8 +330,8 @@ export default function GameReplayScreen() {
   };
 
   // ボタンの無効状態
-  const isFirstDisabled = currentIndex === 0 || isAnimating;
-  const isPrevDisabled = currentIndex === 0 || isAnimating;
+  const isFirstDisabled = currentIndex === 0 && replayPhase === 'idle';
+  const isPrevDisabled = currentIndex === 0 && replayPhase === 'idle';
   // Nextは最後のインデックスでない限り有効（連鎖アニメーション中も進められる）
   const isNextDisabled = currentIndex === maxIndex && replayPhase === 'idle';
   const isLastDisabled = currentIndex === maxIndex || isAnimating;
