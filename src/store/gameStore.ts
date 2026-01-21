@@ -19,8 +19,7 @@ import {
   advancePhase,
   updateFallingPuyo,
 } from '../logic/game';
-import { findErasableGroups, flattenGroups } from '../logic/chain';
-import { getPuyo } from '../logic/field';
+import { detectErasingPuyos } from '../logic/chain';
 import {
   movePuyo,
   rotatePuyo,
@@ -83,27 +82,6 @@ const ERASING_DELAY = 200;
 
 // グローバル乱数生成器
 let rng: PuyoRng = new PuyoRng(generateSeed());
-
-// 消えるぷよを検出してerasingフェーズに遷移する処理
-function detectErasingPuyos(
-  field: GameState['field']
-): { erasingPuyos: ErasingPuyo[]; phase: 'erasing' } | null {
-  const groups = findErasableGroups(field);
-  if (groups.length === 0) {
-    return null;
-  }
-  const positions = flattenGroups(groups);
-  const erasingPuyos: ErasingPuyo[] = positions
-    .map((pos) => {
-      const color = getPuyo(field, pos);
-      if (color !== null) {
-        return { pos, color };
-      }
-      return null;
-    })
-    .filter((p): p is ErasingPuyo => p !== null);
-  return { erasingPuyos, phase: 'erasing' };
-}
 
 // スナップショットを作成するヘルパー関数
 function createSnapshot(
@@ -298,9 +276,9 @@ export const useGameStore = create<GameStore>()(
             erasingDelayId = setTimeout(() => {
               const currentState = get();
               if (currentState.phase === 'chaining') {
-                const erasing = detectErasingPuyos(currentState.field);
-                if (erasing) {
-                  set(erasing);
+                const erasingPuyos = detectErasingPuyos(currentState.field);
+                if (erasingPuyos.length > 0) {
+                  set({ erasingPuyos, phase: 'erasing' });
                 }
               }
             }, ERASING_DELAY);
@@ -707,9 +685,9 @@ export const useGameStore = create<GameStore>()(
         erasingDelayId = setTimeout(() => {
           const currentState = get();
           if (currentState.phase === 'chaining') {
-            const erasing = detectErasingPuyos(currentState.field);
-            if (erasing) {
-              set(erasing);
+            const erasingPuyos = detectErasingPuyos(currentState.field);
+            if (erasingPuyos.length > 0) {
+              set({ erasingPuyos, phase: 'erasing' });
             }
           }
         }, ERASING_DELAY);
@@ -778,9 +756,9 @@ export const useGameStore = create<GameStore>()(
         erasingDelayId = setTimeout(() => {
           const currentState = get();
           if (currentState.phase === 'chaining') {
-            const erasing = detectErasingPuyos(currentState.field);
-            if (erasing) {
-              set(erasing);
+            const erasingPuyos = detectErasingPuyos(currentState.field);
+            if (erasingPuyos.length > 0) {
+              set({ erasingPuyos, phase: 'erasing' });
             }
           }
         }, ERASING_DELAY);

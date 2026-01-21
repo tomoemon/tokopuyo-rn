@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,15 +7,19 @@ import { useConfigStore, useGameHistoryStore } from '../src/store';
 import { GameFieldLayout, OperationHistory } from '../src/renderer';
 import { GameHeader } from '../src/components';
 import { FIELD_COLS, TOTAL_ROWS, ErasingPuyo, Field as FieldType, PuyoColor } from '../src/logic/types';
-import { findErasableGroups, flattenGroups } from '../src/logic/chain';
-import { getPuyo, applyGravity, removePuyos, cloneField, setPuyo } from '../src/logic/field';
+import { detectErasingPuyos } from '../src/logic/chain';
+import { applyGravity, removePuyos, cloneField, setPuyo } from '../src/logic/field';
 import { useConfig } from './_layout';
+
+// 消去アニメーション開始までの遅延（ミリ秒）- gameStore.ts と同じ値
+const ERASING_DELAY = 200;
 
 // Replayのフェーズ
 type ReplayPhase =
   | 'idle'              // 静止状態（スナップショットのfieldを表示）
   | 'showing_drop'      // droppedPositions のぷよを表示中（重力適用前）
   | 'showing_gravity'   // 重力適用後のフィールドを表示中（落下があった場合）
+  | 'waiting_erasing'   // 消去アニメーション開始待ち（ERASING_DELAY中）
   | 'showing_erasing';  // 消えるぷよをハイライト表示中（重力適用後）
 
 // フィールドが同じかどうかを比較
@@ -55,6 +59,18 @@ export default function GameReplayScreen() {
   const [workingField, setWorkingField] = useState<FieldType | null>(null);
   const [erasingPuyos, setErasingPuyos] = useState<ErasingPuyo[]>([]);
   const [currentChainCount, setCurrentChainCount] = useState(0);
+
+  // 消去アニメーション開始までの遅延タイマー
+  const erasingDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // クリーンアップ
+  useEffect(() => {
+    return () => {
+      if (erasingDelayRef.current !== null) {
+        clearTimeout(erasingDelayRef.current);
+      }
+    };
+  }, []);
 
   // エントリーがない場合は戻る
   if (!entry || entry.operationHistory.length === 0) {
@@ -104,8 +120,8 @@ export default function GameReplayScreen() {
     } else if (replayPhase === 'showing_gravity' && workingField) {
       // 重力適用後のフィールドを表示
       return workingField;
-    } else if (replayPhase === 'showing_erasing' && workingField) {
-      // 連鎖表示中: workingFieldを表示
+    } else if ((replayPhase === 'waiting_erasing' || replayPhase === 'showing_erasing') && workingField) {
+      // 消去待ち/消去中: workingFieldを表示
       return workingField;
     }
     return currentSnapshot.field;
@@ -155,24 +171,6 @@ export default function GameReplayScreen() {
   // 履歴枠の高さ = フィールド + 再生コントロール
   const historyHeight = fieldHeight + replayControlsHeight;
 
-  // 消えるぷよを検出
-  const detectErasingPuyos = useCallback((field: FieldType): ErasingPuyo[] => {
-    const groups = findErasableGroups(field);
-    if (groups.length === 0) {
-      return [];
-    }
-    const positions = flattenGroups(groups);
-    return positions
-      .map((pos) => {
-        const color = getPuyo(field, pos);
-        if (color !== null) {
-          return { pos, color };
-        }
-        return null;
-      })
-      .filter((p): p is ErasingPuyo => p !== null);
-  }, []);
-
   // 消去エフェクト完了時のコールバック（1タップ1連鎖方式）
   const handleEffectComplete = useCallback(() => {
     if (replayPhase !== 'showing_erasing' || !workingField) return;
@@ -188,19 +186,30 @@ export default function GameReplayScreen() {
     const nextErasing = detectErasingPuyos(newField);
 
     if (nextErasing.length > 0) {
-      // 次の連鎖あり - 連鎖数を更新して次の消去をハイライト
+      // 次の連鎖あり - waiting_erasing → 遅延後に showing_erasing
       const newChainCount = currentChainCount + 1;
 
-      // Haptic feedback（連鎖数に応じて強度を変える）
-      if (newChainCount >= 3) {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-      } else {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      setWorkingField(newField);
+      setErasingPuyos([]);
+      setReplayPhase('waiting_erasing');
+
+      // 既存のタイマーをクリア
+      if (erasingDelayRef.current !== null) {
+        clearTimeout(erasingDelayRef.current);
       }
 
-      setWorkingField(newField);
-      setErasingPuyos(nextErasing);
-      setCurrentChainCount(newChainCount);
+      erasingDelayRef.current = setTimeout(() => {
+        setErasingPuyos(nextErasing);
+        setCurrentChainCount(newChainCount);
+        setReplayPhase('showing_erasing');
+
+        // Haptic feedback（連鎖数に応じて強度を変える）
+        if (newChainCount >= 3) {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+        } else {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        }
+      }, ERASING_DELAY);
     } else {
       // 連鎖終了 - 次のスナップショットに移動
       setReplayPhase('idle');
@@ -209,7 +218,7 @@ export default function GameReplayScreen() {
       setCurrentChainCount(0);
       setCurrentIndex(currentIndex + 1);
     }
-  }, [replayPhase, workingField, erasingPuyos, currentChainCount, currentIndex, detectErasingPuyos]);
+  }, [replayPhase, workingField, erasingPuyos, currentChainCount, currentIndex]);
 
   // アニメーション中かどうか（First/Prev/Lastボタンを無効にする）
   const isAnimating = replayPhase !== 'idle';
@@ -218,6 +227,11 @@ export default function GameReplayScreen() {
 
   // ナビゲーション関数
   const goToFirst = useCallback(() => {
+    // タイマーをクリア
+    if (erasingDelayRef.current !== null) {
+      clearTimeout(erasingDelayRef.current);
+      erasingDelayRef.current = null;
+    }
     // 状態をリセットして最初に戻る
     setReplayPhase('idle');
     setWorkingField(null);
@@ -228,6 +242,12 @@ export default function GameReplayScreen() {
 
   const goToPrevious = useCallback(() => {
     if (currentIndex === 0 && replayPhase === 'idle') return;
+
+    // タイマーをクリア
+    if (erasingDelayRef.current !== null) {
+      clearTimeout(erasingDelayRef.current);
+      erasingDelayRef.current = null;
+    }
 
     // 状態をリセット
     setWorkingField(null);
@@ -248,12 +268,21 @@ export default function GameReplayScreen() {
     const erasing = detectErasingPuyos(fieldAfterGravity);
 
     if (erasing.length > 0) {
-      // 連鎖あり → showing_erasing
+      // 連鎖あり → waiting_erasing → 遅延後に showing_erasing
       setWorkingField(fieldAfterGravity);
-      setErasingPuyos(erasing);
-      setCurrentChainCount(1);
-      setReplayPhase('showing_erasing');
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      setReplayPhase('waiting_erasing');
+
+      // 既存のタイマーをクリア
+      if (erasingDelayRef.current !== null) {
+        clearTimeout(erasingDelayRef.current);
+      }
+
+      erasingDelayRef.current = setTimeout(() => {
+        setErasingPuyos(erasing);
+        setCurrentChainCount(1);
+        setReplayPhase('showing_erasing');
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      }, ERASING_DELAY);
     } else {
       // 連鎖なし → 次のスナップショットへ
       const nextIndex = currentIndex + 1;
@@ -268,7 +297,7 @@ export default function GameReplayScreen() {
         setCurrentIndex(nextIndex);
       }
     }
-  }, [currentIndex, maxIndex, detectErasingPuyos]);
+  }, [currentIndex, maxIndex]);
 
   const goToNext = useCallback(() => {
     if (currentIndex >= maxIndex && replayPhase === 'idle') return;
@@ -296,12 +325,21 @@ export default function GameReplayScreen() {
         const erasing = detectErasingPuyos(fieldAfterGravity);
 
         if (erasing.length > 0) {
-          // 連鎖あり → showing_erasing
+          // 連鎖あり → waiting_erasing → 遅延後に showing_erasing
           setWorkingField(fieldAfterGravity);
-          setErasingPuyos(erasing);
-          setCurrentChainCount(1);
-          setReplayPhase('showing_erasing');
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          setReplayPhase('waiting_erasing');
+
+          // 既存のタイマーをクリア
+          if (erasingDelayRef.current !== null) {
+            clearTimeout(erasingDelayRef.current);
+          }
+
+          erasingDelayRef.current = setTimeout(() => {
+            setErasingPuyos(erasing);
+            setCurrentChainCount(1);
+            setReplayPhase('showing_erasing');
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          }, ERASING_DELAY);
         } else {
           // 連鎖なし → 次のスナップショットへ
           const nextIndex = currentIndex + 1;
@@ -321,9 +359,14 @@ export default function GameReplayScreen() {
       checkChainAndTransition(workingField);
     }
     // showing_erasing の場合は handleEffectComplete で処理される
-  }, [replayPhase, currentIndex, maxIndex, nextSnapshot, currentSnapshot, workingField, createFieldWithDroppedPuyos, detectErasingPuyos, checkChainAndTransition]);
+  }, [replayPhase, currentIndex, maxIndex, nextSnapshot, currentSnapshot, workingField, createFieldWithDroppedPuyos, checkChainAndTransition]);
 
   const goToLast = useCallback(() => {
+    // タイマーをクリア
+    if (erasingDelayRef.current !== null) {
+      clearTimeout(erasingDelayRef.current);
+      erasingDelayRef.current = null;
+    }
     // 状態をリセットして最後に移動
     setReplayPhase('idle');
     setWorkingField(null);
@@ -414,6 +457,7 @@ export default function GameReplayScreen() {
         {currentIndex + 1} / {history.length}
         {replayPhase === 'showing_drop' && ' (配置)'}
         {replayPhase === 'showing_gravity' && ' (落下)'}
+        {replayPhase === 'waiting_erasing' && ' (連鎖待ち)'}
         {replayPhase === 'showing_erasing' && ` (${currentChainCount}連鎖)`}
       </Text>
     </View>
