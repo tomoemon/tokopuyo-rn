@@ -11,7 +11,7 @@ import {
   RngState,
   Position,
 } from '../logic/types';
-import { cloneField, applyGravity } from '../logic/field';
+import { cloneField } from '../logic/field';
 import {
   createInitialGameState,
   startGame,
@@ -44,6 +44,11 @@ interface GameStore extends GameState {
   history: GameSnapshot[];
   // 次のスナップショットID
   nextSnapshotId: number;
+  // 連鎖中の一時保存用（連鎖完了後にスナップショット作成）
+  pendingSnapshot: {
+    droppedPositions: Position[];
+    rngState: RngState;
+  } | null;
 
   // アクション
   dispatch: (action: GameAction) => void;
@@ -142,6 +147,7 @@ export const useGameStore = create<GameStore>()(
   ...createInitialState(),
   currentChainResult: null,
   erasingPuyos: [],
+  pendingSnapshot: null,
 
   // アクションディスパッチャー
   dispatch: (action: GameAction) => {
@@ -261,31 +267,28 @@ export const useGameStore = create<GameStore>()(
           const stateWithDroppedPuyo = updateFallingPuyo(stateWithResetChain, droppedPuyo);
           const lockedState = lockFallingPuyo(stateWithDroppedPuyo);
 
-          // 落下後のフィールドでスナップショットを作成（落下位置を含む）
-          const snapshot = createSnapshot(lockedState, state.nextSnapshotId, rngStateBeforeDrop, droppedPositions);
-
           // 新しいぷよペアを生成
           const newPair = rng.nextPuyoPair();
           const nextState = advancePhase(lockedState, newPair);
 
-          // 履歴に追加
-          const newHistory = [...state.history, snapshot];
-
-          // chainingフェーズになったら遅延後にerasingへ遷移
+          // chainingフェーズになったら連鎖完了後にスナップショットを作成
           if (nextState.phase === 'chaining') {
+            // pendingSnapshot に一時保存（連鎖完了後にスナップショット作成）
             set({
               ...nextState,
-              history: newHistory,
-              nextSnapshotId: state.nextSnapshotId + 1,
+              pendingSnapshot: {
+                droppedPositions,
+                rngState: rngStateBeforeDrop,
+              },
             });
 
-            // ゲーム履歴を更新
+            // ゲーム履歴を更新（連鎖中の状態、スナップショットはまだ追加しない）
             useGameHistoryStore.getState().updateCurrentGame(
               nextState.field,
               nextState.score,
               nextState.chainCount,
-              newHistory,
-              state.nextSnapshotId + 1
+              state.history,
+              state.nextSnapshotId
             );
 
             erasingDelayId = setTimeout(() => {
@@ -299,10 +302,16 @@ export const useGameStore = create<GameStore>()(
             }, ERASING_DELAY);
             return;
           }
+
+          // 連鎖なしの場合は即座にスナップショットを作成
+          const snapshot = createSnapshot(nextState, state.nextSnapshotId, rngStateBeforeDrop, droppedPositions);
+          const newHistory = [...state.history, snapshot];
+
           set({
             ...nextState,
             history: newHistory,
             nextSnapshotId: state.nextSnapshotId + 1,
+            pendingSnapshot: null,
           });
 
           // ゲーム履歴を更新
@@ -437,8 +446,8 @@ export const useGameStore = create<GameStore>()(
     const [pivotColor, satelliteColor] = restoredNextQueue[0];
     const newNextQueue = [...restoredNextQueue.slice(1), newPair];
 
-    // フィールドを復元（重力を適用して空中のぷよを落下させる）
-    const restoredField = applyGravity(cloneField(lastSnapshot.field));
+    // フィールドを復元（連鎖完了後の状態なので重力適用不要）
+    const restoredField = cloneField(lastSnapshot.field);
 
     // 操作履歴を復元（ディープコピー）
     const restoredHistory = entry.operationHistory.map(s => ({
@@ -471,6 +480,7 @@ export const useGameStore = create<GameStore>()(
       currentChainResult: null,
       history: restoredHistory,
       nextSnapshotId: entry.nextSnapshotId,
+      pendingSnapshot: null,
     });
 
     // ゲーム履歴の現在のゲームIDを設定
@@ -515,8 +525,8 @@ export const useGameStore = create<GameStore>()(
     const [pivotColor, satelliteColor] = restoredNextQueue[0];
     const newNextQueue = [...restoredNextQueue.slice(1), newPair];
 
-    // フィールドを復元（重力を適用して空中のぷよを落下させる）
-    const restoredField = applyGravity(cloneField(lastSnapshot.field));
+    // フィールドを復元（連鎖完了後の状態なので重力適用不要）
+    const restoredField = cloneField(lastSnapshot.field);
 
     // 操作履歴を復元（ディープコピー）
     const restoredHistory = entry.operationHistory.map(s => ({
@@ -549,6 +559,7 @@ export const useGameStore = create<GameStore>()(
       currentChainResult: null,
       history: restoredHistory,
       nextSnapshotId: entry.nextSnapshotId,
+      pendingSnapshot: null,
     });
 
     // 新しいゲームIDを生成して設定（新しいゲームとして記録）
@@ -598,8 +609,8 @@ export const useGameStore = create<GameStore>()(
     const newPair3 = rng.nextPuyoPair();
     const newNextQueue: [PuyoColor, PuyoColor][] = [newPair1, newPair2, newPair3];
 
-    // フィールドを復元（重力を適用して空中のぷよを落下させる）
-    const restoredField = applyGravity(cloneField(lastSnapshot.field));
+    // フィールドを復元（連鎖完了後の状態なので重力適用不要）
+    const restoredField = cloneField(lastSnapshot.field);
 
     // 操作履歴を復元（ディープコピー）- 新しいシードの RNG 状態で最後のスナップショットを更新
     const restoredHistory = entry.operationHistory.map((s, index) => {
@@ -644,6 +655,7 @@ export const useGameStore = create<GameStore>()(
       currentChainResult: null,
       history: restoredHistory,
       nextSnapshotId: entry.nextSnapshotId,
+      pendingSnapshot: null,
     });
 
     // 新しいゲームIDを生成して設定（新しいゲームとして記録）
@@ -698,16 +710,45 @@ export const useGameStore = create<GameStore>()(
         }, ERASING_DELAY);
         return;
       }
-      set({ ...afterChainState, erasingPuyos: [] });
 
-      // ゲーム履歴を更新（連鎖完了後の状態を保存）
-      useGameHistoryStore.getState().updateCurrentGame(
-        afterChainState.field,
-        afterChainState.score,
-        afterChainState.chainCount,
-        state.history,
-        state.nextSnapshotId
-      );
+      // 連鎖完了：pendingSnapshot があればスナップショットを作成
+      if (state.pendingSnapshot) {
+        const snapshot = createSnapshot(
+          afterChainState,
+          state.nextSnapshotId,
+          state.pendingSnapshot.rngState,
+          state.pendingSnapshot.droppedPositions
+        );
+        const newHistory = [...state.history, snapshot];
+
+        set({
+          ...afterChainState,
+          erasingPuyos: [],
+          history: newHistory,
+          nextSnapshotId: state.nextSnapshotId + 1,
+          pendingSnapshot: null,
+        });
+
+        // ゲーム履歴を更新（連鎖完了後のスナップショットを含む）
+        useGameHistoryStore.getState().updateCurrentGame(
+          afterChainState.field,
+          afterChainState.score,
+          afterChainState.chainCount,
+          newHistory,
+          state.nextSnapshotId + 1
+        );
+      } else {
+        set({ ...afterChainState, erasingPuyos: [] });
+
+        // ゲーム履歴を更新（連鎖完了後の状態を保存）
+        useGameHistoryStore.getState().updateCurrentGame(
+          afterChainState.field,
+          afterChainState.score,
+          afterChainState.chainCount,
+          state.history,
+          state.nextSnapshotId
+        );
+      }
     } else {
       set({ erasingPuyos: [] });
     }

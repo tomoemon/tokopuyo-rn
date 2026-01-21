@@ -36,14 +36,16 @@ type RngState = [number, number, number, number];
 ```
 
 ### GameSnapshot
-ゲーム状態のスナップショット。
+ゲーム状態のスナップショット。**連鎖完了後**の状態を保存する。
 - `id`: スナップショットID
-- `field`: フィールド状態
-- `nextQueue`: NEXTぷよキュー
-- `score`: スコア
-- `chainCount`: 連鎖数
-- `rngState`: 乱数生成器の状態
-- `droppedPositions`: 落下させたぷよの位置
+- `field`: フィールド状態（連鎖完了後）
+- `nextQueue`: NEXTぷよキュー（次に落下するぷよ）
+- `score`: スコア（連鎖完了後）
+- `chainCount`: この手で発生した連鎖数
+- `rngState`: 乱数生成器の状態（次のぷよを生成する直前）
+- `droppedPositions`: 落下させたぷよの位置（前のスナップショットのフィールドに対して適用）
+
+スナップショットは連鎖完了後に作成されるため、Resume/Fork/Shuffle 時に重力適用が不要。
 
 ## ゲーム履歴の型 (src/store/gameHistoryStore.ts)
 
