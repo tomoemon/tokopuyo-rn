@@ -219,10 +219,8 @@ export default function GameReplayScreen() {
     }
   }, [replayPhase, workingField, erasingPuyos, currentChainCount, currentIndex, erasingDelay]);
 
-  // アニメーション中かどうか（First/Prev/Lastボタンを無効にする）
+  // アニメーション中かどうか
   const isAnimating = replayPhase !== 'idle';
-  // Nextボタンは showing_erasing 以外では有効
-  const isNextProcessing = replayPhase === 'showing_erasing';
 
   // ナビゲーション関数
   const goToFirst = useCallback(() => {
