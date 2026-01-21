@@ -20,6 +20,7 @@ import {
   updateFallingPuyo,
 } from '../logic/game';
 import { detectErasingPuyos } from '../logic/chain';
+import { useConfigStore, CHAIN_ANIMATION_DELAYS } from './configStore';
 import {
   movePuyo,
   rotatePuyo,
@@ -77,8 +78,10 @@ let erasingDelayId: ReturnType<typeof setTimeout> | null = null;
 // 落下速度（ミリ秒）
 const DROP_INTERVAL = 1000;
 
-// 消去アニメーション開始までの遅延（ミリ秒）
-const ERASING_DELAY = 200;
+// 消去アニメーション開始までの遅延を取得
+function getErasingDelay(): number {
+  return CHAIN_ANIMATION_DELAYS[useConfigStore.getState().chainAnimationSpeed];
+}
 
 // グローバル乱数生成器
 let rng: PuyoRng = new PuyoRng(generateSeed());
@@ -281,7 +284,7 @@ export const useGameStore = create<GameStore>()(
                   set({ erasingPuyos, phase: 'erasing' });
                 }
               }
-            }, ERASING_DELAY);
+            }, getErasingDelay());
             return;
           }
 
@@ -690,7 +693,7 @@ export const useGameStore = create<GameStore>()(
               set({ erasingPuyos, phase: 'erasing' });
             }
           }
-        }, ERASING_DELAY);
+        }, getErasingDelay());
         return;
       }
 
@@ -761,7 +764,7 @@ export const useGameStore = create<GameStore>()(
               set({ erasingPuyos, phase: 'erasing' });
             }
           }
-        }, ERASING_DELAY);
+        }, getErasingDelay());
         return;
       }
       set(nextState);
