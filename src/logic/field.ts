@@ -42,6 +42,15 @@ export function getPuyo(field: Field, pos: Position): PuyoColor | null {
 }
 
 /**
+ * 指定位置にぷよを設定（フィールドを直接変更）
+ */
+export function setPuyo(field: Field, pos: Position, color: PuyoColor): void {
+  if (isValidPosition(pos)) {
+    field[pos.y][pos.x] = color;
+  }
+}
+
+/**
  * 位置がフィールド内かどうか
  */
 export function isValidPosition(pos: Position): boolean {

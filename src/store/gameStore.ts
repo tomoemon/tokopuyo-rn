@@ -19,8 +19,8 @@ import {
   advancePhase,
   updateFallingPuyo,
 } from '../logic/game';
-import { findErasableGroups, flattenGroups } from '../logic/chain';
-import { getPuyo } from '../logic/field';
+import { detectErasingPuyos } from '../logic/chain';
+import { useConfigStore, CHAIN_ANIMATION_DELAYS } from './configStore';
 import {
   movePuyo,
   rotatePuyo,
@@ -48,6 +48,7 @@ interface GameStore extends GameState {
   pendingSnapshot: {
     droppedPositions: Position[];
     rngState: RngState;
+    nextQueue: [PuyoColor, PuyoColor][];
   } | null;
 
   // アクション
@@ -77,44 +78,26 @@ let erasingDelayId: ReturnType<typeof setTimeout> | null = null;
 // 落下速度（ミリ秒）
 const DROP_INTERVAL = 1000;
 
-// 消去アニメーション開始までの遅延（ミリ秒）
-const ERASING_DELAY = 200;
+// 消去アニメーション開始までの遅延を取得
+function getErasingDelay(): number {
+  return CHAIN_ANIMATION_DELAYS[useConfigStore.getState().chainAnimationSpeed];
+}
 
 // グローバル乱数生成器
 let rng: PuyoRng = new PuyoRng(generateSeed());
-
-// 消えるぷよを検出してerasingフェーズに遷移する処理
-function detectErasingPuyos(
-  field: GameState['field']
-): { erasingPuyos: ErasingPuyo[]; phase: 'erasing' } | null {
-  const groups = findErasableGroups(field);
-  if (groups.length === 0) {
-    return null;
-  }
-  const positions = flattenGroups(groups);
-  const erasingPuyos: ErasingPuyo[] = positions
-    .map((pos) => {
-      const color = getPuyo(field, pos);
-      if (color !== null) {
-        return { pos, color };
-      }
-      return null;
-    })
-    .filter((p): p is ErasingPuyo => p !== null);
-  return { erasingPuyos, phase: 'erasing' };
-}
 
 // スナップショットを作成するヘルパー関数
 function createSnapshot(
   state: GameState,
   id: number,
   rngState: RngState,
-  droppedPositions: Position[]
+  droppedPositions: Position[],
+  nextQueue: [PuyoColor, PuyoColor][]  // advancePhase 前の nextQueue を渡す
 ): GameSnapshot {
   return {
     id,
     field: cloneField(state.field),
-    nextQueue: state.nextQueue.map(pair => [...pair] as [PuyoColor, PuyoColor]),
+    nextQueue: nextQueue.map(pair => [...pair] as [PuyoColor, PuyoColor]),
     score: state.score,
     chainCount: state.chainCount,
     rngState: [...rngState] as RngState,
@@ -161,7 +144,7 @@ export const useGameStore = create<GameStore>()(
 
           // ゲーム開始前のスナップショットを保存（初期状態なので落下位置は空）
           const rngState = rng.getState();
-          const initialSnapshot = createSnapshot(state, state.nextSnapshotId, rngState, []);
+          const initialSnapshot = createSnapshot(state, state.nextSnapshotId, rngState, [], state.nextQueue);
 
           const newPair = rng.nextPuyoPair();
           const newState = startGame(state, newPair);
@@ -274,11 +257,13 @@ export const useGameStore = create<GameStore>()(
           // chainingフェーズになったら連鎖完了後にスナップショットを作成
           if (nextState.phase === 'chaining') {
             // pendingSnapshot に一時保存（連鎖完了後にスナップショット作成）
+            // lockedState.nextQueue は advancePhase 前の nextQueue
             set({
               ...nextState,
               pendingSnapshot: {
                 droppedPositions,
                 rngState: rngStateBeforeDrop,
+                nextQueue: lockedState.nextQueue,
               },
             });
 
@@ -294,17 +279,18 @@ export const useGameStore = create<GameStore>()(
             erasingDelayId = setTimeout(() => {
               const currentState = get();
               if (currentState.phase === 'chaining') {
-                const erasing = detectErasingPuyos(currentState.field);
-                if (erasing) {
-                  set(erasing);
+                const erasingPuyos = detectErasingPuyos(currentState.field);
+                if (erasingPuyos.length > 0) {
+                  set({ erasingPuyos, phase: 'erasing' });
                 }
               }
-            }, ERASING_DELAY);
+            }, getErasingDelay());
             return;
           }
 
           // 連鎖なしの場合は即座にスナップショットを作成
-          const snapshot = createSnapshot(nextState, state.nextSnapshotId, rngStateBeforeDrop, droppedPositions);
+          // lockedState.nextQueue は advancePhase 前の nextQueue
+          const snapshot = createSnapshot(nextState, state.nextSnapshotId, rngStateBeforeDrop, droppedPositions, lockedState.nextQueue);
           const newHistory = [...state.history, snapshot];
 
           set({
@@ -702,12 +688,12 @@ export const useGameStore = create<GameStore>()(
         erasingDelayId = setTimeout(() => {
           const currentState = get();
           if (currentState.phase === 'chaining') {
-            const erasing = detectErasingPuyos(currentState.field);
-            if (erasing) {
-              set(erasing);
+            const erasingPuyos = detectErasingPuyos(currentState.field);
+            if (erasingPuyos.length > 0) {
+              set({ erasingPuyos, phase: 'erasing' });
             }
           }
-        }, ERASING_DELAY);
+        }, getErasingDelay());
         return;
       }
 
@@ -717,7 +703,8 @@ export const useGameStore = create<GameStore>()(
           afterChainState,
           state.nextSnapshotId,
           state.pendingSnapshot.rngState,
-          state.pendingSnapshot.droppedPositions
+          state.pendingSnapshot.droppedPositions,
+          state.pendingSnapshot.nextQueue
         );
         const newHistory = [...state.history, snapshot];
 
@@ -772,12 +759,12 @@ export const useGameStore = create<GameStore>()(
         erasingDelayId = setTimeout(() => {
           const currentState = get();
           if (currentState.phase === 'chaining') {
-            const erasing = detectErasingPuyos(currentState.field);
-            if (erasing) {
-              set(erasing);
+            const erasingPuyos = detectErasingPuyos(currentState.field);
+            if (erasingPuyos.length > 0) {
+              set({ erasingPuyos, phase: 'erasing' });
             }
           }
-        }, ERASING_DELAY);
+        }, getErasingDelay());
         return;
       }
       set(nextState);

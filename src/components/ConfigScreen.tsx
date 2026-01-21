@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
-import { useConfigStore, Handedness } from '../store';
+import { useConfigStore, Handedness, ChainAnimationSpeed } from '../store';
 
 interface ConfigScreenProps {
   visible: boolean;
@@ -10,9 +10,15 @@ interface ConfigScreenProps {
 export const ConfigScreen: React.FC<ConfigScreenProps> = ({ visible, onClose }) => {
   const handedness = useConfigStore((state) => state.handedness);
   const setHandedness = useConfigStore((state) => state.setHandedness);
+  const chainAnimationSpeed = useConfigStore((state) => state.chainAnimationSpeed);
+  const setChainAnimationSpeed = useConfigStore((state) => state.setChainAnimationSpeed);
 
   const handleSelectHandedness = (value: Handedness) => {
     setHandedness(value);
+  };
+
+  const handleSelectChainSpeed = (value: ChainAnimationSpeed) => {
+    setChainAnimationSpeed(value);
   };
 
   return (
@@ -91,6 +97,69 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({ visible, onClose }) 
             </View>
           </View>
 
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Chain Animation Speed</Text>
+            <Text style={styles.sectionDescription}>
+              Adjust the delay before chain erasure starts
+            </Text>
+
+            <View style={styles.speedOptionsContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.speedOptionButton,
+                  chainAnimationSpeed === 'short' && styles.optionButtonSelected,
+                ]}
+                onPress={() => handleSelectChainSpeed('short')}
+              >
+                <Text
+                  style={[
+                    styles.optionText,
+                    chainAnimationSpeed === 'short' && styles.optionTextSelected,
+                  ]}
+                >
+                  Short
+                </Text>
+                <Text style={styles.optionSubtext}>0ms</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.speedOptionButton,
+                  chainAnimationSpeed === 'middle' && styles.optionButtonSelected,
+                ]}
+                onPress={() => handleSelectChainSpeed('middle')}
+              >
+                <Text
+                  style={[
+                    styles.optionText,
+                    chainAnimationSpeed === 'middle' && styles.optionTextSelected,
+                  ]}
+                >
+                  Middle
+                </Text>
+                <Text style={styles.optionSubtext}>300ms</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.speedOptionButton,
+                  chainAnimationSpeed === 'long' && styles.optionButtonSelected,
+                ]}
+                onPress={() => handleSelectChainSpeed('long')}
+              >
+                <Text
+                  style={[
+                    styles.optionText,
+                    chainAnimationSpeed === 'long' && styles.optionTextSelected,
+                  ]}
+                >
+                  Long
+                </Text>
+                <Text style={styles.optionSubtext}>600ms</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <Text style={styles.closeButtonText}>Close</Text>
           </TouchableOpacity>
@@ -143,6 +212,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 12,
   },
+  speedOptionsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
   optionButton: {
     flex: 1,
     backgroundColor: '#1a1a2e',
@@ -150,6 +224,16 @@ const styles = StyleSheet.create({
     padding: 12,
     borderWidth: 2,
     borderColor: '#2a2a4a',
+  },
+  speedOptionButton: {
+    flex: 1,
+    backgroundColor: '#1a1a2e',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderWidth: 2,
+    borderColor: '#2a2a4a',
+    alignItems: 'center',
   },
   optionButtonSelected: {
     borderColor: '#4444ff',

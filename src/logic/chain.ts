@@ -1,4 +1,4 @@
-import { Field, Position, PuyoColor, FIELD_COLS, FIELD_ROWS, CONNECT_COUNT, HIDDEN_ROWS } from './types';
+import { Field, Position, PuyoColor, ErasingPuyo, FIELD_COLS, FIELD_ROWS, CONNECT_COUNT, HIDDEN_ROWS } from './types';
 import { isValidPosition, getPuyo } from './field';
 
 /**
@@ -140,4 +140,25 @@ export function countErasedPuyos(groups: Position[][]): number {
  */
 export function flattenGroups(groups: Position[][]): Position[] {
   return groups.flat();
+}
+
+/**
+ * フィールドから消えるぷよを検出
+ * エフェクト表示用の ErasingPuyo 配列を返す
+ */
+export function detectErasingPuyos(field: Field): ErasingPuyo[] {
+  const groups = findErasableGroups(field);
+  if (groups.length === 0) {
+    return [];
+  }
+  const positions = flattenGroups(groups);
+  return positions
+    .map((pos) => {
+      const color = getPuyo(field, pos);
+      if (color !== null) {
+        return { pos, color };
+      }
+      return null;
+    })
+    .filter((p): p is ErasingPuyo => p !== null);
 }

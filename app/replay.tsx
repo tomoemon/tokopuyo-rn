@@ -1,18 +1,33 @@
-import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { useConfigStore, useGameHistoryStore } from '../src/store';
+import { useConfigStore, useGameHistoryStore, CHAIN_ANIMATION_DELAYS } from '../src/store';
 import { GameFieldLayout, OperationHistory } from '../src/renderer';
 import { GameHeader } from '../src/components';
-import { FIELD_COLS, TOTAL_ROWS, ErasingPuyo, Field as FieldType } from '../src/logic/types';
-import { findErasableGroups, flattenGroups } from '../src/logic/chain';
-import { getPuyo, applyGravity, removePuyos, cloneField } from '../src/logic/field';
+import { FIELD_COLS, TOTAL_ROWS, ErasingPuyo, Field as FieldType, PuyoColor } from '../src/logic/types';
+import { detectErasingPuyos } from '../src/logic/chain';
+import { applyGravity, removePuyos, cloneField, setPuyo } from '../src/logic/field';
 import { useConfig } from './_layout';
 
-// 連鎖アニメーションの遅延時間（ミリ秒）
-const CHAIN_DELAY = 200;
+// Replayのフェーズ
+type ReplayPhase =
+  | 'idle'              // 静止状態（スナップショットのfieldを表示）
+  | 'showing_drop'      // droppedPositions のぷよを表示中（重力適用前）
+  | 'showing_gravity'   // 重力適用後のフィールドを表示中（落下があった場合）
+  | 'waiting_erasing'   // 消去アニメーション開始待ち（遅延中）
+  | 'showing_erasing';  // 消えるぷよをハイライト表示中（重力適用後）
+
+// フィールドが同じかどうかを比較
+function fieldsEqual(a: FieldType, b: FieldType): boolean {
+  for (let y = 0; y < a.length; y++) {
+    for (let x = 0; x < a[y].length; x++) {
+      if (a[y][x] !== b[y][x]) return false;
+    }
+  }
+  return true;
+}
 
 export default function GameReplayScreen() {
   const router = useRouter();
@@ -30,28 +45,28 @@ export default function GameReplayScreen() {
 
   const { width, height } = useWindowDimensions();
   const handedness = useConfigStore((state) => state.handedness);
+  const chainAnimationSpeed = useConfigStore((state) => state.chainAnimationSpeed);
+  const erasingDelay = CHAIN_ANIMATION_DELAYS[chainAnimationSpeed];
 
   // 現在表示中のスナップショットインデックス
   const [currentIndex, setCurrentIndex] = useState(0);
 
+  // Replayフェーズ
+  const [replayPhase, setReplayPhase] = useState<ReplayPhase>('idle');
+
   // 連鎖アニメーション用の状態
-  const [isAnimating, setIsAnimating] = useState(false);
-  const [animatingField, setAnimatingField] = useState<FieldType | null>(null);
+  const [workingField, setWorkingField] = useState<FieldType | null>(null);
   const [erasingPuyos, setErasingPuyos] = useState<ErasingPuyo[]>([]);
-  const [animatingChainCount, setAnimatingChainCount] = useState(0);
-  const [animatingScore, setAnimatingScore] = useState(0);
+  const [currentChainCount, setCurrentChainCount] = useState(0);
 
-  // 連鎖後のフィールド状態をキャッシュ（インデックス -> 連鎖後フィールド）
-  const [finalFieldCache, setFinalFieldCache] = useState<Map<number, FieldType>>(new Map());
-
-  // タイマー参照
-  const chainTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 消去アニメーション開始までの遅延タイマー
+  const erasingDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // クリーンアップ
   useEffect(() => {
     return () => {
-      if (chainTimerRef.current) {
-        clearTimeout(chainTimerRef.current);
+      if (erasingDelayRef.current !== null) {
+        clearTimeout(erasingDelayRef.current);
       }
     };
   }, []);
@@ -74,15 +89,58 @@ export default function GameReplayScreen() {
   // 現在のスナップショット
   const currentSnapshot = history[currentIndex];
 
-  // スナップショットのフィールドに重力を適用（メモ化）
-  const snapshotFieldWithGravity = useMemo(() => {
-    return applyGravity(cloneField(currentSnapshot.field));
-  }, [currentSnapshot.field]);
+  // 次のスナップショット（遷移中に使用）
+  const nextSnapshot = currentIndex < maxIndex ? history[currentIndex + 1] : null;
 
-  // 表示用のフィールド（優先順位: アニメーション中 > キャッシュ > 重力適用済みスナップショット）
-  const displayField = animatingField ?? finalFieldCache.get(currentIndex) ?? snapshotFieldWithGravity;
-  const displayChainCount = isAnimating ? animatingChainCount : currentSnapshot.chainCount;
-  const displayScore = isAnimating ? animatingScore : currentSnapshot.score;
+  // droppedPositionsのぷよを前のスナップショットのfield上に表示したフィールドを作成
+  const createFieldWithDroppedPuyos = useCallback((baseField: FieldType, droppedPositions: { x: number; y: number }[], nextQueue: [PuyoColor, PuyoColor][]): FieldType => {
+    const field = cloneField(baseField);
+    if (droppedPositions.length >= 2 && nextQueue.length > 0) {
+      const [pivotColor, satelliteColor] = nextQueue[0];
+      // droppedPositions[0] = pivot, droppedPositions[1] = satellite
+      setPuyo(field, droppedPositions[0], pivotColor);
+      setPuyo(field, droppedPositions[1], satelliteColor);
+    }
+    return field;
+  }, []);
+
+  // 表示用のフィールドを計算
+  const displayField = useMemo(() => {
+    if (replayPhase === 'idle') {
+      // 静止状態: スナップショットのfieldをそのまま表示
+      return currentSnapshot.field;
+    } else if (replayPhase === 'showing_drop' && nextSnapshot) {
+      // droppedPositions表示中: 前のスナップショットのfield + droppedPositions（重力適用前）
+      return createFieldWithDroppedPuyos(
+        currentSnapshot.field,
+        nextSnapshot.droppedPositions,
+        currentSnapshot.nextQueue
+      );
+    } else if (replayPhase === 'showing_gravity' && workingField) {
+      // 重力適用後のフィールドを表示
+      return workingField;
+    } else if ((replayPhase === 'waiting_erasing' || replayPhase === 'showing_erasing') && workingField) {
+      // 消去待ち/消去中: workingFieldを表示
+      return workingField;
+    }
+    return currentSnapshot.field;
+  }, [replayPhase, currentSnapshot, nextSnapshot, workingField, createFieldWithDroppedPuyos]);
+
+  // 表示用のスコアと連鎖数
+  const displayScore = currentSnapshot.score;
+  const displayChainCount = replayPhase === 'showing_erasing' ? currentChainCount : 0;
+
+  // 表示用のNEXTキュー
+  // idle: currentSnapshot.nextQueue（次に落とすぷよを表示）
+  // showing_drop以降: nextSnapshot.nextQueue（落としたぷよの次を表示）
+  const displayNextQueue = useMemo(() => {
+    if (replayPhase === 'idle') {
+      return currentSnapshot.nextQueue;
+    } else if (nextSnapshot) {
+      return nextSnapshot.nextQueue;
+    }
+    return currentSnapshot.nextQueue;
+  }, [replayPhase, currentSnapshot.nextQueue, nextSnapshot]);
 
   // 履歴エリアの幅
   const historyWidth = 80;
@@ -112,138 +170,207 @@ export default function GameReplayScreen() {
   // 履歴枠の高さ = フィールド + 再生コントロール
   const historyHeight = fieldHeight + replayControlsHeight;
 
-  // 消えるぷよを検出
-  const detectErasingPuyos = useCallback((field: FieldType): ErasingPuyo[] => {
-    const groups = findErasableGroups(field);
-    if (groups.length === 0) {
-      return [];
-    }
-    const positions = flattenGroups(groups);
-    return positions
-      .map((pos) => {
-        const color = getPuyo(field, pos);
-        if (color !== null) {
-          return { pos, color };
-        }
-        return null;
-      })
-      .filter((p): p is ErasingPuyo => p !== null);
-  }, []);
-
-  // スコア計算（簡易版）
-  const calculateChainScore = useCallback((puyoCount: number, chainCount: number): number => {
-    // 基本点: ぷよ数 × 10 × 連鎖ボーナス
-    const chainBonus = Math.min(999, chainCount === 1 ? 0 : Math.pow(2, chainCount + 1));
-    return puyoCount * 10 * Math.max(1, chainBonus);
-  }, []);
-
-  // 連鎖アニメーションを開始
-  const startChainAnimation = useCallback((targetIndex: number) => {
-    const targetSnapshot = history[targetIndex];
-
-    // 重力を適用したフィールドから開始
-    let field = applyGravity(cloneField(targetSnapshot.field));
-
-    // 消えるぷよを検出
-    const erasing = detectErasingPuyos(field);
-
-    if (erasing.length === 0) {
-      // 連鎖なし - 直接移動
-      setCurrentIndex(targetIndex);
-      return;
-    }
-
-    // 連鎖アニメーション開始
-    setIsAnimating(true);
-    setAnimatingField(field);
-    setErasingPuyos(erasing);
-    setAnimatingChainCount(1);
-    setAnimatingScore(targetSnapshot.score);
-
-    // Haptic feedback
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, [history, detectErasingPuyos]);
-
-  // 連鎖アニメーション完了時のコールバック
+  // 消去エフェクト完了時のコールバック（1タップ1連鎖方式）
   const handleEffectComplete = useCallback(() => {
-    if (!animatingField || !isAnimating) return;
+    if (replayPhase !== 'showing_erasing' || !workingField) return;
 
     // 消えるぷよを削除
     const positions = erasingPuyos.map(p => p.pos);
-    let newField = removePuyos(animatingField, positions);
+    let newField = removePuyos(workingField, positions);
 
     // 重力適用
     newField = applyGravity(newField);
-
-    // スコア加算
-    const chainScore = calculateChainScore(erasingPuyos.length, animatingChainCount);
-    const newScore = animatingScore + chainScore;
 
     // 次の消えるぷよを検出
     const nextErasing = detectErasingPuyos(newField);
 
     if (nextErasing.length > 0) {
-      // 次の連鎖あり
-      const newChainCount = animatingChainCount + 1;
+      // 次の連鎖あり - waiting_erasing → 遅延後に showing_erasing
+      const newChainCount = currentChainCount + 1;
 
-      // Haptic feedback（連鎖数に応じて強度を変える）
-      if (newChainCount >= 3) {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-      } else {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      setWorkingField(newField);
+      setErasingPuyos([]);
+      setReplayPhase('waiting_erasing');
+
+      // 既存のタイマーをクリア
+      if (erasingDelayRef.current !== null) {
+        clearTimeout(erasingDelayRef.current);
       }
 
-      setAnimatingField(newField);
-      setAnimatingScore(newScore);
-      setAnimatingChainCount(newChainCount);
-
-      // 少し遅延してから次の消去アニメーションを開始
-      chainTimerRef.current = setTimeout(() => {
+      erasingDelayRef.current = setTimeout(() => {
         setErasingPuyos(nextErasing);
-      }, CHAIN_DELAY);
-    } else {
-      // 連鎖終了 - 連鎖後のフィールドをキャッシュに保存
-      const nextIndex = currentIndex + 1;
-      setFinalFieldCache((prev) => {
-        const newCache = new Map(prev);
-        newCache.set(nextIndex, newField);
-        return newCache;
-      });
+        setCurrentChainCount(newChainCount);
+        setReplayPhase('showing_erasing');
 
-      // 次のスナップショットに移動
-      setIsAnimating(false);
-      setAnimatingField(null);
+        // Haptic feedback（連鎖数に応じて強度を変える）
+        if (newChainCount >= 3) {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+        } else {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        }
+      }, erasingDelay);
+    } else {
+      // 連鎖終了 - 次のスナップショットに移動
+      setReplayPhase('idle');
+      setWorkingField(null);
       setErasingPuyos([]);
-      setAnimatingChainCount(0);
-      setAnimatingScore(0);
-      setCurrentIndex(nextIndex);
+      setCurrentChainCount(0);
+      setCurrentIndex(currentIndex + 1);
     }
-  }, [animatingField, isAnimating, erasingPuyos, animatingChainCount, animatingScore,
-      detectErasingPuyos, calculateChainScore, currentIndex]);
+  }, [replayPhase, workingField, erasingPuyos, currentChainCount, currentIndex, erasingDelay]);
+
+  // アニメーション中かどうか
+  const isAnimating = replayPhase !== 'idle';
 
   // ナビゲーション関数
   const goToFirst = useCallback(() => {
-    if (isAnimating) return;
+    // タイマーをクリア
+    if (erasingDelayRef.current !== null) {
+      clearTimeout(erasingDelayRef.current);
+      erasingDelayRef.current = null;
+    }
+    // 状態をリセットして最初に戻る
+    setReplayPhase('idle');
+    setWorkingField(null);
+    setErasingPuyos([]);
+    setCurrentChainCount(0);
     setCurrentIndex(0);
-  }, [isAnimating]);
+  }, []);
 
   const goToPrevious = useCallback(() => {
-    if (isAnimating) return;
-    setCurrentIndex((prev) => Math.max(0, prev - 1));
-  }, [isAnimating]);
+    if (currentIndex === 0 && replayPhase === 'idle') return;
+
+    // タイマーをクリア
+    if (erasingDelayRef.current !== null) {
+      clearTimeout(erasingDelayRef.current);
+      erasingDelayRef.current = null;
+    }
+
+    // 状態をリセット
+    setWorkingField(null);
+    setErasingPuyos([]);
+    setCurrentChainCount(0);
+
+    if (replayPhase === 'idle') {
+      // idle 状態なら1つ前に戻る
+      setCurrentIndex((prev) => Math.max(0, prev - 1));
+    } else {
+      // 途中状態なら現在のスナップショットの idle に戻る
+      setReplayPhase('idle');
+    }
+  }, [currentIndex, replayPhase]);
+
+  // 連鎖判定を行い、適切なフェーズに遷移する共通処理
+  const checkChainAndTransition = useCallback((fieldAfterGravity: FieldType) => {
+    const erasing = detectErasingPuyos(fieldAfterGravity);
+
+    if (erasing.length > 0) {
+      // 連鎖あり → waiting_erasing → 遅延後に showing_erasing
+      setWorkingField(fieldAfterGravity);
+      setReplayPhase('waiting_erasing');
+
+      // 既存のタイマーをクリア
+      if (erasingDelayRef.current !== null) {
+        clearTimeout(erasingDelayRef.current);
+      }
+
+      erasingDelayRef.current = setTimeout(() => {
+        setErasingPuyos(erasing);
+        setCurrentChainCount(1);
+        setReplayPhase('showing_erasing');
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      }, erasingDelay);
+    } else {
+      // 連鎖なし → 次のスナップショットへ
+      const nextIndex = currentIndex + 1;
+      setWorkingField(null);
+      if (nextIndex >= maxIndex) {
+        // 最後のスナップショット → idle
+        setReplayPhase('idle');
+        setCurrentIndex(nextIndex);
+      } else {
+        // まだ続きがある → showing_drop のまま次の配置を表示
+        setReplayPhase('showing_drop');
+        setCurrentIndex(nextIndex);
+      }
+    }
+  }, [currentIndex, maxIndex, erasingDelay]);
 
   const goToNext = useCallback(() => {
-    if (isAnimating) return;
-    if (currentIndex >= maxIndex) return;
+    if (currentIndex >= maxIndex && replayPhase === 'idle') return;
 
-    // 次のスナップショットで連鎖アニメーションを開始
-    startChainAnimation(currentIndex + 1);
-  }, [isAnimating, currentIndex, maxIndex, startChainAnimation]);
+    if (replayPhase === 'idle') {
+      // idle → showing_drop: droppedPositions のぷよを表示
+      setReplayPhase('showing_drop');
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } else if (replayPhase === 'showing_drop' && nextSnapshot) {
+      // showing_drop → 重力判定
+      const fieldWithDrops = createFieldWithDroppedPuyos(
+        currentSnapshot.field,
+        nextSnapshot.droppedPositions,
+        currentSnapshot.nextQueue
+      );
+      const fieldAfterGravity = applyGravity(fieldWithDrops);
+
+      // 重力で落下があったかチェック
+      if (!fieldsEqual(fieldWithDrops, fieldAfterGravity)) {
+        // 落下あり → showing_gravity（タップ待ち）
+        setWorkingField(fieldAfterGravity);
+        setReplayPhase('showing_gravity');
+      } else {
+        // 落下なし → 連鎖判定
+        const erasing = detectErasingPuyos(fieldAfterGravity);
+
+        if (erasing.length > 0) {
+          // 連鎖あり → waiting_erasing → 遅延後に showing_erasing
+          setWorkingField(fieldAfterGravity);
+          setReplayPhase('waiting_erasing');
+
+          // 既存のタイマーをクリア
+          if (erasingDelayRef.current !== null) {
+            clearTimeout(erasingDelayRef.current);
+          }
+
+          erasingDelayRef.current = setTimeout(() => {
+            setErasingPuyos(erasing);
+            setCurrentChainCount(1);
+            setReplayPhase('showing_erasing');
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          }, erasingDelay);
+        } else {
+          // 連鎖なし → 次のスナップショットへ
+          const nextIndex = currentIndex + 1;
+          if (nextIndex >= maxIndex) {
+            // 最後のスナップショット → idle
+            setReplayPhase('idle');
+            setCurrentIndex(nextIndex);
+          } else {
+            // まだ続きがある → showing_drop のまま次の配置を表示
+            setCurrentIndex(nextIndex);
+            // replayPhase は showing_drop のまま
+          }
+        }
+      }
+    } else if (replayPhase === 'showing_gravity' && workingField) {
+      // showing_gravity → 連鎖判定
+      checkChainAndTransition(workingField);
+    }
+    // showing_erasing の場合は handleEffectComplete で処理される
+  }, [replayPhase, currentIndex, maxIndex, nextSnapshot, currentSnapshot, workingField, createFieldWithDroppedPuyos, checkChainAndTransition, erasingDelay]);
 
   const goToLast = useCallback(() => {
-    if (isAnimating) return;
+    // タイマーをクリア
+    if (erasingDelayRef.current !== null) {
+      clearTimeout(erasingDelayRef.current);
+      erasingDelayRef.current = null;
+    }
+    // 状態をリセットして最後に移動
+    setReplayPhase('idle');
+    setWorkingField(null);
+    setErasingPuyos([]);
+    setCurrentChainCount(0);
     setCurrentIndex(maxIndex);
-  }, [isAnimating, maxIndex]);
+  }, [maxIndex]);
 
   // 履歴サムネイルタップでその位置にジャンプ
   const handleHistoryTap = useCallback((snapshotId: number) => {
@@ -259,10 +386,11 @@ export default function GameReplayScreen() {
   };
 
   // ボタンの無効状態
-  const isFirstDisabled = currentIndex === 0 || isAnimating;
-  const isPrevDisabled = currentIndex === 0 || isAnimating;
-  const isNextDisabled = currentIndex === maxIndex || isAnimating;
-  const isLastDisabled = currentIndex === maxIndex || isAnimating;
+  const isFirstDisabled = currentIndex === 0 && replayPhase === 'idle';
+  const isPrevDisabled = currentIndex === 0 && replayPhase === 'idle';
+  // Nextは最後のインデックスでない限り有効（連鎖アニメーション中も進められる）
+  const isNextDisabled = currentIndex === maxIndex && replayPhase === 'idle';
+  const isLastDisabled = currentIndex === maxIndex && replayPhase === 'idle';
 
   // 再生コントロールボタン
   const renderControls = () => (
@@ -324,7 +452,10 @@ export default function GameReplayScreen() {
       {/* 進捗インジケーター */}
       <Text style={styles.progressText}>
         {currentIndex + 1} / {history.length}
-        {isAnimating && ` (${animatingChainCount}連鎖)`}
+        {replayPhase === 'showing_drop' && ' (配置)'}
+        {replayPhase === 'showing_gravity' && ' (落下)'}
+        {replayPhase === 'waiting_erasing' && ' (連鎖待ち)'}
+        {replayPhase === 'showing_erasing' && ` (${currentChainCount}連鎖)`}
       </Text>
     </View>
   );
@@ -345,7 +476,7 @@ export default function GameReplayScreen() {
           cellSize={cellSize}
           erasingPuyos={erasingPuyos}
           onEffectComplete={handleEffectComplete}
-          nextQueue={currentSnapshot.nextQueue}
+          nextQueue={displayNextQueue}
           chainCount={displayChainCount}
         />
       </View>
