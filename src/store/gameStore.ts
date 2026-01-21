@@ -797,7 +797,7 @@ export const useGameStore = create<GameStore>()(
   },
 }),
     {
-      name: 'tokopuyo-game',
+      name: 'renren-game',
       storage: createJSONStorage(() => AsyncStorage),
       // 永続化する項目を選択（関数やエフェクト状態は除外）
       partialize: (state) => ({

@@ -38,7 +38,7 @@ export const useConfigStore = create<ConfigStore>()(
       setChainAnimationSpeed: (chainAnimationSpeed: ChainAnimationSpeed) => set({ chainAnimationSpeed }),
     }),
     {
-      name: 'tokopuyo-config',
+      name: 'renren-config',
       storage: createJSONStorage(() => AsyncStorage),
     }
   )

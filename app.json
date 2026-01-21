@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "tokopuyo-rn",
-    "slug": "tokopuyo-rn",
+    "name": "連連",
+    "slug": "renren",
     "version": "1.0.0",
-    "scheme": "tokopuyo",
+    "scheme": "renren",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",

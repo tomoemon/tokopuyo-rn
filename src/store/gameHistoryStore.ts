@@ -242,7 +242,7 @@ export const useGameHistoryStore = create<GameHistoryStore>()(
       },
     }),
     {
-      name: 'tokopuyo-game-history',
+      name: 'renren-game-history',
       storage: createJSONStorage(() => AsyncStorage),
     }
   )
