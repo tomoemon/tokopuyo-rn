@@ -1,6 +1,7 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
 import { useFieldGesture } from './useFieldGesture';
+import { useGestureStore } from './gestureStore';
 import { FIELD_COLS } from '../logic/types';
 
 interface ControlAreaProps {
@@ -25,12 +26,16 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, sideMargin, 
 
   const getAreaLayout = useCallback(() => controlAreaLayoutRef.current, []);
 
-  const { panResponder, gestureState } = useFieldGesture({
+  const { panResponder } = useFieldGesture({
     cellSize,
     getAreaLayout,
   });
 
-  const { activeColumn, blockedColumn, swipeDirection, cancelFlash } = gestureState;
+  // ストアから状態を購読
+  const activeColumn = useGestureStore((state) => state.activeColumn);
+  const blockedColumn = useGestureStore((state) => state.blockedColumn);
+  const swipeDirection = useGestureStore((state) => state.swipeDirection);
+  const cancelFlash = useGestureStore((state) => state.cancelFlash);
 
   // タッチリップルアニメーション
   const triggerRipple = useCallback((x: number, y: number) => {
@@ -74,7 +79,7 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, sideMargin, 
         <View style={styles.columnsContainer} pointerEvents="none">
           {Array.from({ length: FIELD_COLS }).map((_, i) => (
             <View
-              key={i}
+              key={`control-col-${i}`}
               style={[
                 styles.column,
                 {

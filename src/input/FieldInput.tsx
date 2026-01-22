@@ -1,6 +1,7 @@
 import React, { useRef, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useFieldGesture } from './useFieldGesture';
+import { useGestureStore } from './gestureStore';
 import { FIELD_COLS, TOTAL_ROWS } from '../logic/types';
 
 const BORDER_WIDTH = 3;
@@ -16,12 +17,16 @@ export const FieldInput: React.FC<FieldInputProps> = ({ cellSize, children }) =>
 
   const getAreaLayout = useCallback(() => fieldLayoutRef.current, []);
 
-  const { panResponder, gestureState } = useFieldGesture({
+  const { panResponder } = useFieldGesture({
     cellSize,
     getAreaLayout,
   });
 
-  const { activeColumn, blockedColumn, swipeDirection, cancelFlash } = gestureState;
+  // ストアから状態を購読
+  const activeColumn = useGestureStore((state) => state.activeColumn);
+  const blockedColumn = useGestureStore((state) => state.blockedColumn);
+  const swipeDirection = useGestureStore((state) => state.swipeDirection);
+  const cancelFlash = useGestureStore((state) => state.cancelFlash);
 
   const fieldWidth = cellSize * FIELD_COLS + BORDER_WIDTH * 2;
   const fieldHeight = cellSize * TOTAL_ROWS + BORDER_WIDTH * 2;
@@ -43,7 +48,7 @@ export const FieldInput: React.FC<FieldInputProps> = ({ cellSize, children }) =>
       <View style={styles.overlayContainer} pointerEvents="none">
         {Array.from({ length: FIELD_COLS }).map((_, i) => (
           <View
-            key={i}
+            key={`field-col-${i}`}
             style={[
               styles.columnOverlay,
               { width: cellSize, left: BORDER_WIDTH + i * cellSize },

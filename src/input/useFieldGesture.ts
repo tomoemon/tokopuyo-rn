@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import {
   PanResponder,
   GestureResponderEvent,
@@ -9,6 +9,7 @@ import * as Haptics from 'expo-haptics';
 import { useGameStore } from '../store';
 import { Rotation, FIELD_COLS } from '../logic/types';
 import { setColumn } from '../logic/puyo';
+import { useGestureStore } from './gestureStore';
 
 // スワイプ検出の閾値
 const SWIPE_THRESHOLD = 20;
@@ -17,16 +18,8 @@ const CANCEL_THRESHOLD = 15;
 
 type ControlState = 'idle' | 'touching' | 'swiped' | 'cancelPending' | 'blocked';
 
-export interface FieldGestureState {
-  activeColumn: number | null;
-  blockedColumn: number | null;
-  swipeDirection: 'up' | 'down' | 'left' | 'right' | null;
-  cancelFlash: boolean;
-}
-
 export interface FieldGestureResult {
   panResponder: PanResponderInstance;
-  gestureState: FieldGestureState;
   triggerRipple: (x: number, y: number) => void;
 }
 
@@ -45,12 +38,6 @@ export function useFieldGesture({
   const startPosRef = useRef({ x: 0, y: 0 });
   const currentSwipeRef = useRef<{ dx: number; dy: number }>({ dx: 0, dy: 0 });
   const initialColumnRef = useRef<number | null>(null);
-
-  // 視覚的フィードバック用の状態
-  const [activeColumn, setActiveColumn] = useState<number | null>(null);
-  const [blockedColumn, setBlockedColumn] = useState<number | null>(null);
-  const [swipeDirection, setSwipeDirection] = useState<'up' | 'down' | 'left' | 'right' | null>(null);
-  const [cancelFlash, setCancelFlash] = useState(false);
 
   // スワイプ方向から回転状態を取得
   const getRotationFromSwipe = useCallback((dx: number, dy: number): Rotation | null => {
@@ -98,6 +85,7 @@ export function useFieldGesture({
       const currentPhase = currentState.phase;
       const currentField = currentState.field;
       const currentFallingPuyo = currentState.fallingPuyo;
+      const gestureStore = useGestureStore.getState();
 
       if (currentPhase !== 'falling' || !currentFallingPuyo) return;
 
@@ -123,18 +111,18 @@ export function useFieldGesture({
         controlStateRef.current = 'blocked';
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         // 視覚的フィードバック（エラー表示：赤くハイライト）
-        setActiveColumn(null);
-        setBlockedColumn(clampedColumn);
-        setSwipeDirection(null);
+        gestureStore.setActiveColumn(null);
+        gestureStore.setBlockedColumn(clampedColumn);
+        gestureStore.setSwipeDirection(null);
         return;
       }
 
       controlStateRef.current = 'touching';
 
       // 視覚的フィードバック
-      setActiveColumn(clampedColumn);
-      setBlockedColumn(null);
-      setSwipeDirection(null);
+      gestureStore.setActiveColumn(clampedColumn);
+      gestureStore.setBlockedColumn(null);
+      gestureStore.setSwipeDirection(null);
 
       // 触覚フィードバック（タッチ）
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -149,6 +137,7 @@ export function useFieldGesture({
   const handleTouchMove = useCallback(
     (_evt: GestureResponderEvent, gestureState: PanResponderGestureState) => {
       const currentPhase = useGameStore.getState().phase;
+      const gestureStore = useGestureStore.getState();
       if (currentPhase !== 'falling') return;
       if (controlStateRef.current === 'idle' || controlStateRef.current === 'blocked') return;
 
@@ -165,12 +154,12 @@ export function useFieldGesture({
           controlStateRef.current = 'cancelPending';
           // 上向きに戻す
           dispatch({ type: 'SET_ROTATION', rotation: 0 });
-          setSwipeDirection(null);
+          gestureStore.setSwipeDirection(null);
           // 触覚フィードバック（キャンセル：Warning通知パターン）
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
           // 視覚的フィードバック（列を点滅）
-          setCancelFlash(true);
-          setTimeout(() => setCancelFlash(false), 200);
+          gestureStore.setCancelFlash(true);
+          setTimeout(() => useGestureStore.getState().setCancelFlash(false), 200);
         }
         return;
       }
@@ -182,7 +171,7 @@ export function useFieldGesture({
         controlStateRef.current = 'swiped';
         dispatch({ type: 'SET_ROTATION', rotation });
         // 視覚的フィードバック：スワイプ方向を更新
-        setSwipeDirection(getSwipeDirectionFromDelta(dx, dy));
+        gestureStore.setSwipeDirection(getSwipeDirectionFromDelta(dx, dy));
         // 触覚フィードバック（スワイプ認識時のみ）
         if (wasNotSwiped) {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -195,9 +184,8 @@ export function useFieldGesture({
   const handleTouchEnd = useCallback(
     (_evt: GestureResponderEvent, _gestureState: PanResponderGestureState) => {
       // 視覚的フィードバックをリセット
-      setActiveColumn(null);
-      setBlockedColumn(null);
-      setSwipeDirection(null);
+      const gestureStore = useGestureStore.getState();
+      gestureStore.reset();
 
       const currentPhase = useGameStore.getState().phase;
       if (currentPhase !== 'falling') {
@@ -239,12 +227,6 @@ export function useFieldGesture({
 
   return {
     panResponder,
-    gestureState: {
-      activeColumn,
-      blockedColumn,
-      swipeDirection,
-      cancelFlash,
-    },
     triggerRipple,
   };
 }
