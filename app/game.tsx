@@ -3,7 +3,7 @@ import { View, StyleSheet, useWindowDimensions, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useGameStore, useConfigStore } from '../src/store';
-import { ControlArea } from '../src/input';
+import { ControlArea, FieldInput } from '../src/input';
 import { GameFieldLayout, OperationHistory } from '../src/renderer';
 import { GameHeader } from '../src/components';
 import { FIELD_COLS, TOTAL_ROWS } from '../src/logic/types';
@@ -95,16 +95,18 @@ export default function GameScreen() {
     <View style={styles.gameAreaContainer}>
       <View style={[styles.controlWrapper, isGameOver && styles.grayedOut]} pointerEvents={isGameOver ? 'none' : 'auto'}>
         <ControlArea cellSize={cellSize} sideMargin={largeMargin} isRightHanded={marginSide === 'right'}>
-          <GameFieldLayout
-            field={field}
-            fallingPuyo={fallingPuyo}
-            cellSize={cellSize}
-            erasingPuyos={erasingPuyos}
-            onEffectComplete={clearErasingPuyos}
-            nextQueue={nextQueue}
-            chainCount={chainCount}
-            isGameOver={isGameOver}
-          />
+          <FieldInput cellSize={cellSize}>
+            <GameFieldLayout
+              field={field}
+              fallingPuyo={fallingPuyo}
+              cellSize={cellSize}
+              erasingPuyos={erasingPuyos}
+              onEffectComplete={clearErasingPuyos}
+              nextQueue={nextQueue}
+              chainCount={chainCount}
+              isGameOver={isGameOver}
+            />
+          </FieldInput>
         </ControlArea>
       </View>
     </View>
