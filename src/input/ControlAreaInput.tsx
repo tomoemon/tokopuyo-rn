@@ -1,5 +1,5 @@
-import React, { useCallback, useRef, useState } from 'react';
-import { View, StyleSheet, Animated } from 'react-native';
+import React, { useCallback, useRef } from 'react';
+import { View, StyleSheet } from 'react-native';
 import { useFieldGesture } from './useFieldGesture';
 import { useGestureStore } from './gestureStore';
 import { FIELD_COLS } from '../logic/types';
@@ -15,10 +15,6 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, sideMargin, 
   // 操作エリアのページ上の位置を記録
   const controlAreaLayoutRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const controlAreaViewRef = useRef<View>(null);
-
-  // リップルアニメーション用の状態
-  const rippleAnim = useRef(new Animated.Value(0)).current;
-  const [ripplePosition, setRipplePosition] = useState<{ x: number; y: number } | null>(null);
 
   // 操作エリアの幅（フィールドと同じ幅：6列分 + ボーダー幅）
   const BORDER_WIDTH = 3;
@@ -36,19 +32,6 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, sideMargin, 
   const blockedColumn = useGestureStore((state) => state.blockedColumn);
   const swipeDirection = useGestureStore((state) => state.swipeDirection);
   const cancelFlash = useGestureStore((state) => state.cancelFlash);
-
-  // タッチリップルアニメーション
-  const triggerRipple = useCallback((x: number, y: number) => {
-    setRipplePosition({ x, y });
-    rippleAnim.setValue(0);
-    Animated.timing(rippleAnim, {
-      toValue: 1,
-      duration: 300,
-      useNativeDriver: true,
-    }).start(() => {
-      setRipplePosition(null);
-    });
-  }, [rippleAnim]);
 
   return (
     <View style={[
@@ -113,31 +96,6 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, sideMargin, 
             <View style={styles.arrowDown} />
           </View>
         </View>
-
-        {/* タッチリップル効果 */}
-        {ripplePosition && (
-          <Animated.View
-            style={[
-              styles.ripple,
-              {
-                left: ripplePosition.x - 30,
-                top: ripplePosition.y - 30,
-                opacity: rippleAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0.5, 0],
-                }),
-                transform: [
-                  {
-                    scale: rippleAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.5, 2],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          />
-        )}
       </View>
     </View>
   );
@@ -259,13 +217,5 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: 'rgba(136, 136, 255, 0.5)',
-  },
-  // タッチリップル
-  ripple: {
-    position: 'absolute',
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(100, 150, 255, 0.5)',
   },
 });

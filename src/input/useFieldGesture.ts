@@ -20,7 +20,6 @@ type ControlState = 'idle' | 'touching' | 'swiped' | 'cancelPending' | 'blocked'
 
 export interface FieldGestureResult {
   panResponder: PanResponderInstance;
-  triggerRipple: (x: number, y: number) => void;
 }
 
 interface UseFieldGestureParams {
@@ -35,9 +34,8 @@ export function useFieldGesture({
   const dispatch = useGameStore((state) => state.dispatch);
 
   const controlStateRef = useRef<ControlState>('idle');
-  const startPosRef = useRef({ x: 0, y: 0 });
-  const currentSwipeRef = useRef<{ dx: number; dy: number }>({ dx: 0, dy: 0 });
   const initialColumnRef = useRef<number | null>(null);
+  const cancelFlashTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // スワイプ方向から回転状態を取得
   const getRotationFromSwipe = useCallback((dx: number, dy: number): Rotation | null => {
@@ -73,11 +71,6 @@ export function useFieldGesture({
     }
   }, []);
 
-  // タッチリップルアニメーション用のトリガー（外部で使用）
-  const triggerRipple = useCallback((_x: number, _y: number) => {
-    // リップルアニメーションは各コンポーネントで個別に実装
-  }, []);
-
   const handleTouchStart = useCallback(
     (evt: GestureResponderEvent, _gestureState: PanResponderGestureState) => {
       // 最新の状態をストアから直接取得（panResponderのクロージャ問題を回避）
@@ -90,8 +83,6 @@ export function useFieldGesture({
       if (currentPhase !== 'falling' || !currentFallingPuyo) return;
 
       const { pageX } = evt.nativeEvent;
-      startPosRef.current = { x: pageX, y: evt.nativeEvent.pageY };
-      currentSwipeRef.current = { dx: 0, dy: 0 };
 
       // タッチした列を計算して設定
       // pageXからエリアの位置を引いて相対位置を計算
@@ -142,7 +133,6 @@ export function useFieldGesture({
       if (controlStateRef.current === 'idle' || controlStateRef.current === 'blocked') return;
 
       const { dx, dy } = gestureState;
-      currentSwipeRef.current = { dx, dy };
 
       // スワイプ距離が閾値以上か確認
       const absDx = Math.abs(dx);
@@ -159,7 +149,13 @@ export function useFieldGesture({
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
           // 視覚的フィードバック（列を点滅）
           gestureStore.setCancelFlash(true);
-          setTimeout(() => useGestureStore.getState().setCancelFlash(false), 200);
+          if (cancelFlashTimeoutRef.current) {
+            clearTimeout(cancelFlashTimeoutRef.current);
+          }
+          cancelFlashTimeoutRef.current = setTimeout(() => {
+            useGestureStore.getState().setCancelFlash(false);
+            cancelFlashTimeoutRef.current = null;
+          }, 200);
         }
         return;
       }
@@ -183,6 +179,12 @@ export function useFieldGesture({
 
   const handleTouchEnd = useCallback(
     (_evt: GestureResponderEvent, _gestureState: PanResponderGestureState) => {
+      // タイマーをクリア
+      if (cancelFlashTimeoutRef.current) {
+        clearTimeout(cancelFlashTimeoutRef.current);
+        cancelFlashTimeoutRef.current = null;
+      }
+
       // 視覚的フィードバックをリセット
       const gestureStore = useGestureStore.getState();
       gestureStore.reset();
@@ -227,6 +229,5 @@ export function useFieldGesture({
 
   return {
     panResponder,
-    triggerRipple,
   };
 }
