@@ -10,6 +10,7 @@ import {
   GameSnapshot,
   RngState,
   Position,
+  COLORS,
 } from '../logic/types';
 import { cloneField } from '../logic/field';
 import {
@@ -92,7 +93,8 @@ function createSnapshot(
   id: number,
   rngState: RngState,
   droppedPositions: Position[],
-  nextQueue: [PuyoColor, PuyoColor][]  // advancePhase 前の nextQueue を渡す
+  nextQueue: [PuyoColor, PuyoColor][],  // advancePhase 前の nextQueue を渡す
+  selectedColors: PuyoColor[]
 ): GameSnapshot {
   return {
     id,
@@ -102,12 +104,15 @@ function createSnapshot(
     chainCount: state.chainCount,
     rngState: [...rngState] as RngState,
     droppedPositions,
+    selectedColors: [...selectedColors],
   };
 }
 
 // 初期状態を作成するヘルパー関数
 function createInitialState(): GameState & { history: GameSnapshot[]; nextSnapshotId: number } {
   rng = new PuyoRng(generateSeed());
+  // ゲームごとにランダムに4色を選択
+  const selectedColors = rng.selectRandomColors();
   // 最初の2手は最大3色制限（ぷよぷよ通の仕様）
   const [firstPair, secondPair] = rng.generateInitialPairs();
   const nextQueue: [PuyoColor, PuyoColor][] = [
@@ -115,7 +120,7 @@ function createInitialState(): GameState & { history: GameSnapshot[]; nextSnapsh
     secondPair,
     rng.nextPuyoPair(),
   ];
-  const gameState = createInitialGameState(nextQueue);
+  const gameState = createInitialGameState(nextQueue, selectedColors);
   return {
     ...gameState,
     history: [],
@@ -144,7 +149,7 @@ export const useGameStore = create<GameStore>()(
 
           // ゲーム開始前のスナップショットを保存（初期状態なので落下位置は空）
           const rngState = rng.getState();
-          const initialSnapshot = createSnapshot(state, state.nextSnapshotId, rngState, [], state.nextQueue);
+          const initialSnapshot = createSnapshot(state, state.nextSnapshotId, rngState, [], state.nextQueue, state.selectedColors);
 
           const newPair = rng.nextPuyoPair();
           const newState = startGame(state, newPair);
@@ -290,7 +295,7 @@ export const useGameStore = create<GameStore>()(
 
           // 連鎖なしの場合は即座にスナップショットを作成
           // lockedState.nextQueue は advancePhase 前の nextQueue
-          const snapshot = createSnapshot(nextState, state.nextSnapshotId, rngStateBeforeDrop, droppedPositions, lockedState.nextQueue);
+          const snapshot = createSnapshot(nextState, state.nextSnapshotId, rngStateBeforeDrop, droppedPositions, lockedState.nextQueue, state.selectedColors);
           const newHistory = [...state.history, snapshot];
 
           set({
@@ -344,6 +349,9 @@ export const useGameStore = create<GameStore>()(
 
     // 乱数生成器の状態を復元
     rng.setState(snapshot.rngState);
+    // 選択された色を復元（後方互換性のためデフォルト値を使用）
+    const restoredColors = snapshot.selectedColors || [...COLORS];
+    rng.setSelectedColors(restoredColors);
 
     // NEXTキューを復元（ディープコピー）
     const restoredNextQueue = snapshot.nextQueue.map(
@@ -387,6 +395,7 @@ export const useGameStore = create<GameStore>()(
       currentChainResult: null,
       history: trimmedHistory,
       nextSnapshotId: newNextSnapshotId,
+      selectedColors: restoredColors,
     });
 
     // ゲーム履歴を更新（trimmed された履歴を永続化）
@@ -421,6 +430,9 @@ export const useGameStore = create<GameStore>()(
 
     // 乱数生成器の状態を復元
     rng.setState(lastSnapshot.rngState);
+    // 選択された色を復元（後方互換性のためデフォルト値を使用）
+    const restoredColors = lastSnapshot.selectedColors || [...COLORS];
+    rng.setSelectedColors(restoredColors);
 
     // NEXTキューを復元（ディープコピー）
     const restoredNextQueue = lastSnapshot.nextQueue.map(
@@ -441,6 +453,7 @@ export const useGameStore = create<GameStore>()(
       field: cloneField(s.field),
       nextQueue: s.nextQueue.map(pair => [...pair] as [PuyoColor, PuyoColor]),
       rngState: [...s.rngState] as RngState,
+      selectedColors: s.selectedColors ? [...s.selectedColors] : undefined,
     }));
 
     // fallingPuyoを作成
@@ -467,6 +480,7 @@ export const useGameStore = create<GameStore>()(
       history: restoredHistory,
       nextSnapshotId: entry.nextSnapshotId,
       pendingSnapshot: null,
+      selectedColors: restoredColors,
     });
 
     // ゲーム履歴の現在のゲームIDを設定
@@ -500,6 +514,9 @@ export const useGameStore = create<GameStore>()(
 
     // 乱数生成器の状態を復元（同じシードで継続）
     rng.setState(lastSnapshot.rngState);
+    // 選択された色を復元（後方互換性のためデフォルト値を使用）
+    const restoredColors = lastSnapshot.selectedColors || [...COLORS];
+    rng.setSelectedColors(restoredColors);
 
     // NEXTキューを復元（ディープコピー）
     const restoredNextQueue = lastSnapshot.nextQueue.map(
@@ -520,6 +537,7 @@ export const useGameStore = create<GameStore>()(
       field: cloneField(s.field),
       nextQueue: s.nextQueue.map(pair => [...pair] as [PuyoColor, PuyoColor]),
       rngState: [...s.rngState] as RngState,
+      selectedColors: s.selectedColors ? [...s.selectedColors] : undefined,
     }));
 
     // fallingPuyoを作成
@@ -546,6 +564,7 @@ export const useGameStore = create<GameStore>()(
       history: restoredHistory,
       nextSnapshotId: entry.nextSnapshotId,
       pendingSnapshot: null,
+      selectedColors: restoredColors,
     });
 
     // 新しいゲームIDを生成して設定（新しいゲームとして記録）
@@ -586,8 +605,12 @@ export const useGameStore = create<GameStore>()(
     // 最後のスナップショットを取得
     const lastSnapshot = entry.operationHistory[entry.operationHistory.length - 1];
 
-    // 新しいシードで乱数生成器を初期化
-    rng = new PuyoRng(generateSeed());
+    // 選択された色を復元（後方互換性のためデフォルト値を使用）
+    // 同じフィールド状態を継続するため、色は元のゲームと同じにする
+    const restoredColors = lastSnapshot.selectedColors || [...COLORS];
+
+    // 新しいシードで乱数生成器を初期化（ただし色は元のゲームと同じ）
+    rng = new PuyoRng(generateSeed(), restoredColors);
 
     // 新しいぷよペアを生成（新しいシードから）
     const newPair1 = rng.nextPuyoPair();
@@ -607,6 +630,7 @@ export const useGameStore = create<GameStore>()(
           field: cloneField(s.field),
           nextQueue: newNextQueue.map(pair => [...pair] as [PuyoColor, PuyoColor]),
           rngState: rng.getState(),
+          selectedColors: [...restoredColors],
         };
       }
       return {
@@ -614,6 +638,7 @@ export const useGameStore = create<GameStore>()(
         field: cloneField(s.field),
         nextQueue: s.nextQueue.map(pair => [...pair] as [PuyoColor, PuyoColor]),
         rngState: [...s.rngState] as RngState,
+        selectedColors: s.selectedColors ? [...s.selectedColors] : undefined,
       };
     });
 
@@ -642,6 +667,7 @@ export const useGameStore = create<GameStore>()(
       history: restoredHistory,
       nextSnapshotId: entry.nextSnapshotId,
       pendingSnapshot: null,
+      selectedColors: restoredColors,
     });
 
     // 新しいゲームIDを生成して設定（新しいゲームとして記録）
@@ -704,7 +730,8 @@ export const useGameStore = create<GameStore>()(
           state.nextSnapshotId,
           state.pendingSnapshot.rngState,
           state.pendingSnapshot.droppedPositions,
-          state.pendingSnapshot.nextQueue
+          state.pendingSnapshot.nextQueue,
+          state.selectedColors
         );
         const newHistory = [...state.history, snapshot];
 
@@ -808,6 +835,7 @@ export const useGameStore = create<GameStore>()(
         phase: state.phase,
         history: state.history,
         nextSnapshotId: state.nextSnapshotId,
+        selectedColors: state.selectedColors,
       }),
       // 復元時の処理
       onRehydrateStorage: () => (state) => {
@@ -815,13 +843,16 @@ export const useGameStore = create<GameStore>()(
           // 最後のスナップショットから乱数状態を復元
           const lastSnapshot = state.history[state.history.length - 1];
           rng.setState(lastSnapshot.rngState);
+          // 選択された色を復元（後方互換性のためデフォルト値を使用）
+          const restoredColors = lastSnapshot.selectedColors || [...COLORS];
+          rng.setSelectedColors(restoredColors);
 
           // 進行中だったゲームがある場合、readyフェーズに戻す
           // （fallingPuyoは永続化されないため）
           if (state.phase === 'falling' || state.phase === 'dropping' ||
               state.phase === 'chaining' || state.phase === 'erasing') {
             // 次のゲーム開始時に正しく動作するようにreadyに
-            useGameStore.setState({ phase: 'ready', fallingPuyo: null });
+            useGameStore.setState({ phase: 'ready', fallingPuyo: null, selectedColors: restoredColors });
           }
         }
       },

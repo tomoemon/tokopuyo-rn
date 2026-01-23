@@ -27,6 +27,7 @@ const COLOR_MAP: Record<PuyoColor, string> = {
   blue: '#4444FF',
   green: '#44FF44',
   yellow: '#FFFF44',
+  purple: '#AA44FF',
 };
 
 // サムネイルのセルサイズ
