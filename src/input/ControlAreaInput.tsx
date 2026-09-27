@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useFieldGesture } from './useFieldGesture';
 import { useGestureStore } from './gestureStore';
@@ -13,19 +13,10 @@ interface ControlAreaProps {
 }
 
 export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, sideMargin, isRightHanded, children }) => {
-  // 操作エリアのページ上の位置を記録
-  const controlAreaLayoutRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const controlAreaViewRef = useRef<View>(null);
-
   // 操作エリアの幅（フィールドと同じ幅：6列分 + ボーダー幅）
   const controlAreaWidth = cellSize * FIELD_COLS + FIELD_BORDER_WIDTH * 2;
 
-  const getAreaLayout = useCallback(() => controlAreaLayoutRef.current, []);
-
-  const { panResponder } = useFieldGesture({
-    cellSize,
-    getAreaLayout,
-  });
+  const { panResponder, areaRef, onAreaLayout } = useFieldGesture({ cellSize });
 
   // ストアから状態を購読
   const activeColumn = useGestureStore((state) => state.activeColumn);
@@ -42,7 +33,7 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, sideMargin, 
     ]}>
       {children}
       <View
-        ref={controlAreaViewRef}
+        ref={areaRef}
         style={[
           styles.controlArea,
           {
@@ -50,16 +41,11 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, sideMargin, 
             height: cellSize * 3,
           },
         ]}
-        onLayout={() => {
-          // ビューのページ上の位置を取得
-          controlAreaViewRef.current?.measureInWindow((x, y) => {
-            controlAreaLayoutRef.current = { x, y };
-          });
-        }}
+        onLayout={onAreaLayout}
         {...panResponder.panHandlers}
       >
         {/* 6列の縦線（タッチイベントは親に伝播） */}
-        <View style={styles.columnsContainer} pointerEvents="none">
+        <View style={styles.columnsContainer}>
           {Array.from({ length: FIELD_COLS }).map((_, i) => (
             <View
               key={`control-col-${i}`}
@@ -79,7 +65,7 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, sideMargin, 
         </View>
 
         {/* 回転ガイド矢印（スワイプ方向と同じ方向をハイライト） */}
-        <View style={styles.swipeGuideContainer} pointerEvents="none">
+        <View style={styles.swipeGuideContainer}>
           <View style={[styles.swipeArrow, styles.swipeArrowUp, swipeDirection === 'up' && styles.swipeArrowActive]}>
             <View style={styles.arrowUp} />
           </View>
@@ -121,6 +107,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+    pointerEvents: 'none',
   },
   column: {
     height: '100%',
@@ -144,6 +131,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
+    pointerEvents: 'none',
   },
   swipeArrowRow: {
     flexDirection: 'row',

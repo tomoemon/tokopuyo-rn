@@ -1,6 +1,8 @@
-import { useCallback, useMemo, useRef } from 'react';
+import { RefObject, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
+  View,
   PanResponder,
+  useWindowDimensions,
   GestureResponderEvent,
   PanResponderGestureState,
   PanResponderInstance,
@@ -45,17 +47,30 @@ function getSwipeDirection(dx: number, dy: number): SwipeDirection | null {
 
 export interface FieldGestureResult {
   panResponder: PanResponderInstance;
+  // 入力エリアの View に渡す ref と onLayout（タッチ位置から列を計算するため、エリアのウィンドウ上の位置を記録する）
+  areaRef: RefObject<View | null>;
+  onAreaLayout: () => void;
 }
 
 interface UseFieldGestureParams {
   cellSize: number;
-  getAreaLayout: () => { x: number; y: number };
 }
 
-export function useFieldGesture({
-  cellSize,
-  getAreaLayout,
-}: UseFieldGestureParams): FieldGestureResult {
+export function useFieldGesture({ cellSize }: UseFieldGestureParams): FieldGestureResult {
+  const areaRef = useRef<View>(null);
+  const areaLayoutRef = useRef({ x: 0, y: 0 });
+
+  const onAreaLayout = useCallback(() => {
+    areaRef.current?.measureInWindow((x, y) => {
+      areaLayoutRef.current = { x, y };
+    });
+  }, []);
+
+  // ウィンドウのサイズが変わると、エリア自体の大きさが変わらなくても位置がずれる
+  // （Web でアプリ全体を中央寄せしているため）。onLayout は呼ばれないので測り直す
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  useEffect(onAreaLayout, [onAreaLayout, windowWidth, windowHeight]);
+
   const dispatch = useGameStore((state) => state.dispatch);
 
   const controlStateRef = useRef<ControlState>('idle');
@@ -76,7 +91,7 @@ export function useFieldGesture({
 
       // タッチした列を計算して設定
       // pageXからエリアの位置を引いて相対位置を計算
-      const areaLayout = getAreaLayout();
+      const areaLayout = areaLayoutRef.current;
       const relativeX = pageX - areaLayout.x - FIELD_BORDER_WIDTH;
       const column = Math.floor(relativeX / cellSize);
       const clampedColumn = Math.max(0, Math.min(FIELD_COLS - 1, column));
@@ -110,7 +125,7 @@ export function useFieldGesture({
       // 初期状態は上向き
       dispatch({ type: 'SET_ROTATION', rotation: 0 });
     },
-    [dispatch, cellSize, getAreaLayout]
+    [dispatch, cellSize]
   );
 
   const handleTouchMove = useCallback(
@@ -216,5 +231,7 @@ export function useFieldGesture({
 
   return {
     panResponder,
+    areaRef,
+    onAreaLayout,
   };
 }

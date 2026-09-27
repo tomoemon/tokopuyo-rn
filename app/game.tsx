@@ -1,11 +1,11 @@
-import React, { useCallback, useEffect, useRef } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { View, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useGameStore } from '../src/store';
 import { ControlArea, FieldInput } from '../src/input';
 import { GameFieldLayout, OperationHistory, useGameLayout, FIELD_BORDER_WIDTH } from '../src/renderer';
-import { GameHeader } from '../src/components';
+import { ConfirmDialog, GameHeader } from '../src/components';
 import { useConfig } from './_layout';
 
 export default function GameScreen() {
@@ -35,15 +35,11 @@ export default function GameScreen() {
     router.back();
   }, [dispatch, router]);
 
-  const handleBackWithConfirm = useCallback(() => {
-    Alert.alert(
-      'Return to title?',
-      undefined,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Return', style: 'destructive', onPress: handleBackDirect },
-      ]
-    );
+  const [backConfirmVisible, setBackConfirmVisible] = useState(false);
+
+  const handleBackConfirm = useCallback(() => {
+    setBackConfirmVisible(false);
+    handleBackDirect();
   }, [handleBackDirect]);
 
   // 連鎖消去時のhaptic feedback
@@ -67,7 +63,7 @@ export default function GameScreen() {
   // ゲームエリアを描画
   const renderGameArea = (marginSide: 'left' | 'right') => (
     <View style={styles.gameAreaContainer}>
-      <View style={[styles.controlWrapper, isGameOver && styles.grayedOut]} pointerEvents={isGameOver ? 'none' : 'auto'}>
+      <View style={[styles.controlWrapper, isGameOver && styles.grayedOut]}>
         <ControlArea cellSize={cellSize} sideMargin={largeMargin} isRightHanded={marginSide === 'right'}>
           <FieldInput cellSize={cellSize}>
             <GameFieldLayout
@@ -90,7 +86,7 @@ export default function GameScreen() {
     <View style={styles.container}>
       {/* ヘッダー */}
       <GameHeader
-        onBack={handleBackWithConfirm}
+        onBack={() => setBackConfirmVisible(true)}
         onConfig={openConfig}
         score={score}
         showBorder={false}
@@ -116,6 +112,14 @@ export default function GameScreen() {
         {/* 右利きモード：ゲームエリアが後 */}
         {isRightHanded && renderGameArea('right')}
       </View>
+
+      <ConfirmDialog
+        visible={backConfirmVisible}
+        title="Return to title?"
+        confirmText="Return"
+        onConfirm={handleBackConfirm}
+        onCancel={() => setBackConfirmVisible(false)}
+      />
     </View>
   );
 }
@@ -136,7 +140,9 @@ const styles = StyleSheet.create({
   controlWrapper: {
     flex: 1,
   },
+  // ゲームオーバー時：薄く表示して操作を受け付けない
   grayedOut: {
     opacity: 0.4,
+    pointerEvents: 'none',
   },
 });

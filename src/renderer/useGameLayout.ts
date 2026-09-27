@@ -1,7 +1,7 @@
 import { useWindowDimensions } from 'react-native';
 import { useConfigStore } from '../store';
 import { FIELD_COLS, TOTAL_ROWS } from '../logic/types';
-import { FIELD_BORDER_WIDTH } from './constants';
+import { FIELD_BORDER_WIDTH, MAX_APP_WIDTH } from './constants';
 
 // 履歴エリアの幅
 const HISTORY_WIDTH = 80;
@@ -14,7 +14,9 @@ const LARGE_MARGIN = 20;
  * ゲーム画面・再生画面共通のレイアウト（利き手と画面サイズからセルサイズなどを計算）
  */
 export function useGameLayout() {
-  const { width, height } = useWindowDimensions();
+  const { width: windowWidth, height } = useWindowDimensions();
+  // app/_layout でアプリ全体を MAX_APP_WIDTH に収めているので、それに合わせる
+  const width = Math.min(windowWidth, MAX_APP_WIDTH);
   const handedness = useConfigStore((state) => state.handedness);
 
   // 右利き：右マージン大きめ、左利き：左マージン大きめ
