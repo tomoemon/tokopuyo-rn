@@ -24,7 +24,7 @@ export default function GameScreen() {
   const restoreToSnapshot = useGameStore((state) => state.restoreToSnapshot);
   const [backConfirmVisible, setBackConfirmVisible] = useState(false);
 
-  const { isRightHanded, cellSize, largeMargin, historyWidth, historyCellSize, fieldHeight } = useGameLayout();
+  const { isRightHanded, cellSize, largeMargin, historyWidth, historyMargin, historyCellSize, fieldHeight } = useGameLayout();
 
   // 操作エリアの高さ（cellSize * 3 + marginTop + borderWidth * 2）
   const controlAreaHeight = cellSize * 3 + 10 + FIELD_BORDER_WIDTH * 2;
@@ -95,7 +95,7 @@ export default function GameScreen() {
         {/* 履歴エリア */}
         <View style={[
           { width: historyWidth, height: historyHeight },
-          isRightHanded ? { marginLeft: 8 } : { marginRight: 8 }
+          isRightHanded ? { marginLeft: historyMargin } : { marginRight: historyMargin }
         ]}>
           <OperationHistory
             history={history}

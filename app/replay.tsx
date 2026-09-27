@@ -68,7 +68,7 @@ function ReplayContent({ history }: { history: GameSnapshot[] }) {
   const router = useRouter();
   const { openConfig } = useConfig();
 
-  const { isRightHanded, cellSize, largeMargin, historyWidth, historyCellSize, fieldWidth, fieldHeight } = useGameLayout();
+  const { isRightHanded, cellSize, largeMargin, historyWidth, historyMargin, historyCellSize, fieldWidth, fieldHeight } = useGameLayout();
   const chainAnimationSpeed = useConfigStore((state) => state.chainAnimationSpeed);
   const erasingDelay = CHAIN_ANIMATION_DELAYS[chainAnimationSpeed];
 
@@ -374,7 +374,7 @@ function ReplayContent({ history }: { history: GameSnapshot[] }) {
         {/* 履歴エリア */}
         <View style={[
           { width: historyWidth, height: historyHeight },
-          isRightHanded ? { marginLeft: 8 } : { marginRight: 8 }
+          isRightHanded ? { marginLeft: historyMargin } : { marginRight: historyMargin }
         ]}>
           <OperationHistory
             history={history}

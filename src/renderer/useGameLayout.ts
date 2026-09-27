@@ -5,6 +5,8 @@ import { FIELD_BORDER_WIDTH, MAX_APP_WIDTH } from './constants';
 
 // 履歴エリアの幅
 const HISTORY_WIDTH = 80;
+// 履歴エリアとフィールドの間隔
+const HISTORY_MARGIN = 8;
 // 履歴サムネイルのセルサイズ
 const HISTORY_CELL_SIZE = 6;
 const SMALL_MARGIN = 4;
@@ -23,8 +25,8 @@ export function useGameLayout() {
   const isRightHanded = handedness === 'right';
   const leftMargin = isRightHanded ? SMALL_MARGIN : LARGE_MARGIN;
   const rightMargin = isRightHanded ? LARGE_MARGIN : SMALL_MARGIN;
-  // 履歴エリアを考慮してフィールドの最大幅を計算
-  const maxFieldWidth = width - leftMargin - rightMargin - HISTORY_WIDTH;
+  // 履歴エリアとの間隔、フィールドの枠線を考慮してマス目部分の最大幅を計算
+  const maxFieldWidth = width - leftMargin - rightMargin - HISTORY_WIDTH - HISTORY_MARGIN - FIELD_BORDER_WIDTH * 2;
   const maxFieldHeight = height * 0.6; // 操作エリア分の余裕を確保
   const cellSizeByWidth = Math.floor(maxFieldWidth / FIELD_COLS);
   const cellSizeByHeight = Math.floor(maxFieldHeight / TOTAL_ROWS);
@@ -35,6 +37,7 @@ export function useGameLayout() {
     cellSize,
     largeMargin: LARGE_MARGIN,
     historyWidth: HISTORY_WIDTH,
+    historyMargin: HISTORY_MARGIN,
     historyCellSize: HISTORY_CELL_SIZE,
     fieldWidth: cellSize * FIELD_COLS + FIELD_BORDER_WIDTH * 2,
     fieldHeight: cellSize * TOTAL_ROWS + FIELD_BORDER_WIDTH * 2,
