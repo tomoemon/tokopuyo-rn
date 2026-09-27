@@ -11,7 +11,7 @@ import {
   TouchableWithoutFeedback,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { useGameStore, useGameHistoryStore, GameHistoryEntry, compareByLastPlayedDesc } from '../src/store';
 import {
   FIELD_COLS,
@@ -19,7 +19,7 @@ import {
   HIDDEN_ROWS,
 } from '../src/logic/types';
 import { ConfirmDialog, DismissableModal, GameHeader, goBack } from '../src/components';
-import { PUYO_COLORS } from '../src/renderer/constants';
+import { APP_BACKGROUND_COLOR, PUYO_COLORS } from '../src/renderer/constants';
 
 // サムネイルのセルサイズ
 const CELL_SIZE = 8;
@@ -273,7 +273,7 @@ export default function GameHistoryScreen() {
   // お気に入り済みの ID（History タブの各アイテムで参照）
   const favoriteIds = useMemo(() => new Set(favorites.map(e => e.id)), [favorites]);
 
-  const handleBack = () => goBack(router, '/');
+  const handleBack = () => goBack('/');
 
   const handleDeleteConfirm = () => {
     if (deleteConfirmId) {
@@ -670,7 +670,7 @@ export default function GameHistoryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a1a',
+    backgroundColor: APP_BACKGROUND_COLOR,
   },
   tabContainer: {
     flexDirection: 'row',

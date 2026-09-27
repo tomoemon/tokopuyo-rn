@@ -4,7 +4,7 @@
 
 ### GameHeader
 画面上部のヘッダー。全画面で共通のレイアウトを提供する。
-- 左: Back ボタン（`backDisabled` で無効化）
+- 左: Back ボタン
 - 中央: `title` または `score`
 - 右: Config ボタン（`onConfig` を渡し、`showConfig` が false でない場合に表示）
 - `showBorder`: 下部ボーダーの表示
@@ -27,7 +27,7 @@ Props:
 - `onCancel`: Cancel ボタン・背景タップ・Android の戻るボタン
 
 ### goBack
-`goBack(router, fallback)`: 前の画面に戻る。戻る先がない場合（Web で画面を直接開いた・リロードした場合）は `fallback` へ移動する。各画面の Back ボタンで使う。
+`goBack(fallback)`: 前の画面に戻る。戻る先がない場合（Web で画面を直接開いた・リロードした場合）は `fallback` へ移動する。各画面の Back ボタンで使う。
 
 ### DismissableModal
 背景タップで閉じることができるモーダル。

@@ -1,5 +1,8 @@
 import { PuyoColor } from '../logic/types';
 
+// アプリの背景色
+export const APP_BACKGROUND_COLOR = '#0a0a1a';
+
 // ぷよの色
 export const PUYO_COLORS: Record<PuyoColor, string> = {
   red: '#FF4444',

@@ -3,7 +3,6 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
 interface GameHeaderProps {
   onBack: () => void;
-  backDisabled?: boolean;
   // 中央コンテンツ: title か score のどちらか
   title?: string;
   score?: number;
@@ -16,7 +15,6 @@ interface GameHeaderProps {
 
 export const GameHeader: React.FC<GameHeaderProps> = ({
   onBack,
-  backDisabled = false,
   title,
   score,
   showConfig = true,
@@ -25,12 +23,8 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
 }) => {
   return (
     <View style={[styles.header, showBorder && styles.headerBorder]}>
-      <TouchableOpacity
-        style={[styles.button, backDisabled && styles.buttonDisabled]}
-        onPress={onBack}
-        disabled={backDisabled}
-      >
-        <Text style={[styles.buttonText, backDisabled && styles.buttonTextDisabled]}>Back</Text>
+      <TouchableOpacity style={styles.button} onPress={onBack}>
+        <Text style={styles.buttonText}>Back</Text>
       </TouchableOpacity>
 
       {/* 中央コンテンツ */}
@@ -78,15 +72,9 @@ const styles = StyleSheet.create({
     minWidth: 70,
     alignItems: 'center',
   },
-  buttonDisabled: {
-    borderColor: '#444',
-  },
   buttonText: {
     color: '#888',
     fontSize: 16,
-  },
-  buttonTextDisabled: {
-    color: '#444',
   },
   title: {
     color: '#fff',

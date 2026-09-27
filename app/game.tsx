@@ -1,15 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useGameStore } from '../src/store';
 import { ControlArea, FieldInput } from '../src/input';
-import { GameFieldLayout, OperationHistory, useGameLayout, HISTORY_MARGIN } from '../src/renderer';
+import { APP_BACKGROUND_COLOR, GameFieldLayout, OperationHistory, useGameLayout, HISTORY_MARGIN } from '../src/renderer';
 import { ConfirmDialog, GameHeader, goBack } from '../src/components';
 import { useConfig } from './_layout';
 
 export default function GameScreen() {
-  const router = useRouter();
   const { openConfig } = useConfig();
   const field = useGameStore((state) => state.field);
   const fallingPuyo = useGameStore((state) => state.fallingPuyo);
@@ -35,8 +33,8 @@ export default function GameScreen() {
   const handleBackConfirm = useCallback(() => {
     setBackConfirmVisible(false);
     dispatch({ type: 'RESTART_GAME' });
-    goBack(router, '/');
-  }, [dispatch, router]);
+    goBack('/');
+  }, [dispatch]);
 
   // 連鎖消去時のhaptic feedback
   const prevErasingCountRef = useRef(0);
@@ -112,8 +110,8 @@ export default function GameScreen() {
 
       <ConfirmDialog
         visible={backConfirmVisible}
-        title="Return to title?"
-        confirmText="Return"
+        title="Leave this game?"
+        confirmText="Leave"
         onConfirm={handleBackConfirm}
         onCancel={() => setBackConfirmVisible(false)}
       />
@@ -124,7 +122,7 @@ export default function GameScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a1a',
+    backgroundColor: APP_BACKGROUND_COLOR,
     paddingBottom: 24,
   },
   // 履歴とゲームエリアを中央に寄せて並べる（余った幅は両端に回す）

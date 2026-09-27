@@ -99,13 +99,12 @@ npx tsc --noEmit # 型チェック
 - `zustand`: 状態管理
 - `@react-native-async-storage/async-storage`: データ永続化
 - `expo-haptics`: 触覚フィードバック
-- `react-native-gesture-handler`: ジェスチャー処理
 - `xorshift`: 疑似乱数生成
 
-依存パッケージのバージョン固定に関する注意事項は `DEPENDENCY_NOTES.md` を参照。
+パッケージは `npx expo install` で入れること。理由は `DEPENDENCY_NOTES.md` を参照。
 
 ## コーディング規約
 
 ### アイコン
-- アイコンを使用する際は `@expo/vector-icons` の **Ionicons** を使用すること
+- アイコンを使用する際は `@react-native-vector-icons/ionicons` の **Ionicons** を使用すること（`@expo/vector-icons` は SDK 56 で非推奨）
 - Unicode 文字やテキストベースのアイコンは使用しない（端末によって表示が異なるため）
