@@ -217,7 +217,7 @@ src/
 │   │                         # GameFieldLayout, OperationHistory, HistoryThumbnail
 │   ├── constants.ts          # ぷよの色、フィールドの枠線の太さ
 │   └── useGameLayout.ts      # ゲーム画面・再生画面共通のレイアウト計算
-├── components/               # 共通 UI（GameHeader, ConfigScreen, DismissableModal）
+├── components/               # 共通 UI（GameHeader, ConfigScreen, ConfirmDialog, DismissableModal）
 └── types/                    # 外部ライブラリの型定義（xorshift）
 ```
 

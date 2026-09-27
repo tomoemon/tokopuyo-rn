@@ -18,7 +18,7 @@ import {
   VISIBLE_ROWS,
   HIDDEN_ROWS,
 } from '../src/logic/types';
-import { DismissableModal, GameHeader } from '../src/components';
+import { ConfirmDialog, DismissableModal, GameHeader, goBack } from '../src/components';
 import { PUYO_COLORS } from '../src/renderer/constants';
 
 // サムネイルのセルサイズ
@@ -273,9 +273,7 @@ export default function GameHistoryScreen() {
   // お気に入り済みの ID（History タブの各アイテムで参照）
   const favoriteIds = useMemo(() => new Set(favorites.map(e => e.id)), [favorites]);
 
-  const handleBack = () => {
-    router.back();
-  };
+  const handleBack = () => goBack(router, '/');
 
   const handleDeleteConfirm = () => {
     if (deleteConfirmId) {
@@ -658,29 +656,13 @@ export default function GameHistoryScreen() {
       </Modal>
 
       {/* 削除確認モーダル */}
-      <DismissableModal
+      <ConfirmDialog
         visible={deleteConfirmId !== null}
-        onDismiss={() => setDeleteConfirmId(null)}
-        animationType="fade"
-      >
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Delete this entry?</Text>
-          <View style={styles.modalButtons}>
-            <TouchableOpacity
-              style={styles.modalCancelButton}
-              onPress={() => setDeleteConfirmId(null)}
-            >
-              <Text style={styles.modalCancelText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.modalDeleteButton}
-              onPress={handleDeleteConfirm}
-            >
-              <Text style={styles.modalDeleteText}>Delete</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </DismissableModal>
+        title="Delete this entry?"
+        confirmText="Delete"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteConfirmId(null)}
+      />
     </View>
   );
 }
@@ -1069,19 +1051,6 @@ const styles = StyleSheet.create({
   modalCancelText: {
     color: '#888',
     fontSize: 16,
-  },
-  modalDeleteButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: '#ff4444',
-    marginLeft: 8,
-    alignItems: 'center',
-  },
-  modalDeleteText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
   modalResumeButton: {
     flex: 1,

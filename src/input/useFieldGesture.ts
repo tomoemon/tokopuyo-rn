@@ -49,13 +49,9 @@ export interface FieldGestureResult {
 
 interface UseFieldGestureParams {
   cellSize: number;
-  getAreaLayout: () => { x: number; y: number };
 }
 
-export function useFieldGesture({
-  cellSize,
-  getAreaLayout,
-}: UseFieldGestureParams): FieldGestureResult {
+export function useFieldGesture({ cellSize }: UseFieldGestureParams): FieldGestureResult {
   const dispatch = useGameStore((state) => state.dispatch);
 
   const controlStateRef = useRef<ControlState>('idle');
@@ -72,12 +68,10 @@ export function useFieldGesture({
 
       if (currentPhase !== 'falling' || !currentFallingPuyo) return;
 
-      const { pageX } = evt.nativeEvent;
-
       // タッチした列を計算して設定
-      // pageXからエリアの位置を引いて相対位置を計算
-      const areaLayout = getAreaLayout();
-      const relativeX = pageX - areaLayout.x - FIELD_BORDER_WIDTH;
+      // locationX はエリア（枠線の外側）からの相対位置。エリアに pointerEvents: 'box-only' を
+      // 指定して子要素がタッチの対象にならないようにしているので、常にエリア基準になる
+      const relativeX = evt.nativeEvent.locationX - FIELD_BORDER_WIDTH;
       const column = Math.floor(relativeX / cellSize);
       const clampedColumn = Math.max(0, Math.min(FIELD_COLS - 1, column));
 
@@ -110,7 +104,7 @@ export function useFieldGesture({
       // 初期状態は上向き
       dispatch({ type: 'SET_ROTATION', rotation: 0 });
     },
-    [dispatch, cellSize, getAreaLayout]
+    [dispatch, cellSize]
   );
 
   const handleTouchMove = useCallback(

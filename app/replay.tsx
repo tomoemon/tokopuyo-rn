@@ -4,8 +4,8 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useConfigStore, useGameHistoryStore, CHAIN_ANIMATION_DELAYS } from '../src/store';
-import { GameFieldLayout, OperationHistory, useGameLayout } from '../src/renderer';
-import { GameHeader } from '../src/components';
+import { GameFieldLayout, OperationHistory, useGameLayout, HISTORY_MARGIN } from '../src/renderer';
+import { GameHeader, goBack } from '../src/components';
 import { ErasingPuyo, Field as FieldType, PuyoColor, Position, GameSnapshot } from '../src/logic/types';
 import { detectErasingPuyos } from '../src/logic/chain';
 import { applyGravity, removePuyos, cloneField, setPuyo, hasFloatingPuyos } from '../src/logic/field';
@@ -52,7 +52,7 @@ export default function GameReplayScreen() {
   if (!entry || entry.operationHistory.length === 0) {
     return (
       <View style={styles.container}>
-        <GameHeader onBack={() => router.back()} title="Replay" showConfig={false} />
+        <GameHeader onBack={() => goBack(router, '/history')} title="Replay" showConfig={false} />
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>Entry not found</Text>
         </View>
@@ -68,7 +68,10 @@ function ReplayContent({ history }: { history: GameSnapshot[] }) {
   const router = useRouter();
   const { openConfig } = useConfig();
 
-  const { isRightHanded, cellSize, largeMargin, historyWidth, historyCellSize, fieldWidth, fieldHeight } = useGameLayout();
+  const {
+    onAreaLayout, isLayoutReady, isRightHanded, cellSize, largeMargin,
+    historyWidth, historyCellSize, fieldWidth, fieldHeight, gameAreaWidth,
+  } = useGameLayout();
   const chainAnimationSpeed = useConfigStore((state) => state.chainAnimationSpeed);
   const erasingDelay = CHAIN_ANIMATION_DELAYS[chainAnimationSpeed];
 
@@ -284,9 +287,7 @@ function ReplayContent({ history }: { history: GameSnapshot[] }) {
     }
   }, [history, isAnimating]);
 
-  const handleBack = () => {
-    router.back();
-  };
+  const handleBack = () => goBack(router, '/history');
 
   // ボタンの無効状態
   const isAtStart = currentIndex === 0 && replayPhase === 'idle';
@@ -329,7 +330,7 @@ function ReplayContent({ history }: { history: GameSnapshot[] }) {
 
   // ゲームエリア（フィールド + コントロール）
   const renderGameArea = (marginSide: 'left' | 'right') => (
-    <View style={styles.gameAreaContainer}>
+    <View style={{ width: gameAreaWidth }}>
       {/* フィールド */}
       <View style={[
         marginSide === 'left'
@@ -369,25 +370,26 @@ function ReplayContent({ history }: { history: GameSnapshot[] }) {
       />
 
       {/* メインエリア（履歴 + ゲームフィールド） */}
-      <View style={styles.mainArea}>
-        {/* 左利きモード：ゲームエリアが先 */}
-        {!isRightHanded && renderGameArea('left')}
+      <View style={styles.mainArea} onLayout={onAreaLayout}>
+        {isLayoutReady && (
+          <>
+            {/* 左利きモード：ゲームエリアが先 */}
+            {!isRightHanded && renderGameArea('left')}
 
-        {/* 履歴エリア */}
-        <View style={[
-          { width: historyWidth, height: historyHeight },
-          isRightHanded ? { marginLeft: 8 } : { marginRight: 8 }
-        ]}>
-          <OperationHistory
-            history={history}
-            cellSize={historyCellSize}
-            onRestoreToSnapshot={handleHistoryTap}
-            currentSnapshotId={currentSnapshot.id}
-          />
-        </View>
+            {/* 履歴エリア */}
+            <View style={{ width: historyWidth, height: historyHeight }}>
+              <OperationHistory
+                history={history}
+                cellSize={historyCellSize}
+                onRestoreToSnapshot={handleHistoryTap}
+                currentSnapshotId={currentSnapshot.id}
+              />
+            </View>
 
-        {/* 右利きモード：ゲームエリアが後 */}
-        {isRightHanded && renderGameArea('right')}
+            {/* 右利きモード：ゲームエリアが後 */}
+            {isRightHanded && renderGameArea('right')}
+          </>
+        )}
       </View>
     </View>
   );
@@ -408,12 +410,12 @@ const styles = StyleSheet.create({
     color: '#888',
     fontSize: 18,
   },
+  // 履歴とゲームエリアを中央に寄せて並べる（余った幅は両端に回す）
   mainArea: {
     flex: 1,
     flexDirection: 'row',
-  },
-  gameAreaContainer: {
-    flex: 1,
+    justifyContent: 'center',
+    columnGap: HISTORY_MARGIN,
   },
   controlsWrapper: {
     marginTop: 12,

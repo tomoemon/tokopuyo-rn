@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useFieldGesture } from './useFieldGesture';
 import { useGestureStore } from './gestureStore';
@@ -12,15 +12,7 @@ interface FieldInputProps {
 }
 
 export const FieldInput: React.FC<FieldInputProps> = ({ cellSize, children }) => {
-  const fieldViewRef = useRef<View>(null);
-  const fieldLayoutRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-
-  const getAreaLayout = useCallback(() => fieldLayoutRef.current, []);
-
-  const { panResponder } = useFieldGesture({
-    cellSize,
-    getAreaLayout,
-  });
+  const { panResponder } = useFieldGesture({ cellSize });
 
   // ストアから状態を購読
   const activeColumn = useGestureStore((state) => state.activeColumn);
@@ -33,19 +25,13 @@ export const FieldInput: React.FC<FieldInputProps> = ({ cellSize, children }) =>
 
   return (
     <View
-      ref={fieldViewRef}
       style={[styles.container, { width: fieldWidth, height: fieldHeight }]}
-      onLayout={() => {
-        fieldViewRef.current?.measureInWindow((x, y) => {
-          fieldLayoutRef.current = { x, y };
-        });
-      }}
       {...panResponder.panHandlers}
     >
       {children}
 
       {/* 列ハイライトオーバーレイ */}
-      <View style={styles.overlayContainer} pointerEvents="none">
+      <View style={styles.overlayContainer}>
         {Array.from({ length: FIELD_COLS }).map((_, i) => (
           <View
             key={`field-col-${i}`}
@@ -61,7 +47,7 @@ export const FieldInput: React.FC<FieldInputProps> = ({ cellSize, children }) =>
 
       {/* スワイプ方向インジケーター */}
       {swipeDirection && (
-        <View style={styles.swipeIndicatorContainer} pointerEvents="none">
+        <View style={styles.swipeIndicatorContainer}>
           <View style={styles.swipeIndicator}>
             <View style={[
               styles.arrow,
@@ -80,6 +66,8 @@ export const FieldInput: React.FC<FieldInputProps> = ({ cellSize, children }) =>
 const styles = StyleSheet.create({
   container: {
     position: 'relative',
+    // 子要素をタッチの対象にしない（タッチ位置 locationX を常にこのエリア基準にするため）
+    pointerEvents: 'box-only',
   },
   overlayContainer: {
     position: 'absolute',

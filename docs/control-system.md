@@ -139,7 +139,7 @@
 |---------|------|
 | `src/input/FieldInput.tsx` | フィールド入力ラッパー |
 | `src/input/ControlAreaInput.tsx` | 操作エリアコンポーネント |
-| `src/input/useFieldGesture.ts` | ジェスチャー処理フック |
+| `src/input/useFieldGesture.ts` | ジェスチャー処理フック。列はタッチ位置 `locationX`（入力エリア基準）から計算する。入力エリアは `pointerEvents: 'box-only'` で子要素をタッチの対象にしない |
 | `src/input/gestureStore.ts` | ハイライト状態の共有ストア |
 | `src/renderer/constants.ts` | フィールドの枠線の太さ（タッチ位置から列を計算するのに使用） |
 | `src/store/gameStore.ts` | アクションハンドラ |

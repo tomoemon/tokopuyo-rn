@@ -37,8 +37,6 @@ cd tokopuyo-rn
 npm install
 ```
 
-`npm install` が react-dom の peer dependency の衝突（ERESOLVE）で失敗する場合は `npm install --legacy-peer-deps` を使ってください。
-
 ## 実行方法
 
 ```bash
@@ -64,6 +62,23 @@ npm test
 # 型チェック
 npx tsc --noEmit
 ```
+
+## Web ブラウザで動作確認する方法
+
+日常的な動作確認は Web ブラウザだけで行えます。
+
+```bash
+npm run web
+```
+
+- マウスで、タップ（クリック）・スワイプ（ドラッグ）・離す（ハードドロップ）の操作ができます
+- データは localStorage に保存され、リロード後もプレイ中のゲームや履歴が残ります
+- PC ブラウザでは、アプリ全体をスマホ程度の幅で中央に表示します
+
+Web では次のことを確認できないので、リリース前には実機で確認してください。
+
+- Haptics（触覚フィードバック）
+- 実機でのタッチの操作感
 
 ## Expo Go で実機確認する方法
 

@@ -86,6 +86,7 @@ Next ボタンで進む際、連鎖が発生する場合は自動的にアニメ
 npm start        # Expo開発サーバー起動
 npm run android  # Androidで実行
 npm run ios      # iOSで実行
+npm run web      # Webブラウザで実行（日常的な動作確認はこれで行う）
 npm test         # ロジックのテスト（vitest）
 npx tsc --noEmit # 型チェック
 ```
@@ -94,6 +95,7 @@ npx tsc --noEmit # 型チェック
 
 - `expo`: Expoフレームワーク
 - `react-native`: React Native
+- `react-native-web`: Web 対応（`react-dom`、`@expo/metro-runtime` とセット）
 - `zustand`: 状態管理
 - `@react-native-async-storage/async-storage`: データ永続化
 - `expo-haptics`: 触覚フィードバック

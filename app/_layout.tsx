@@ -1,7 +1,9 @@
 import { Stack } from 'expo-router';
+import { View, StyleSheet, useWindowDimensions } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { ConfigScreen } from '../src/components';
+import { MAX_APP_WIDTH_RATIO, MIN_MAX_APP_WIDTH } from '../src/renderer';
 
 // Config モーダルのコンテキスト
 import { createContext, useContext } from 'react';
@@ -20,6 +22,7 @@ export const useConfig = () => useContext(ConfigContext);
 
 export default function RootLayout() {
   const [configVisible, setConfigVisible] = useState(false);
+  const { height: windowHeight } = useWindowDimensions();
 
   const openConfig = useCallback(() => {
     setConfigVisible(true);
@@ -29,22 +32,44 @@ export default function RootLayout() {
     setConfigVisible(false);
   }, []);
 
+  // ウィンドウサイズの変更でこのコンポーネントが再描画されても、useConfig() を使う画面まで再描画しないようにする
+  const configContextValue = useMemo(() => ({ openConfig, closeConfig }), [openConfig, closeConfig]);
+
   return (
-    <ConfigContext.Provider value={{ openConfig, closeConfig }}>
+    <ConfigContext.Provider value={configContextValue}>
       <StatusBar style="light" />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: '#0a0a1a' },
-          animation: 'slide_from_right',
-        }}
-      >
-        <Stack.Screen name="index" />
-        <Stack.Screen name="game" />
-        <Stack.Screen name="history" />
-        <Stack.Screen name="replay" />
-      </Stack>
+      <View style={styles.root}>
+        <View style={[styles.app, { maxWidth: Math.max(MIN_MAX_APP_WIDTH, windowHeight * MAX_APP_WIDTH_RATIO) }]}>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: '#0a0a1a' },
+              animation: 'slide_from_right',
+            }}
+          >
+            <Stack.Screen name="index" />
+            <Stack.Screen name="game" />
+            <Stack.Screen name="history" />
+            <Stack.Screen name="replay" />
+          </Stack>
+        </View>
+      </View>
       <ConfigScreen visible={configVisible} onClose={closeConfig} />
     </ConfigContext.Provider>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: '#0a0a1a',
+    alignItems: 'center',
+    // Web でマウスのドラッグ操作によりテキスト選択が起きないようにする（入力欄は影響を受けない）
+    userSelect: 'none',
+  },
+  // 横に広い画面（PC ブラウザや iPad など）では、画面の高さ × MAX_APP_WIDTH_RATIO の幅（MIN_MAX_APP_WIDTH 以上）で中央にまとめる
+  app: {
+    flex: 1,
+    width: '100%',
+  },
+});
