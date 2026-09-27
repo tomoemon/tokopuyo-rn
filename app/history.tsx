@@ -12,23 +12,14 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useGameStore, useGameHistoryStore, GameHistoryEntry } from '../src/store';
+import { useGameStore, useGameHistoryStore, GameHistoryEntry, compareByLastPlayedDesc } from '../src/store';
 import {
   FIELD_COLS,
   VISIBLE_ROWS,
   HIDDEN_ROWS,
-  PuyoColor,
 } from '../src/logic/types';
 import { DismissableModal, GameHeader } from '../src/components';
-
-// 色の定義
-const COLOR_MAP: Record<PuyoColor, string> = {
-  red: '#FF4444',
-  blue: '#4444FF',
-  green: '#44FF44',
-  yellow: '#FFFF44',
-  purple: '#AA44FF',
-};
+import { PUYO_COLORS } from '../src/renderer/constants';
 
 // サムネイルのセルサイズ
 const CELL_SIZE = 8;
@@ -86,7 +77,7 @@ const FieldThumbnail: React.FC<{ entry: GameHistoryEntry }> = ({ entry }) => {
                     {
                       width: CELL_SIZE - 1,
                       height: CELL_SIZE - 1,
-                      backgroundColor: COLOR_MAP[color],
+                      backgroundColor: PUYO_COLORS[color],
                     },
                   ]}
                 />
@@ -98,6 +89,20 @@ const FieldThumbnail: React.FC<{ entry: GameHistoryEntry }> = ({ entry }) => {
     </View>
   );
 };
+
+// 日時・スコア・ツモ数・連鎖数の表示（History / Favorite 共通）
+const EntryStats: React.FC<{ entry: GameHistoryEntry }> = ({ entry }) => (
+  <>
+    <Text style={styles.dateText}>{formatDate(entry.lastPlayedAt)}</Text>
+    <Text style={styles.scoreText}>Score: {entry.score}</Text>
+    <View style={styles.statsRow}>
+      <Text style={styles.dropCountText}>Drops: {entry.dropCount}</Text>
+      {entry.maxChainCount > 0 && (
+        <Text style={styles.chainText}>Chain: {entry.maxChainCount}</Text>
+      )}
+    </View>
+  </>
+);
 
 // ゲーム履歴アイテムコンポーネント（History用）
 const HistoryItem: React.FC<{
@@ -111,14 +116,7 @@ const HistoryItem: React.FC<{
     <TouchableOpacity style={styles.itemContainer} onPress={onPress} activeOpacity={0.7}>
       <FieldThumbnail entry={entry} />
       <View style={styles.itemInfo}>
-        <Text style={styles.dateText}>{formatDate(entry.lastPlayedAt)}</Text>
-        <Text style={styles.scoreText}>Score: {entry.score}</Text>
-        <View style={styles.statsRow}>
-          <Text style={styles.dropCountText}>Drops: {entry.dropCount}</Text>
-          {entry.maxChainCount > 0 && (
-            <Text style={styles.chainText}>Chain: {entry.maxChainCount}</Text>
-          )}
-        </View>
+        <EntryStats entry={entry} />
       </View>
       {isInFavorites ? (
         <View style={styles.iconButton}>
@@ -155,19 +153,12 @@ const FavoriteItem: React.FC<{
   onMenuPress: () => void;
   onEdit: () => void;
 }> = ({ entry, onPress, onMenuPress, onEdit }) => {
-  const tags = entry.tags || [];
+  const { tags } = entry;
   return (
     <TouchableOpacity style={styles.favoriteItemContainer} onPress={onPress} activeOpacity={0.7}>
       <FieldThumbnail entry={entry} />
       <View style={styles.itemInfo}>
-        <Text style={styles.dateText}>{formatDate(entry.lastPlayedAt)}</Text>
-        <Text style={styles.scoreText}>Score: {entry.score}</Text>
-        <View style={styles.statsRow}>
-          <Text style={styles.dropCountText}>Drops: {entry.dropCount}</Text>
-          {entry.maxChainCount > 0 && (
-            <Text style={styles.chainText}>Chain: {entry.maxChainCount}</Text>
-          )}
-        </View>
+        <EntryStats entry={entry} />
         {entry.note && (
           <Text style={styles.noteText} numberOfLines={1}>
             {entry.note}
@@ -217,10 +208,8 @@ export default function GameHistoryScreen() {
   const deleteEntry = useGameHistoryStore((state) => state.deleteEntry);
   const deleteFavorite = useGameHistoryStore((state) => state.deleteFavorite);
   const addToFavorites = useGameHistoryStore((state) => state.addToFavorites);
-  const isInFavorites = useGameHistoryStore((state) => state.isInFavorites);
   const updateFavoriteDetails = useGameHistoryStore((state) => state.updateFavoriteDetails);
-  const getEntry = useGameHistoryStore((state) => state.getEntry);
-  const getFavoriteEntry = useGameHistoryStore((state) => state.getFavoriteEntry);
+  const findEntry = useGameHistoryStore((state) => state.findEntry);
 
   const [activeTab, setActiveTab] = useState<TabType>('history');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -247,7 +236,7 @@ export default function GameHistoryScreen() {
   const tagsByFrequency = useMemo(() => {
     const tagCount: Record<string, number> = {};
     favorites.forEach(entry => {
-      (entry.tags || []).forEach(tag => {
+      entry.tags.forEach(tag => {
         tagCount[tag] = (tagCount[tag] || 0) + 1;
       });
     });
@@ -274,15 +263,15 @@ export default function GameHistoryScreen() {
       return currentList;
     }
     return currentList.filter(entry => {
-      const entryTags = entry.tags || [];
-      return filterTags.every(filterTag => entryTags.includes(filterTag));
+      return filterTags.every(filterTag => entry.tags.includes(filterTag));
     });
   }, [activeTab, currentList, filterTags]);
 
   // 新しい順にソート
-  const sortedList = [...filteredList].sort(
-    (a, b) => new Date(b.lastPlayedAt).getTime() - new Date(a.lastPlayedAt).getTime()
-  );
+  const sortedList = useMemo(() => [...filteredList].sort(compareByLastPlayedDesc), [filteredList]);
+
+  // お気に入り済みの ID（History タブの各アイテムで参照）
+  const favoriteIds = useMemo(() => new Set(favorites.map(e => e.id)), [favorites]);
 
   const handleBack = () => {
     router.back();
@@ -314,21 +303,17 @@ export default function GameHistoryScreen() {
     setResumeModalVisible(false);
   };
 
-  const handleResumeConfirm = () => {
-    if (resumeEntryCache) {
-      const success = resumeFromHistory(resumeEntryCache.id, resumeEntryCache.fromFavorites);
-      if (success) {
-        setResumeModalVisible(false);
-        router.push('/game');
-      }
+  // 選択中のエントリからゲームを開始し、成功したらゲーム画面へ
+  const startGameFromEntry = (start: (gameHistoryId: string, fromFavorites: boolean) => boolean) => {
+    if (resumeEntryCache && start(resumeEntryCache.id, resumeEntryCache.fromFavorites)) {
+      setResumeModalVisible(false);
+      router.push('/game');
     }
   };
 
   const handleReplayConfirm = () => {
     if (resumeEntryCache) {
-      const entry = resumeEntryCache.fromFavorites
-        ? getFavoriteEntry(resumeEntryCache.id)
-        : getEntry(resumeEntryCache.id);
+      const entry = findEntry(resumeEntryCache.id, resumeEntryCache.fromFavorites);
       if (entry && entry.operationHistory.length > 0) {
         setResumeModalVisible(false);
         router.push({
@@ -339,43 +324,25 @@ export default function GameHistoryScreen() {
     }
   };
 
-  const handleForkConfirm = () => {
-    if (resumeEntryCache) {
-      const success = forkFromHistory(resumeEntryCache.id, resumeEntryCache.fromFavorites);
-      if (success) {
-        setResumeModalVisible(false);
-        router.push('/game');
-      }
-    }
-  };
-
-  const handleForkNewSeedConfirm = () => {
-    if (resumeEntryCache) {
-      const success = forkWithNewSeedFromHistory(resumeEntryCache.id, resumeEntryCache.fromFavorites);
-      if (success) {
-        setResumeModalVisible(false);
-        router.push('/game');
-      }
-    }
-  };
-
   const handleOpenEditModal = (entryId: string) => {
     const entry = favorites.find(e => e.id === entryId);
     if (entry) {
       setEditId(entry.id);
-      setEditNote(entry.note || '');
-      setEditTags(entry.tags || []);
+      setEditNote(entry.note);
+      setEditTags(entry.tags);
       setNewTagText('');
     }
+  };
+
+  // 編集内容は開くときに初期化するので、閉じるときは ID をクリアするだけ
+  const handleCloseEdit = () => {
+    setEditId(null);
   };
 
   const handleSaveEdit = () => {
     if (editId) {
       updateFavoriteDetails(editId, editNote, editTags);
-      setEditId(null);
-      setEditNote('');
-      setEditTags([]);
-      setNewTagText('');
+      handleCloseEdit();
     }
   };
 
@@ -536,7 +503,7 @@ export default function GameHistoryScreen() {
                 <HistoryItem
                   key={entry.id}
                   entry={entry}
-                  isInFavorites={isInFavorites(entry.id)}
+                  isInFavorites={favoriteIds.has(entry.id)}
                   onPress={() => handleOpenResumeModal(entry, false)}
                   onAddToFavorite={() => addToFavorites(entry.id)}
                   onMenuPress={() => {
@@ -578,14 +545,14 @@ export default function GameHistoryScreen() {
           <View style={styles.actionButtonsGrid}>
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={handleResumeConfirm}
+              onPress={() => startGameFromEntry(resumeFromHistory)}
             >
               <Text style={styles.actionButtonText}>Resume</Text>
               <Text style={styles.actionButtonSubtext}>Continue playing</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={handleForkConfirm}
+              onPress={() => startGameFromEntry(forkFromHistory)}
             >
               <Text style={styles.actionButtonText}>Fork</Text>
               <Text style={styles.actionButtonSubtext}>New game from here</Text>
@@ -599,7 +566,7 @@ export default function GameHistoryScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={handleForkNewSeedConfirm}
+              onPress={() => startGameFromEntry(forkWithNewSeedFromHistory)}
             >
               <Text style={styles.actionButtonText}>Shuffle</Text>
               <Text style={styles.actionButtonSubtext}>New game, new pieces from here</Text>
@@ -619,7 +586,7 @@ export default function GameHistoryScreen() {
         visible={editId !== null}
         transparent
         animationType="fade"
-        onRequestClose={() => setEditId(null)}
+        onRequestClose={handleCloseEdit}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={styles.modalOverlay}>
@@ -674,12 +641,7 @@ export default function GameHistoryScreen() {
               <View style={styles.modalButtons}>
                 <TouchableOpacity
                   style={styles.modalCancelButton}
-                  onPress={() => {
-                    setEditId(null);
-                    setEditNote('');
-                    setEditTags([]);
-                    setNewTagText('');
-                  }}
+                  onPress={handleCloseEdit}
                 >
                   <Text style={styles.modalCancelText}>Cancel</Text>
                 </TouchableOpacity>

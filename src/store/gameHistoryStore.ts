@@ -39,24 +39,24 @@ interface GameHistoryStore {
     nextSnapshotId: number
   ) => void;
   deleteEntry: (id: string) => void;
-  clearAllHistory: () => void;
-  getEntry: (id: string) => GameHistoryEntry | undefined;
+  // History / Favorite のどちらかからエントリを取得
+  findEntry: (id: string, fromFavorites: boolean) => GameHistoryEntry | undefined;
   setCurrentGameId: (id: string | null) => void;
-  updateNote: (id: string, note: string, isFavoriteList: boolean) => void;
-  updateTags: (id: string, tags: string[], isFavoriteList: boolean) => void;
   updateFavoriteDetails: (id: string, note: string, tags: string[]) => void;
 
   // お気に入り関連
   addToFavorites: (id: string) => void;
-  removeFromFavorites: (id: string) => void;
   deleteFavorite: (id: string) => void;
-  isInFavorites: (id: string) => boolean;
-  getFavoriteEntry: (id: string) => GameHistoryEntry | undefined;
 }
 
 // ユニークIDを生成
 function generateGameId(): string {
   return `game_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+}
+
+// 最終プレイ日時の新しい順に並べる比較関数（lastPlayedAt は ISO 8601 なので文字列比較で時刻順になる）
+export function compareByLastPlayedDesc(a: GameHistoryEntry, b: GameHistoryEntry): number {
+  return a.lastPlayedAt < b.lastPlayedAt ? 1 : a.lastPlayedAt > b.lastPlayedAt ? -1 : 0;
 }
 
 // エントリをディープコピー
@@ -68,7 +68,7 @@ function cloneEntry(entry: GameHistoryEntry): GameHistoryEntry {
       ...s,
       field: cloneField(s.field),
     })),
-    tags: [...(entry.tags || [])],
+    tags: [...entry.tags],
   };
 }
 
@@ -109,6 +109,7 @@ export const useGameHistoryStore = create<GameHistoryStore>()(
           return;
         }
 
+        // スナップショットは生成後に変更されないため、operationHistory はコピーせず参照を共有する
         if (existingIndex >= 0) {
           // 既存のエントリを更新
           const newEntries = [...state.entries];
@@ -119,7 +120,7 @@ export const useGameHistoryStore = create<GameHistoryStore>()(
             maxChainCount: Math.max(newEntries[existingIndex].maxChainCount, maxChainCount),
             dropCount,
             lastPlayedAt: now,
-            operationHistory: operationHistory.map(s => ({ ...s, field: cloneField(s.field) })),
+            operationHistory,
             nextSnapshotId,
           };
           set({ entries: newEntries });
@@ -132,7 +133,7 @@ export const useGameHistoryStore = create<GameHistoryStore>()(
             maxChainCount,
             dropCount,
             lastPlayedAt: now,
-            operationHistory: operationHistory.map(s => ({ ...s, field: cloneField(s.field) })),
+            operationHistory,
             nextSnapshotId,
             note: '',
             tags: [],
@@ -141,9 +142,7 @@ export const useGameHistoryStore = create<GameHistoryStore>()(
 
           // 100件を超えたら古いものを削除
           if (newEntries.length > MAX_HISTORY_ENTRIES) {
-            newEntries.sort((a, b) =>
-              new Date(b.lastPlayedAt).getTime() - new Date(a.lastPlayedAt).getTime()
-            );
+            newEntries.sort(compareByLastPlayedDesc);
             newEntries = newEntries.slice(0, MAX_HISTORY_ENTRIES);
           }
 
@@ -156,47 +155,13 @@ export const useGameHistoryStore = create<GameHistoryStore>()(
         set({ entries: state.entries.filter(e => e.id !== id) });
       },
 
-      clearAllHistory: () => {
-        set({ entries: [], currentGameId: null });
-      },
-
-      getEntry: (id: string) => {
+      findEntry: (id: string, fromFavorites: boolean) => {
         const state = get();
-        return state.entries.find(e => e.id === id);
+        return (fromFavorites ? state.favorites : state.entries).find(e => e.id === id);
       },
 
       setCurrentGameId: (id: string | null) => {
         set({ currentGameId: id });
-      },
-
-      updateNote: (id: string, note: string, isFavoriteList: boolean) => {
-        const state = get();
-        if (isFavoriteList) {
-          const newFavorites = state.favorites.map(e =>
-            e.id === id ? { ...e, note } : e
-          );
-          set({ favorites: newFavorites });
-        } else {
-          const newEntries = state.entries.map(e =>
-            e.id === id ? { ...e, note } : e
-          );
-          set({ entries: newEntries });
-        }
-      },
-
-      updateTags: (id: string, tags: string[], isFavoriteList: boolean) => {
-        const state = get();
-        if (isFavoriteList) {
-          const newFavorites = state.favorites.map(e =>
-            e.id === id ? { ...e, tags } : e
-          );
-          set({ favorites: newFavorites });
-        } else {
-          const newEntries = state.entries.map(e =>
-            e.id === id ? { ...e, tags } : e
-          );
-          set({ entries: newEntries });
-        }
       },
 
       updateFavoriteDetails: (id: string, note: string, tags: string[]) => {
@@ -221,24 +186,9 @@ export const useGameHistoryStore = create<GameHistoryStore>()(
         }
       },
 
-      removeFromFavorites: (id: string) => {
-        const state = get();
-        set({ favorites: state.favorites.filter(e => e.id !== id) });
-      },
-
       deleteFavorite: (id: string) => {
         const state = get();
         set({ favorites: state.favorites.filter(e => e.id !== id) });
-      },
-
-      isInFavorites: (id: string) => {
-        const state = get();
-        return state.favorites.some(e => e.id === id);
-      },
-
-      getFavoriteEntry: (id: string) => {
-        const state = get();
-        return state.favorites.find(e => e.id === id);
       },
     }),
     {

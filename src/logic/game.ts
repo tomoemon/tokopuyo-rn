@@ -16,6 +16,7 @@ import {
 } from './field';
 import {
   findErasableGroups,
+  hasErasableGroups,
   countColors,
   countErasedPuyos,
   flattenGroups,
@@ -185,8 +186,7 @@ export function processChain(state: GameState): {
  * 連鎖が終了したかどうか
  */
 export function isChainFinished(state: GameState): boolean {
-  const groups = findErasableGroups(state.field);
-  return groups.length === 0;
+  return !hasErasableGroups(state.field);
 }
 
 /**

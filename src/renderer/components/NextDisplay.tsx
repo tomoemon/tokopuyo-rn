@@ -9,20 +9,16 @@ interface NextDisplayProps {
 }
 
 export const NextDisplay: React.FC<NextDisplayProps> = ({ nextQueue, cellSize }) => {
-  const displayCount = Math.min(nextQueue.length, 2);
   const smallCellSize = cellSize * 0.7;
 
   return (
     <View style={styles.container}>
       <Text style={styles.label}>NEXT</Text>
       <View style={styles.nextList}>
-        {nextQueue.slice(0, displayCount).map((pair, index) => (
+        {nextQueue.slice(0, 2).map((pair, index) => (
           <View
             key={index}
-            style={[
-              styles.pairContainer,
-              index === 0 ? styles.firstPair : styles.secondPair,
-            ]}
+            style={[styles.pairContainer, index > 0 && styles.secondPair]}
           >
             {/* 上のぷよ（子ぷよ） */}
             <View style={styles.puyoWrapper}>
@@ -62,9 +58,6 @@ const styles = StyleSheet.create({
   },
   pairContainer: {
     alignItems: 'center',
-  },
-  firstPair: {
-    // 最初のNEXTは大きく表示
   },
   secondPair: {
     opacity: 0.7,

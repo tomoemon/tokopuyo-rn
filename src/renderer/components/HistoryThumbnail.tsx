@@ -5,31 +5,23 @@ import {
   FIELD_COLS,
   VISIBLE_ROWS,
   HIDDEN_ROWS,
-  PuyoColor,
 } from '../../logic/types';
+import { PUYO_COLORS } from '../constants';
 
 interface HistoryThumbnailProps {
   snapshot: GameSnapshot;
   cellSize: number;
-  onPress: () => void;
+  onPress: (snapshotId: number) => void;
   isSelected?: boolean;
 }
 
-// 色の定義（縮小版用にシンプルな色）
-const COLOR_MAP: Record<PuyoColor, string> = {
-  red: '#FF4444',
-  blue: '#4444FF',
-  green: '#44FF44',
-  yellow: '#FFFF44',
-  purple: '#AA44FF',
-};
-
-export const HistoryThumbnail: React.FC<HistoryThumbnailProps> = ({
+// 履歴の再描画時に変更のないサムネイルを描き直さないよう memo 化
+export const HistoryThumbnail = React.memo(function HistoryThumbnail({
   snapshot,
   cellSize,
   onPress,
   isSelected = false,
-}) => {
+}: HistoryThumbnailProps) {
   const fieldWidth = FIELD_COLS * cellSize;
   const fieldHeight = VISIBLE_ROWS * cellSize;
 
@@ -42,7 +34,7 @@ export const HistoryThumbnail: React.FC<HistoryThumbnailProps> = ({
 
   return (
     <TouchableOpacity
-      onPress={onPress}
+      onPress={() => onPress(snapshot.id)}
       style={[styles.container, isSelected && styles.containerSelected]}
       activeOpacity={0.7}
     >
@@ -57,24 +49,6 @@ export const HistoryThumbnail: React.FC<HistoryThumbnailProps> = ({
             },
           ]}
         >
-        {/* グリッド背景 */}
-        {Array.from({ length: VISIBLE_ROWS }).map((_, y) => (
-          <View key={y} style={styles.row}>
-            {Array.from({ length: FIELD_COLS }).map((_, x) => (
-              <View
-                key={x}
-                style={[
-                  styles.cell,
-                  {
-                    width: cellSize,
-                    height: cellSize,
-                  },
-                ]}
-              />
-            ))}
-          </View>
-        ))}
-
         {/* フィールド上のぷよ */}
         {snapshot.field.map((row, y) =>
           row.map((color, x) => {
@@ -101,9 +75,9 @@ export const HistoryThumbnail: React.FC<HistoryThumbnailProps> = ({
                     {
                       width: cellSize - 1,
                       height: cellSize - 1,
-                      backgroundColor: isDropped ? 'transparent' : COLOR_MAP[color],
+                      backgroundColor: isDropped ? 'transparent' : PUYO_COLORS[color],
                       borderWidth: isDropped ? 1 : 0,
-                      borderColor: isDropped ? COLOR_MAP[color] : undefined,
+                      borderColor: isDropped ? PUYO_COLORS[color] : undefined,
                     },
                   ]}
                 />
@@ -126,7 +100,7 @@ export const HistoryThumbnail: React.FC<HistoryThumbnailProps> = ({
                   {
                     width: cellSize,
                     height: cellSize,
-                    backgroundColor: COLOR_MAP[color],
+                    backgroundColor: PUYO_COLORS[color],
                   },
                 ]}
               />
@@ -136,7 +110,7 @@ export const HistoryThumbnail: React.FC<HistoryThumbnailProps> = ({
       </View>
     </TouchableOpacity>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -160,12 +134,6 @@ const styles = StyleSheet.create({
   field: {
     backgroundColor: '#1a1a2e',
     position: 'relative',
-  },
-  row: {
-    flexDirection: 'row',
-  },
-  cell: {
-    // グリッド線は省略（サイズを正確に保つため）
   },
   puyo: {
     position: 'absolute',

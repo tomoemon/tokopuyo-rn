@@ -37,6 +37,8 @@ cd tokopuyo-rn
 npm install
 ```
 
+`npm install` が react-dom の peer dependency の衝突（ERESOLVE）で失敗する場合は `npm install --legacy-peer-deps` を使ってください。
+
 ## 実行方法
 
 ```bash
@@ -51,6 +53,16 @@ npm run android
 
 # Web ブラウザで起動
 npm run web
+```
+
+## テスト
+
+```bash
+# ゲームロジックのテスト（vitest）
+npm test
+
+# 型チェック
+npx tsc --noEmit
 ```
 
 ## Expo Go で実機確認する方法
@@ -82,4 +94,4 @@ npm start
 
 ## 詳細仕様
 
-ゲームの詳細仕様については [docs/SPECIFICATION.md](docs/SPECIFICATION.md) を参照してください。
+ゲームの詳細仕様については [docs/SPECIFICATION.md](docs/SPECIFICATION.md) を参照してください。操作体系は [docs/control-system.md](docs/control-system.md) にまとめています。

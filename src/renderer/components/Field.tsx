@@ -3,6 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { Field as FieldType, FallingPuyo, ErasingPuyo, FIELD_COLS, VISIBLE_ROWS, HIDDEN_ROWS, TOTAL_ROWS } from '../../logic/types';
 import { getSatellitePosition, hardDropPuyo } from '../../logic/puyo';
 import { Puyo } from './Puyo';
+import { FIELD_BORDER_WIDTH } from '../constants';
 import { DisappearEffect } from './DisappearEffect';
 
 interface FieldProps {
@@ -13,13 +14,12 @@ interface FieldProps {
   onEffectComplete?: () => void;
 }
 
-const BORDER_WIDTH = 3;
 const HIDDEN_BORDER_WIDTH = 2;
 
 export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize, erasingPuyos = [], onEffectComplete }) => {
-  const fieldWidth = FIELD_COLS * cellSize + BORDER_WIDTH * 2;
+  const fieldWidth = FIELD_COLS * cellSize + FIELD_BORDER_WIDTH * 2;
   // フィールドの高さは隠しマスも含む
-  const fieldHeight = TOTAL_ROWS * cellSize + BORDER_WIDTH * 2;
+  const fieldHeight = TOTAL_ROWS * cellSize + FIELD_BORDER_WIDTH * 2;
 
   // ゴースト（落下予定位置）の位置
   const ghostPositions: { x: number; y: number; color: string }[] = [];
@@ -187,7 +187,7 @@ export const Field: React.FC<FieldProps> = ({ field, fallingPuyo, cellSize, eras
 const styles = StyleSheet.create({
   field: {
     backgroundColor: '#1a1a2e',
-    borderWidth: BORDER_WIDTH,
+    borderWidth: FIELD_BORDER_WIDTH,
     borderColor: '#4a4a6a',
     position: 'relative',
     overflow: 'hidden',

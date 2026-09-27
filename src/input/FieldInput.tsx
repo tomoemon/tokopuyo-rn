@@ -3,8 +3,8 @@ import { View, StyleSheet } from 'react-native';
 import { useFieldGesture } from './useFieldGesture';
 import { useGestureStore } from './gestureStore';
 import { FIELD_COLS, TOTAL_ROWS } from '../logic/types';
+import { FIELD_BORDER_WIDTH } from '../renderer/constants';
 
-const BORDER_WIDTH = 3;
 
 interface FieldInputProps {
   cellSize: number;
@@ -28,8 +28,8 @@ export const FieldInput: React.FC<FieldInputProps> = ({ cellSize, children }) =>
   const swipeDirection = useGestureStore((state) => state.swipeDirection);
   const cancelFlash = useGestureStore((state) => state.cancelFlash);
 
-  const fieldWidth = cellSize * FIELD_COLS + BORDER_WIDTH * 2;
-  const fieldHeight = cellSize * TOTAL_ROWS + BORDER_WIDTH * 2;
+  const fieldWidth = cellSize * FIELD_COLS + FIELD_BORDER_WIDTH * 2;
+  const fieldHeight = cellSize * TOTAL_ROWS + FIELD_BORDER_WIDTH * 2;
 
   return (
     <View
@@ -51,7 +51,7 @@ export const FieldInput: React.FC<FieldInputProps> = ({ cellSize, children }) =>
             key={`field-col-${i}`}
             style={[
               styles.columnOverlay,
-              { width: cellSize, left: BORDER_WIDTH + i * cellSize },
+              { width: cellSize, left: FIELD_BORDER_WIDTH + i * cellSize },
               activeColumn === i && (cancelFlash ? styles.cancelColumn : styles.activeColumn),
               blockedColumn === i && styles.blockedColumn,
             ]}
@@ -62,13 +62,7 @@ export const FieldInput: React.FC<FieldInputProps> = ({ cellSize, children }) =>
       {/* スワイプ方向インジケーター */}
       {swipeDirection && (
         <View style={styles.swipeIndicatorContainer} pointerEvents="none">
-          <View style={[
-            styles.swipeIndicator,
-            swipeDirection === 'up' && styles.swipeUp,
-            swipeDirection === 'down' && styles.swipeDown,
-            swipeDirection === 'left' && styles.swipeLeft,
-            swipeDirection === 'right' && styles.swipeRight,
-          ]}>
+          <View style={styles.swipeIndicator}>
             <View style={[
               styles.arrow,
               swipeDirection === 'up' && styles.arrowUp,
@@ -96,8 +90,8 @@ const styles = StyleSheet.create({
   },
   columnOverlay: {
     position: 'absolute',
-    top: BORDER_WIDTH,
-    bottom: BORDER_WIDTH,
+    top: FIELD_BORDER_WIDTH,
+    bottom: FIELD_BORDER_WIDTH,
   },
   activeColumn: {
     backgroundColor: 'rgba(100, 150, 255, 0.25)',
@@ -126,10 +120,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  swipeUp: {},
-  swipeDown: {},
-  swipeLeft: {},
-  swipeRight: {},
   // 矢印
   arrow: {
     width: 0,

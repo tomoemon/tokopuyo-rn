@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Animated, StyleSheet } from 'react-native';
 import { PuyoColor } from '../../logic/types';
+import { PUYO_COLORS } from '../constants';
 
 interface DisappearEffectProps {
   color: PuyoColor;
@@ -10,14 +11,6 @@ interface DisappearEffectProps {
   onComplete?: () => void;
 }
 
-// 色の定義（Puyo.tsxと同じ）
-const COLOR_MAP: Record<PuyoColor, string> = {
-  red: '#FF4444',
-  blue: '#4444FF',
-  green: '#44FF44',
-  yellow: '#FFFF44',
-  purple: '#AA44FF',
-};
 
 // パーティクルの数
 const PARTICLE_COUNT = 8;
@@ -97,12 +90,12 @@ export const DisappearEffect: React.FC<DisappearEffectProps> = ({
   cellSize,
   onComplete,
 }) => {
-  const particleColor = COLOR_MAP[color];
+  const particleColor = PUYO_COLORS[color];
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      onComplete?.();
-    }, ANIMATION_DURATION);
+    // 完了通知が不要なエフェクトではタイマーを作らない
+    if (!onComplete) return;
+    const timer = setTimeout(onComplete, ANIMATION_DURATION);
 
     return () => clearTimeout(timer);
   }, [onComplete]);

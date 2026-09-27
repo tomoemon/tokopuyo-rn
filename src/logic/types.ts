@@ -12,7 +12,7 @@ export const CONNECT_COUNT = 4; // 消えるのに必要な連結数
 // 全ての色（毎ゲーム開始時にここから4色を選択）
 export const ALL_COLORS: PuyoColor[] = ['red', 'blue', 'green', 'yellow', 'purple'];
 
-// 使用する色（後方互換性のため維持、デフォルトは最初の4色）
+// 色を指定せずに乱数生成器を作ったときに使う4色
 export const COLORS: PuyoColor[] = ['red', 'blue', 'green', 'yellow'];
 
 // フィールド（6列×12段、nullは空）
@@ -94,6 +94,6 @@ export type GameSnapshot = {
   rngState: RngState;
   // 落下させたぷよの位置（連鎖で消えた場合も含む）
   droppedPositions: Position[];
-  // このゲームで使用する4色（オプショナル、後方互換性のため）
-  selectedColors?: PuyoColor[];
+  // このゲームで使用する4色
+  selectedColors: PuyoColor[];
 };

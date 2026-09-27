@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { View, ScrollView, StyleSheet, Modal, Text, TouchableOpacity } from 'react-native';
 import { GameSnapshot } from '../../logic/types';
 import { HistoryThumbnail } from './HistoryThumbnail';
@@ -11,16 +11,17 @@ interface OperationHistoryProps {
   currentSnapshotId?: number;
 }
 
-export const OperationHistory: React.FC<OperationHistoryProps> = ({
+// ゲーム画面では操作ぷよの移動のたびに親が再描画されるため memo 化
+export const OperationHistory = React.memo(function OperationHistory({
   history,
   cellSize,
   onRestoreToSnapshot,
   currentSnapshotId,
-}) => {
+}: OperationHistoryProps) {
   // 再生モードかどうか
   const isReplayMode = currentSnapshotId !== undefined;
   const scrollViewRef = useRef<ScrollView>(null);
-  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
+  // 確認モーダルで復元対象として選択中のスナップショットID（null ならモーダル非表示）
   const [selectedSnapshotId, setSelectedSnapshotId] = useState<number | null>(null);
 
   // 新しい履歴が追加されたら一番下にスクロール
@@ -30,32 +31,29 @@ export const OperationHistory: React.FC<OperationHistoryProps> = ({
     }
   }, [history.length]);
 
-  const handleThumbnailPress = (snapshotId: number) => {
+  const handleThumbnailPress = useCallback((snapshotId: number) => {
     if (isReplayMode) {
       // 再生モードでは確認なしで直接ナビゲート
       onRestoreToSnapshot(snapshotId);
     } else {
       // ゲームモードでは確認モーダルを表示
       setSelectedSnapshotId(snapshotId);
-      setConfirmModalVisible(true);
     }
-  };
+  }, [isReplayMode, onRestoreToSnapshot]);
 
   const handleConfirmRestore = () => {
     if (selectedSnapshotId !== null) {
       onRestoreToSnapshot(selectedSnapshotId);
     }
-    setConfirmModalVisible(false);
     setSelectedSnapshotId(null);
   };
 
   const handleCancelRestore = () => {
-    setConfirmModalVisible(false);
     setSelectedSnapshotId(null);
   };
 
   // 履歴を逆順にして表示（最新が下、古いのが上）
-  const reversedHistory = [...history].reverse();
+  const reversedHistory = useMemo(() => [...history].reverse(), [history]);
 
   return (
     <View style={styles.container}>
@@ -70,7 +68,7 @@ export const OperationHistory: React.FC<OperationHistoryProps> = ({
             key={snapshot.id}
             snapshot={snapshot}
             cellSize={cellSize}
-            onPress={() => handleThumbnailPress(snapshot.id)}
+            onPress={handleThumbnailPress}
             isSelected={currentSnapshotId === snapshot.id}
           />
         ))}
@@ -78,7 +76,7 @@ export const OperationHistory: React.FC<OperationHistoryProps> = ({
 
       {/* 確認ダイアログ */}
       <Modal
-        visible={confirmModalVisible}
+        visible={selectedSnapshotId !== null}
         transparent={true}
         animationType="fade"
         onRequestClose={handleCancelRestore}
@@ -105,7 +103,7 @@ export const OperationHistory: React.FC<OperationHistoryProps> = ({
       </Modal>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {

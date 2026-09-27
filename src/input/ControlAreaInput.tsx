@@ -3,6 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { useFieldGesture } from './useFieldGesture';
 import { useGestureStore } from './gestureStore';
 import { FIELD_COLS } from '../logic/types';
+import { FIELD_BORDER_WIDTH } from '../renderer/constants';
 
 interface ControlAreaProps {
   cellSize: number;
@@ -17,8 +18,7 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, sideMargin, 
   const controlAreaViewRef = useRef<View>(null);
 
   // 操作エリアの幅（フィールドと同じ幅：6列分 + ボーダー幅）
-  const BORDER_WIDTH = 3;
-  const controlAreaWidth = cellSize * FIELD_COLS + BORDER_WIDTH * 2;
+  const controlAreaWidth = cellSize * FIELD_COLS + FIELD_BORDER_WIDTH * 2;
 
   const getAreaLayout = useCallback(() => controlAreaLayoutRef.current, []);
 
