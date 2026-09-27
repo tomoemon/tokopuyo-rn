@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import * as Haptics from 'expo-haptics';
 import { useConfigStore, useGameHistoryStore, CHAIN_ANIMATION_DELAYS } from '../src/store';
@@ -37,7 +37,6 @@ function chainHaptic(chainCount: number): void {
 }
 
 export default function GameReplayScreen() {
-  const router = useRouter();
   const { gameId, fromFavorites } = useLocalSearchParams<{ gameId: string; fromFavorites: string }>();
 
   const findEntry = useGameHistoryStore((state) => state.findEntry);
@@ -52,7 +51,7 @@ export default function GameReplayScreen() {
   if (!entry || entry.operationHistory.length === 0) {
     return (
       <View style={styles.container}>
-        <GameHeader onBack={() => goBack(router, '/history')} title="Replay" showConfig={false} />
+        <GameHeader onBack={() => goBack('/history')} title="Replay" showConfig={false} />
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>Entry not found</Text>
         </View>
@@ -65,7 +64,6 @@ export default function GameReplayScreen() {
 }
 
 function ReplayContent({ history }: { history: GameSnapshot[] }) {
-  const router = useRouter();
   const { openConfig } = useConfig();
 
   const {
@@ -287,7 +285,7 @@ function ReplayContent({ history }: { history: GameSnapshot[] }) {
     }
   }, [history, isAnimating]);
 
-  const handleBack = () => goBack(router, '/history');
+  const handleBack = () => goBack('/history');
 
   // ボタンの無効状態
   const isAtStart = currentIndex === 0 && replayPhase === 'idle';

@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useGameStore } from '../src/store';
 import { ControlArea, FieldInput } from '../src/input';
@@ -9,7 +8,6 @@ import { ConfirmDialog, GameHeader, goBack } from '../src/components';
 import { useConfig } from './_layout';
 
 export default function GameScreen() {
-  const router = useRouter();
   const { openConfig } = useConfig();
   const field = useGameStore((state) => state.field);
   const fallingPuyo = useGameStore((state) => state.fallingPuyo);
@@ -35,8 +33,8 @@ export default function GameScreen() {
   const handleBackConfirm = useCallback(() => {
     setBackConfirmVisible(false);
     dispatch({ type: 'RESTART_GAME' });
-    goBack(router, '/');
-  }, [dispatch, router]);
+    goBack('/');
+  }, [dispatch]);
 
   // 連鎖消去時のhaptic feedback
   const prevErasingCountRef = useRef(0);

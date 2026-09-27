@@ -273,7 +273,7 @@ export default function GameHistoryScreen() {
   // お気に入り済みの ID（History タブの各アイテムで参照）
   const favoriteIds = useMemo(() => new Set(favorites.map(e => e.id)), [favorites]);
 
-  const handleBack = () => goBack(router, '/');
+  const handleBack = () => goBack('/');
 
   const handleDeleteConfirm = () => {
     if (deleteConfirmId) {

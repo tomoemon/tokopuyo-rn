@@ -3,13 +3,13 @@ import { View, StyleSheet, useWindowDimensions } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { ConfigScreen } from '../src/components';
-import { MAX_APP_WIDTH_RATIO, MIN_MAX_APP_WIDTH } from '../src/renderer';
+import { APP_BACKGROUND_COLOR, MAX_APP_WIDTH_RATIO, MIN_MAX_APP_WIDTH } from '../src/renderer';
 
 // 画面の背景と、画面の後ろにあるコンテナの背景に使われる。
 // コンテナの背景は、スワイプで戻る途中に画面を逆方向へ引っ張ったときに見える
 const NAVIGATION_THEME = {
   ...DarkTheme,
-  colors: { ...DarkTheme.colors, background: '#0a0a1a' },
+  colors: { ...DarkTheme.colors, background: APP_BACKGROUND_COLOR },
 };
 
 // Config モーダルのコンテキスト
@@ -71,7 +71,7 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#0a0a1a',
+    backgroundColor: APP_BACKGROUND_COLOR,
     alignItems: 'center',
     // Web でマウスのドラッグ操作によりテキスト選択が起きないようにする（入力欄は影響を受けない）
     userSelect: 'none',

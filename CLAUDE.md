@@ -99,7 +99,6 @@ npx tsc --noEmit # 型チェック
 - `zustand`: 状態管理
 - `@react-native-async-storage/async-storage`: データ永続化
 - `expo-haptics`: 触覚フィードバック
-- `react-native-gesture-handler`: ジェスチャー処理
 - `xorshift`: 疑似乱数生成
 
 パッケージは `npx expo install` で入れること。理由は `DEPENDENCY_NOTES.md` を参照。
