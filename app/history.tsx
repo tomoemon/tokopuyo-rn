@@ -153,7 +153,7 @@ const FavoriteItem: React.FC<{
   onMenuPress: () => void;
   onEdit: () => void;
 }> = ({ entry, onPress, onMenuPress, onEdit }) => {
-  const tags = entry.tags || [];
+  const { tags } = entry;
   return (
     <TouchableOpacity style={styles.favoriteItemContainer} onPress={onPress} activeOpacity={0.7}>
       <FieldThumbnail entry={entry} />
@@ -236,7 +236,7 @@ export default function GameHistoryScreen() {
   const tagsByFrequency = useMemo(() => {
     const tagCount: Record<string, number> = {};
     favorites.forEach(entry => {
-      (entry.tags || []).forEach(tag => {
+      entry.tags.forEach(tag => {
         tagCount[tag] = (tagCount[tag] || 0) + 1;
       });
     });
@@ -263,8 +263,7 @@ export default function GameHistoryScreen() {
       return currentList;
     }
     return currentList.filter(entry => {
-      const entryTags = entry.tags || [];
-      return filterTags.every(filterTag => entryTags.includes(filterTag));
+      return filterTags.every(filterTag => entry.tags.includes(filterTag));
     });
   }, [activeTab, currentList, filterTags]);
 
@@ -329,8 +328,8 @@ export default function GameHistoryScreen() {
     const entry = favorites.find(e => e.id === entryId);
     if (entry) {
       setEditId(entry.id);
-      setEditNote(entry.note || '');
-      setEditTags(entry.tags || []);
+      setEditNote(entry.note);
+      setEditTags(entry.tags);
       setNewTagText('');
     }
   };

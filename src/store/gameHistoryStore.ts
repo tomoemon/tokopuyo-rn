@@ -68,7 +68,7 @@ function cloneEntry(entry: GameHistoryEntry): GameHistoryEntry {
       ...s,
       field: cloneField(s.field),
     })),
-    tags: [...(entry.tags || [])],
+    tags: [...entry.tags],
   };
 }
 
