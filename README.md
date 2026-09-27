@@ -86,7 +86,9 @@ iPhone の実機でアプリを動作確認する手順です。
 
 ### 1. Expo Go アプリのインストール
 
-iPhone の App Store から「Expo Go」アプリをインストールします。
+iPhone の App Store から「Expo Go」アプリをインストールします。このプロジェクトは Expo SDK 57 を使っているので、SDK 57 に対応した Expo Go が必要です。
+
+iOS シミュレータで確認する場合は `npm run ios` を実行します。対応する Expo Go が自動でインストールされます。
 
 ### 2. 開発サーバーの起動
 
