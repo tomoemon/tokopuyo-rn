@@ -68,7 +68,10 @@ function ReplayContent({ history }: { history: GameSnapshot[] }) {
   const router = useRouter();
   const { openConfig } = useConfig();
 
-  const { isRightHanded, cellSize, largeMargin, historyWidth, historyMargin, historyCellSize, fieldWidth, fieldHeight } = useGameLayout();
+  const {
+    onAreaLayout, isLayoutReady, isRightHanded, cellSize, largeMargin,
+    historyWidth, historyMargin, historyCellSize, fieldWidth, fieldHeight, gameAreaWidth,
+  } = useGameLayout();
   const chainAnimationSpeed = useConfigStore((state) => state.chainAnimationSpeed);
   const erasingDelay = CHAIN_ANIMATION_DELAYS[chainAnimationSpeed];
 
@@ -327,7 +330,7 @@ function ReplayContent({ history }: { history: GameSnapshot[] }) {
 
   // ゲームエリア（フィールド + コントロール）
   const renderGameArea = (marginSide: 'left' | 'right') => (
-    <View style={styles.gameAreaContainer}>
+    <View style={{ width: gameAreaWidth }}>
       {/* フィールド */}
       <View style={[
         marginSide === 'left'
@@ -367,25 +370,29 @@ function ReplayContent({ history }: { history: GameSnapshot[] }) {
       />
 
       {/* メインエリア（履歴 + ゲームフィールド） */}
-      <View style={styles.mainArea}>
-        {/* 左利きモード：ゲームエリアが先 */}
-        {!isRightHanded && renderGameArea('left')}
+      <View style={styles.mainArea} onLayout={onAreaLayout}>
+        {isLayoutReady && (
+          <>
+            {/* 左利きモード：ゲームエリアが先 */}
+            {!isRightHanded && renderGameArea('left')}
 
-        {/* 履歴エリア */}
-        <View style={[
-          { width: historyWidth, height: historyHeight },
-          isRightHanded ? { marginLeft: historyMargin } : { marginRight: historyMargin }
-        ]}>
-          <OperationHistory
-            history={history}
-            cellSize={historyCellSize}
-            onRestoreToSnapshot={handleHistoryTap}
-            currentSnapshotId={currentSnapshot.id}
-          />
-        </View>
+            {/* 履歴エリア */}
+            <View style={[
+              { width: historyWidth, height: historyHeight },
+              isRightHanded ? { marginRight: historyMargin } : { marginLeft: historyMargin }
+            ]}>
+              <OperationHistory
+                history={history}
+                cellSize={historyCellSize}
+                onRestoreToSnapshot={handleHistoryTap}
+                currentSnapshotId={currentSnapshot.id}
+              />
+            </View>
 
-        {/* 右利きモード：ゲームエリアが後 */}
-        {isRightHanded && renderGameArea('right')}
+            {/* 右利きモード：ゲームエリアが後 */}
+            {isRightHanded && renderGameArea('right')}
+          </>
+        )}
       </View>
     </View>
   );
@@ -406,12 +413,11 @@ const styles = StyleSheet.create({
     color: '#888',
     fontSize: 18,
   },
+  // 履歴とゲームエリアを中央に寄せて並べる（余った幅は両端に回す）
   mainArea: {
     flex: 1,
     flexDirection: 'row',
-  },
-  gameAreaContainer: {
-    flex: 1,
+    justifyContent: 'center',
   },
   controlsWrapper: {
     marginTop: 12,

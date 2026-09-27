@@ -1,9 +1,9 @@
 import { Stack } from 'expo-router';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, useWindowDimensions } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback } from 'react';
 import { ConfigScreen } from '../src/components';
-import { MAX_APP_WIDTH } from '../src/renderer';
+import { MAX_APP_WIDTH_RATIO } from '../src/renderer';
 
 // Config モーダルのコンテキスト
 import { createContext, useContext } from 'react';
@@ -22,6 +22,7 @@ export const useConfig = () => useContext(ConfigContext);
 
 export default function RootLayout() {
   const [configVisible, setConfigVisible] = useState(false);
+  const { height: windowHeight } = useWindowDimensions();
 
   const openConfig = useCallback(() => {
     setConfigVisible(true);
@@ -35,7 +36,7 @@ export default function RootLayout() {
     <ConfigContext.Provider value={{ openConfig, closeConfig }}>
       <StatusBar style="light" />
       <View style={styles.root}>
-        <View style={styles.app}>
+        <View style={[styles.app, { maxWidth: windowHeight * MAX_APP_WIDTH_RATIO }]}>
           <Stack
             screenOptions={{
               headerShown: false,
@@ -63,10 +64,9 @@ const styles = StyleSheet.create({
     // Web でマウスのドラッグ操作によりテキスト選択が起きないようにする（入力欄は影響を受けない）
     userSelect: 'none',
   },
-  // 横に広い画面（PC ブラウザなど）では中央に MAX_APP_WIDTH の幅でまとめる
+  // 横に広い画面（PC ブラウザや iPad など）では、画面の高さ × MAX_APP_WIDTH_RATIO の幅で中央にまとめる
   app: {
     flex: 1,
     width: '100%',
-    maxWidth: MAX_APP_WIDTH,
   },
 });

@@ -80,5 +80,5 @@ Props:
 ### constants.ts / useGameLayout
 - `PUYO_COLORS`: ぷよの表示色
 - `FIELD_BORDER_WIDTH`: フィールドの枠線の太さ（入力層の列の計算でも使う）
-- `MAX_APP_WIDTH`: アプリ全体の最大幅。`app/_layout.tsx` で全画面をこの幅に収めて中央に寄せる（PC ブラウザなど横に広い画面向け）
-- `useGameLayout()`: 画面サイズと利き手からセルサイズ、マージン、履歴エリアの幅などを計算する（ゲーム画面・再生画面共通）。画面の幅は `MAX_APP_WIDTH` を上限として扱う
+- `MAX_APP_WIDTH_RATIO`: アプリ全体の最大幅の、画面の高さに対する比率。`app/_layout.tsx` で全画面を「画面の高さ × この比率」の幅に収めて中央に寄せる（PC ブラウザや iPad など横に広い画面向け）
+- `useGameLayout()`: 履歴とフィールドを並べるエリアの実寸（`onAreaLayout` で測る）と利き手から、セルサイズ、マージン、履歴エリアの幅などを計算する（ゲーム画面・再生画面共通）。縦はフィールド13行 + 操作エリア3行が収まる大きさにする。測り終えるまで（`isLayoutReady` が false の間）は中身を描画しない

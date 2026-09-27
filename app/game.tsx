@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useGameStore } from '../src/store';
 import { ControlArea, FieldInput } from '../src/input';
-import { GameFieldLayout, OperationHistory, useGameLayout, FIELD_BORDER_WIDTH } from '../src/renderer';
+import { GameFieldLayout, OperationHistory, useGameLayout } from '../src/renderer';
 import { ConfirmDialog, GameHeader, goBack } from '../src/components';
 import { useConfig } from './_layout';
 
@@ -24,10 +24,11 @@ export default function GameScreen() {
   const restoreToSnapshot = useGameStore((state) => state.restoreToSnapshot);
   const [backConfirmVisible, setBackConfirmVisible] = useState(false);
 
-  const { isRightHanded, cellSize, largeMargin, historyWidth, historyMargin, historyCellSize, fieldHeight } = useGameLayout();
+  const {
+    onAreaLayout, isLayoutReady, isRightHanded, cellSize, largeMargin,
+    historyWidth, historyMargin, historyCellSize, fieldHeight, gameAreaWidth, controlAreaHeight,
+  } = useGameLayout();
 
-  // 操作エリアの高さ（cellSize * 3 + marginTop + borderWidth * 2）
-  const controlAreaHeight = cellSize * 3 + 10 + FIELD_BORDER_WIDTH * 2;
   // 履歴枠の高さ = フィールド + 操作エリア
   const historyHeight = fieldHeight + controlAreaHeight;
 
@@ -57,7 +58,7 @@ export default function GameScreen() {
 
   // ゲームエリアを描画
   const renderGameArea = (marginSide: 'left' | 'right') => (
-    <View style={styles.gameAreaContainer}>
+    <View style={{ width: gameAreaWidth }}>
       <View style={[styles.controlWrapper, isGameOver && styles.grayedOut]}>
         <ControlArea cellSize={cellSize} sideMargin={largeMargin} isRightHanded={marginSide === 'right'}>
           <FieldInput cellSize={cellSize}>
@@ -88,24 +89,28 @@ export default function GameScreen() {
       />
 
       {/* メインエリア（履歴 + ゲームフィールド） */}
-      <View style={styles.mainArea}>
-        {/* 左利きモード：ゲームエリアが先 */}
-        {!isRightHanded && renderGameArea('left')}
+      <View style={styles.mainArea} onLayout={onAreaLayout}>
+        {isLayoutReady && (
+          <>
+            {/* 左利きモード：ゲームエリアが先 */}
+            {!isRightHanded && renderGameArea('left')}
 
-        {/* 履歴エリア */}
-        <View style={[
-          { width: historyWidth, height: historyHeight },
-          isRightHanded ? { marginLeft: historyMargin } : { marginRight: historyMargin }
-        ]}>
-          <OperationHistory
-            history={history}
-            cellSize={historyCellSize}
-            onRestoreToSnapshot={restoreToSnapshot}
-          />
-        </View>
+            {/* 履歴エリア */}
+            <View style={[
+              { width: historyWidth, height: historyHeight },
+              isRightHanded ? { marginRight: historyMargin } : { marginLeft: historyMargin }
+            ]}>
+              <OperationHistory
+                history={history}
+                cellSize={historyCellSize}
+                onRestoreToSnapshot={restoreToSnapshot}
+              />
+            </View>
 
-        {/* 右利きモード：ゲームエリアが後 */}
-        {isRightHanded && renderGameArea('right')}
+            {/* 右利きモード：ゲームエリアが後 */}
+            {isRightHanded && renderGameArea('right')}
+          </>
+        )}
       </View>
 
       <ConfirmDialog
@@ -125,12 +130,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#0a0a1a',
     paddingBottom: 24,
   },
+  // 履歴とゲームエリアを中央に寄せて並べる（余った幅は両端に回す）
   mainArea: {
     flex: 1,
     flexDirection: 'row',
-  },
-  gameAreaContainer: {
-    flex: 1,
+    justifyContent: 'center',
   },
   controlWrapper: {
     flex: 1,
