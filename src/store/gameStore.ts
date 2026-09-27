@@ -9,7 +9,6 @@ import {
   GameSnapshot,
   RngState,
   Position,
-  COLORS,
 } from '../logic/types';
 import { cloneField } from '../logic/field';
 import {
@@ -84,11 +83,6 @@ function getErasingDelay(): number {
 
 // グローバル乱数生成器
 let rng: PuyoRng = new PuyoRng(generateSeed());
-
-// スナップショットに保存された色（古いデータにはないためデフォルト値を使用）
-function getSnapshotColors(snapshot: GameSnapshot): PuyoColor[] {
-  return snapshot.selectedColors || [...COLORS];
-}
 
 // スナップショットを作成するヘルパー関数
 function createSnapshot(
@@ -233,7 +227,7 @@ export const useGameStore = create<GameStore>()(
 
         // 乱数生成器の状態を復元
         rng.setState(snapshot.rngState);
-        const selectedColors = getSnapshotColors(snapshot);
+        const selectedColors = snapshot.selectedColors;
         rng.setSelectedColors(selectedColors);
 
         // NEXT の先頭を操作ぷよにして、新しいぷよペアを末尾に追加
@@ -410,7 +404,7 @@ export const useGameStore = create<GameStore>()(
 
           const lastSnapshot = entry.operationHistory[entry.operationHistory.length - 1];
           // 同じフィールド状態を継続するため、色は元のゲームと同じにする
-          const selectedColors = getSnapshotColors(lastSnapshot);
+          const selectedColors = lastSnapshot.selectedColors;
 
           // 新しいシードで乱数生成器を初期化し、最後のスナップショットの NEXT と乱数状態を差し替える
           rng = new PuyoRng(generateSeed(), selectedColors);
@@ -507,7 +501,7 @@ export const useGameStore = create<GameStore>()(
         // 最後のスナップショットから乱数状態を復元
         const lastSnapshot = state.history[state.history.length - 1];
         rng.setState(lastSnapshot.rngState);
-        const restoredColors = getSnapshotColors(lastSnapshot);
+        const restoredColors = lastSnapshot.selectedColors;
         rng.setSelectedColors(restoredColors);
 
         // 進行中だったゲームは ready フェーズに戻す（fallingPuyo は永続化されないため）

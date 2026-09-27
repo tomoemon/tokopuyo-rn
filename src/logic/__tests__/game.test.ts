@@ -11,7 +11,7 @@ import {
   updateFallingPuyo,
 } from '../game';
 import { createEmptyField, placePuyo } from '../field';
-import { GameState, FallingPuyo, PuyoColor } from '../types';
+import { GameState, FallingPuyo, PuyoColor, COLORS } from '../types';
 
 describe('game', () => {
   describe('createInitialGameState', () => {
@@ -21,7 +21,7 @@ describe('game', () => {
         ['green', 'yellow'],
       ];
 
-      const state = createInitialGameState(nextQueue);
+      const state = createInitialGameState(nextQueue, COLORS);
 
       expect(state.field).toBeDefined();
       expect(state.fallingPuyo).toBeNull();
@@ -32,7 +32,7 @@ describe('game', () => {
     });
 
     test('should create empty field', () => {
-      const state = createInitialGameState([['red', 'blue']]);
+      const state = createInitialGameState([['red', 'blue']], COLORS);
 
       // Check field is empty
       for (let y = 0; y < 13; y++) {
@@ -49,7 +49,7 @@ describe('game', () => {
         ['red', 'blue'],
         ['green', 'yellow'],
       ];
-      const state = createInitialGameState(nextQueue);
+      const state = createInitialGameState(nextQueue, COLORS);
 
       const newState = startGame(state, ['yellow', 'red']);
 
@@ -64,7 +64,7 @@ describe('game', () => {
         ['red', 'blue'],
         ['green', 'yellow'],
       ];
-      const state = createInitialGameState(nextQueue);
+      const state = createInitialGameState(nextQueue, COLORS);
 
       const newState = startGame(state, ['yellow', 'red']);
 
@@ -80,7 +80,7 @@ describe('game', () => {
       const state = createInitialGameState([
         ['red', 'blue'],
         ['green', 'yellow'],
-      ]);
+      ], COLORS);
 
       const newState = spawnNextPuyo(state, ['yellow', 'red']);
 
@@ -90,7 +90,7 @@ describe('game', () => {
     });
 
     test('should return unchanged state if queue is empty', () => {
-      const state = createInitialGameState([]);
+      const state = createInitialGameState([], COLORS);
 
       const newState = spawnNextPuyo(state, ['red', 'blue']);
 
@@ -101,7 +101,7 @@ describe('game', () => {
       const state = createInitialGameState([
         ['red', 'blue'],
         ['green', 'yellow'],
-      ]);
+      ], COLORS);
       // Block spawn position
       state.field[0][2] = 'green';
 
@@ -113,7 +113,7 @@ describe('game', () => {
 
   describe('lockFallingPuyo', () => {
     test('should place puyo on field', () => {
-      const state = createInitialGameState([['red', 'blue']]);
+      const state = createInitialGameState([['red', 'blue']], COLORS);
       state.fallingPuyo = {
         pivot: { pos: { x: 2, y: 11 }, color: 'red' },
         satellite: { color: 'blue' },
@@ -129,7 +129,7 @@ describe('game', () => {
     });
 
     test('should return unchanged state if no falling puyo', () => {
-      const state = createInitialGameState([['red', 'blue']]);
+      const state = createInitialGameState([['red', 'blue']], COLORS);
 
       const newState = lockFallingPuyo(state);
 
@@ -137,7 +137,7 @@ describe('game', () => {
     });
 
     test('should not place satellite if above field', () => {
-      const state = createInitialGameState([['red', 'blue']]);
+      const state = createInitialGameState([['red', 'blue']], COLORS);
       state.fallingPuyo = {
         pivot: { pos: { x: 2, y: 0 }, color: 'red' },
         satellite: { color: 'blue' },
@@ -153,7 +153,7 @@ describe('game', () => {
 
   describe('applyGravityToState', () => {
     test('should apply gravity to field', () => {
-      const state = createInitialGameState([['red', 'blue']]);
+      const state = createInitialGameState([['red', 'blue']], COLORS);
       state.field[5][2] = 'red'; // floating puyo
 
       const newState = applyGravityToState(state);
@@ -165,7 +165,7 @@ describe('game', () => {
 
   describe('processChain', () => {
     test('should process chain and update score', () => {
-      const state = createInitialGameState([['red', 'blue']]);
+      const state = createInitialGameState([['red', 'blue']], COLORS);
       // Create 4 connected red puyos
       state.field[10][2] = 'red';
       state.field[11][2] = 'red';
@@ -183,7 +183,7 @@ describe('game', () => {
     });
 
     test('should return null result if no chain', () => {
-      const state = createInitialGameState([['red', 'blue']]);
+      const state = createInitialGameState([['red', 'blue']], COLORS);
       state.field[12][0] = 'red';
       state.field[12][1] = 'blue';
 
@@ -194,7 +194,7 @@ describe('game', () => {
     });
 
     test('should detect all clear and add bonus', () => {
-      const state = createInitialGameState([['red', 'blue']]);
+      const state = createInitialGameState([['red', 'blue']], COLORS);
       // Only 4 puyos, will be all clear after chain
       state.field[12][0] = 'red';
       state.field[12][1] = 'red';
@@ -209,7 +209,7 @@ describe('game', () => {
     });
 
     test('should increment chain count', () => {
-      const state = createInitialGameState([['red', 'blue']]);
+      const state = createInitialGameState([['red', 'blue']], COLORS);
       state.chainCount = 2; // Previous chain
       state.field[10][2] = 'red';
       state.field[11][2] = 'red';
@@ -225,7 +225,7 @@ describe('game', () => {
 
   describe('isChainFinished', () => {
     test('should return true when no erasable groups', () => {
-      const state = createInitialGameState([['red', 'blue']]);
+      const state = createInitialGameState([['red', 'blue']], COLORS);
       state.field[12][0] = 'red';
       state.field[12][1] = 'blue';
 
@@ -233,7 +233,7 @@ describe('game', () => {
     });
 
     test('should return false when there are erasable groups', () => {
-      const state = createInitialGameState([['red', 'blue']]);
+      const state = createInitialGameState([['red', 'blue']], COLORS);
       state.field[10][2] = 'red';
       state.field[11][2] = 'red';
       state.field[12][2] = 'red';
@@ -248,7 +248,7 @@ describe('game', () => {
       const state = createInitialGameState([
         ['red', 'blue'],
         ['green', 'yellow'],
-      ]);
+      ], COLORS);
 
       const newState = advancePhase(state, ['yellow', 'red']);
 
@@ -257,7 +257,7 @@ describe('game', () => {
     });
 
     test('should throw error if newPair not provided for ready phase', () => {
-      const state = createInitialGameState([['red', 'blue']]);
+      const state = createInitialGameState([['red', 'blue']], COLORS);
 
       expect(() => advancePhase(state)).toThrow('newPair is required for ready phase');
     });
@@ -266,7 +266,7 @@ describe('game', () => {
       const state = createInitialGameState([
         ['red', 'blue'],
         ['green', 'yellow'],
-      ]);
+      ], COLORS);
       state.phase = 'dropping';
       state.field[12][0] = 'red'; // No chain possible
 
@@ -276,7 +276,7 @@ describe('game', () => {
     });
 
     test('should transition from dropping to chaining when chain detected', () => {
-      const state = createInitialGameState([['red', 'blue']]);
+      const state = createInitialGameState([['red', 'blue']], COLORS);
       state.phase = 'dropping';
       // Floating puyos that will form a chain after gravity
       state.field[5][0] = 'red';
@@ -292,7 +292,7 @@ describe('game', () => {
     });
 
     test('should reset chainCount when starting new chain sequence', () => {
-      const state = createInitialGameState([['red', 'blue']]);
+      const state = createInitialGameState([['red', 'blue']], COLORS);
       state.phase = 'dropping';
       state.chainCount = 5; // Previous chain count
       state.field[5][0] = 'red';
@@ -309,7 +309,7 @@ describe('game', () => {
       const state = createInitialGameState([
         ['red', 'blue'],
         ['green', 'yellow'],
-      ]);
+      ], COLORS);
       state.phase = 'dropping';
       // Fill column so game over position stays filled after gravity
       // Use alternating colors to avoid forming a chain
@@ -327,7 +327,7 @@ describe('game', () => {
       const state = createInitialGameState([
         ['red', 'blue'],
         ['green', 'yellow'],
-      ]);
+      ], COLORS);
       state.phase = 'chaining';
       state.field[10][0] = 'red';
       state.field[11][0] = 'red';
@@ -343,7 +343,7 @@ describe('game', () => {
     });
 
     test('should continue chaining if more chains available', () => {
-      const state = createInitialGameState([['red', 'blue']]);
+      const state = createInitialGameState([['red', 'blue']], COLORS);
       state.phase = 'chaining';
       // First group to erase
       state.field[10][0] = 'red';
@@ -362,7 +362,7 @@ describe('game', () => {
     });
 
     test('should return same state for gameover phase', () => {
-      const state = createInitialGameState([['red', 'blue']]);
+      const state = createInitialGameState([['red', 'blue']], COLORS);
       state.phase = 'gameover';
 
       const newState = advancePhase(state);
@@ -371,7 +371,7 @@ describe('game', () => {
     });
 
     test('should return same state for falling phase', () => {
-      const state = createInitialGameState([['red', 'blue']]);
+      const state = createInitialGameState([['red', 'blue']], COLORS);
       state.phase = 'falling';
 
       const newState = advancePhase(state);
@@ -382,7 +382,7 @@ describe('game', () => {
 
   describe('updateFallingPuyo', () => {
     test('should update falling puyo', () => {
-      const state = createInitialGameState([['red', 'blue']]);
+      const state = createInitialGameState([['red', 'blue']], COLORS);
       const newFallingPuyo: FallingPuyo = {
         pivot: { pos: { x: 3, y: 5 }, color: 'green' },
         satellite: { color: 'yellow' },
@@ -395,7 +395,7 @@ describe('game', () => {
     });
 
     test('should set falling puyo to null', () => {
-      const state = createInitialGameState([['red', 'blue']]);
+      const state = createInitialGameState([['red', 'blue']], COLORS);
       state.fallingPuyo = {
         pivot: { pos: { x: 2, y: 5 }, color: 'red' },
         satellite: { color: 'blue' },
