@@ -14,6 +14,7 @@ const COLOR_MAP: Record<PuyoColor, string> = {
   blue: '#4444FF',
   green: '#44FF44',
   yellow: '#FFFF44',
+  purple: '#AA44FF',
 };
 
 const BORDER_COLOR_MAP: Record<PuyoColor, string> = {
@@ -21,6 +22,7 @@ const BORDER_COLOR_MAP: Record<PuyoColor, string> = {
   blue: '#0000CC',
   green: '#00CC00',
   yellow: '#CCCC00',
+  purple: '#7700CC',
 };
 
 export const Puyo: React.FC<PuyoProps> = ({ color, size, isGhost = false }) => {

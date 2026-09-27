@@ -30,9 +30,11 @@ import {
 /**
  * 初期ゲーム状態を作成
  * @param nextQueue 初期NEXTキュー（外部から渡す）
+ * @param selectedColors このゲームで使用する4色
  */
 export function createInitialGameState(
-  nextQueue: [PuyoColor, PuyoColor][]
+  nextQueue: [PuyoColor, PuyoColor][],
+  selectedColors: PuyoColor[]
 ): GameState {
   return {
     field: createEmptyField(),
@@ -41,6 +43,7 @@ export function createInitialGameState(
     score: 0,
     chainCount: 0,
     phase: 'ready',
+    selectedColors,
   };
 }
 

@@ -1,5 +1,5 @@
 import { XorShift } from 'xorshift';
-import { PuyoColor, COLORS, RngState } from './types';
+import { PuyoColor, COLORS, ALL_COLORS, RngState } from './types';
 
 /**
  * シード付き擬似乱数生成器のラッパー
@@ -7,9 +7,44 @@ import { PuyoColor, COLORS, RngState } from './types';
  */
 export class PuyoRng {
   private rng: XorShift;
+  private selectedColors: PuyoColor[];
 
-  constructor(seed: RngState) {
+  constructor(seed: RngState, selectedColors?: PuyoColor[]) {
     this.rng = new XorShift(seed);
+    // 選択された色が指定されていない場合はデフォルトの4色を使用
+    this.selectedColors = selectedColors || [...COLORS];
+  }
+
+  /**
+   * 全ての色からランダムに4色を選択
+   */
+  selectRandomColors(): PuyoColor[] {
+    const available = [...ALL_COLORS];
+    const selected: PuyoColor[] = [];
+
+    // 4色を選択
+    for (let i = 0; i < 4; i++) {
+      const index = this.nextInt(available.length);
+      selected.push(available[index]);
+      available.splice(index, 1);
+    }
+
+    this.selectedColors = selected;
+    return selected;
+  }
+
+  /**
+   * 選択された色を取得
+   */
+  getSelectedColors(): PuyoColor[] {
+    return [...this.selectedColors];
+  }
+
+  /**
+   * 選択された色を設定
+   */
+  setSelectedColors(colors: PuyoColor[]): void {
+    this.selectedColors = [...colors];
   }
 
   /**
@@ -52,7 +87,7 @@ export class PuyoRng {
    * ランダムなぷよの色を取得
    */
   nextColor(): PuyoColor {
-    return COLORS[this.nextInt(COLORS.length)];
+    return this.selectedColors[this.nextInt(this.selectedColors.length)];
   }
 
   /**

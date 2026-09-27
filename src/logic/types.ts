@@ -1,5 +1,5 @@
 // ぷよの色
-export type PuyoColor = 'red' | 'blue' | 'green' | 'yellow';
+export type PuyoColor = 'red' | 'blue' | 'green' | 'yellow' | 'purple';
 
 // フィールド定数
 export const FIELD_COLS = 6;
@@ -9,7 +9,10 @@ export const HIDDEN_ROWS = 1; // 見えない行（最上部、y=0）
 export const TOTAL_ROWS = VISIBLE_ROWS + HIDDEN_ROWS; // 表示される総行数（隠しマス含む）
 export const CONNECT_COUNT = 4; // 消えるのに必要な連結数
 
-// 使用する色
+// 全ての色（毎ゲーム開始時にここから4色を選択）
+export const ALL_COLORS: PuyoColor[] = ['red', 'blue', 'green', 'yellow', 'purple'];
+
+// 使用する色（後方互換性のため維持、デフォルトは最初の4色）
 export const COLORS: PuyoColor[] = ['red', 'blue', 'green', 'yellow'];
 
 // フィールド（6列×12段、nullは空）
@@ -53,6 +56,7 @@ export type GameState = {
   score: number;
   chainCount: number;
   phase: GamePhase;
+  selectedColors: PuyoColor[]; // このゲームで使用する4色
 };
 
 // 連鎖結果
@@ -90,4 +94,6 @@ export type GameSnapshot = {
   rngState: RngState;
   // 落下させたぷよの位置（連鎖で消えた場合も含む）
   droppedPositions: Position[];
+  // このゲームで使用する4色（オプショナル、後方互換性のため）
+  selectedColors?: PuyoColor[];
 };
