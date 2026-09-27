@@ -22,6 +22,7 @@ export default function GameScreen() {
   const clearErasingPuyos = useGameStore((state) => state.clearErasingPuyos);
   const history = useGameStore((state) => state.history);
   const restoreToSnapshot = useGameStore((state) => state.restoreToSnapshot);
+  const [backConfirmVisible, setBackConfirmVisible] = useState(false);
 
   const { isRightHanded, cellSize, largeMargin, historyWidth, historyCellSize, fieldHeight } = useGameLayout();
 
@@ -30,17 +31,11 @@ export default function GameScreen() {
   // 履歴枠の高さ = フィールド + 操作エリア
   const historyHeight = fieldHeight + controlAreaHeight;
 
-  const handleBackDirect = useCallback(() => {
+  const handleBackConfirm = useCallback(() => {
+    setBackConfirmVisible(false);
     dispatch({ type: 'RESTART_GAME' });
     router.back();
   }, [dispatch, router]);
-
-  const [backConfirmVisible, setBackConfirmVisible] = useState(false);
-
-  const handleBackConfirm = useCallback(() => {
-    setBackConfirmVisible(false);
-    handleBackDirect();
-  }, [handleBackDirect]);
 
   // 連鎖消去時のhaptic feedback
   const prevErasingCountRef = useRef(0);

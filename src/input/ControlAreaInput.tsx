@@ -16,7 +16,7 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, sideMargin, 
   // 操作エリアの幅（フィールドと同じ幅：6列分 + ボーダー幅）
   const controlAreaWidth = cellSize * FIELD_COLS + FIELD_BORDER_WIDTH * 2;
 
-  const { panResponder, areaRef, onAreaLayout } = useFieldGesture({ cellSize });
+  const { panResponder } = useFieldGesture({ cellSize });
 
   // ストアから状態を購読
   const activeColumn = useGestureStore((state) => state.activeColumn);
@@ -33,7 +33,6 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, sideMargin, 
     ]}>
       {children}
       <View
-        ref={areaRef}
         style={[
           styles.controlArea,
           {
@@ -41,7 +40,6 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, sideMargin, 
             height: cellSize * 3,
           },
         ]}
-        onLayout={onAreaLayout}
         {...panResponder.panHandlers}
       >
         {/* 6列の縦線（タッチイベントは親に伝播） */}
@@ -98,6 +96,8 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#4a4a6a',
     overflow: 'hidden',
+    // 子要素をタッチの対象にしない（タッチ位置 locationX を常にこのエリア基準にするため）
+    pointerEvents: 'box-only',
   },
   columnsContainer: {
     flex: 1,
@@ -107,7 +107,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    pointerEvents: 'none',
   },
   column: {
     height: '100%',
@@ -131,7 +130,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    pointerEvents: 'none',
   },
   swipeArrowRow: {
     flexDirection: 'row',

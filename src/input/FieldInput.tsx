@@ -12,7 +12,7 @@ interface FieldInputProps {
 }
 
 export const FieldInput: React.FC<FieldInputProps> = ({ cellSize, children }) => {
-  const { panResponder, areaRef, onAreaLayout } = useFieldGesture({ cellSize });
+  const { panResponder } = useFieldGesture({ cellSize });
 
   // ストアから状態を購読
   const activeColumn = useGestureStore((state) => state.activeColumn);
@@ -25,9 +25,7 @@ export const FieldInput: React.FC<FieldInputProps> = ({ cellSize, children }) =>
 
   return (
     <View
-      ref={areaRef}
       style={[styles.container, { width: fieldWidth, height: fieldHeight }]}
-      onLayout={onAreaLayout}
       {...panResponder.panHandlers}
     >
       {children}
@@ -68,6 +66,8 @@ export const FieldInput: React.FC<FieldInputProps> = ({ cellSize, children }) =>
 const styles = StyleSheet.create({
   container: {
     position: 'relative',
+    // 子要素をタッチの対象にしない（タッチ位置 locationX を常にこのエリア基準にするため）
+    pointerEvents: 'box-only',
   },
   overlayContainer: {
     position: 'absolute',
@@ -75,7 +75,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    pointerEvents: 'none',
   },
   columnOverlay: {
     position: 'absolute',
@@ -100,7 +99,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    pointerEvents: 'none',
   },
   swipeIndicator: {
     width: 48,

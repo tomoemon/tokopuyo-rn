@@ -5,8 +5,6 @@ import { useState, useCallback } from 'react';
 import { ConfigScreen } from '../src/components';
 import { MAX_APP_WIDTH } from '../src/renderer';
 
-const BACKGROUND_COLOR = '#0a0a1a';
-
 // Config モーダルのコンテキスト
 import { createContext, useContext } from 'react';
 
@@ -41,7 +39,7 @@ export default function RootLayout() {
           <Stack
             screenOptions={{
               headerShown: false,
-              contentStyle: { backgroundColor: BACKGROUND_COLOR },
+              contentStyle: { backgroundColor: '#0a0a1a' },
               animation: 'slide_from_right',
             }}
           >
@@ -60,7 +58,7 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: BACKGROUND_COLOR,
+    backgroundColor: '#0a0a1a',
     alignItems: 'center',
     // Web でマウスのドラッグ操作によりテキスト選択が起きないようにする（入力欄は影響を受けない）
     userSelect: 'none',
