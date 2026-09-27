@@ -1,6 +1,7 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useGameStore } from '../src/store';
+import { APP_BACKGROUND_COLOR } from '../src/renderer';
 import { useConfig } from './_layout';
 
 export default function TitleScreen() {
@@ -42,7 +43,7 @@ export default function TitleScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a1a',
+    backgroundColor: APP_BACKGROUND_COLOR,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,

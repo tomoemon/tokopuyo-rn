@@ -4,7 +4,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import * as Haptics from 'expo-haptics';
 import { useConfigStore, useGameHistoryStore, CHAIN_ANIMATION_DELAYS } from '../src/store';
-import { GameFieldLayout, OperationHistory, useGameLayout, HISTORY_MARGIN } from '../src/renderer';
+import { APP_BACKGROUND_COLOR, GameFieldLayout, OperationHistory, useGameLayout, HISTORY_MARGIN } from '../src/renderer';
 import { GameHeader, goBack } from '../src/components';
 import { ErasingPuyo, Field as FieldType, PuyoColor, Position, GameSnapshot } from '../src/logic/types';
 import { detectErasingPuyos } from '../src/logic/chain';
@@ -396,7 +396,7 @@ function ReplayContent({ history }: { history: GameSnapshot[] }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a1a',
+    backgroundColor: APP_BACKGROUND_COLOR,
     paddingBottom: 24,
   },
   emptyContainer: {

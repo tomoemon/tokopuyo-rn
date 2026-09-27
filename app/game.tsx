@@ -3,7 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useGameStore } from '../src/store';
 import { ControlArea, FieldInput } from '../src/input';
-import { GameFieldLayout, OperationHistory, useGameLayout, HISTORY_MARGIN } from '../src/renderer';
+import { APP_BACKGROUND_COLOR, GameFieldLayout, OperationHistory, useGameLayout, HISTORY_MARGIN } from '../src/renderer';
 import { ConfirmDialog, GameHeader, goBack } from '../src/components';
 import { useConfig } from './_layout';
 
@@ -122,7 +122,7 @@ export default function GameScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a1a',
+    backgroundColor: APP_BACKGROUND_COLOR,
     paddingBottom: 24,
   },
   // 履歴とゲームエリアを中央に寄せて並べる（余った幅は両端に回す）

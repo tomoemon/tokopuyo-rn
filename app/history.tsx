@@ -19,7 +19,7 @@ import {
   HIDDEN_ROWS,
 } from '../src/logic/types';
 import { ConfirmDialog, DismissableModal, GameHeader, goBack } from '../src/components';
-import { PUYO_COLORS } from '../src/renderer/constants';
+import { APP_BACKGROUND_COLOR, PUYO_COLORS } from '../src/renderer/constants';
 
 // サムネイルのセルサイズ
 const CELL_SIZE = 8;
@@ -670,7 +670,7 @@ export default function GameHistoryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a1a',
+    backgroundColor: APP_BACKGROUND_COLOR,
   },
   tabContainer: {
     flexDirection: 'row',
