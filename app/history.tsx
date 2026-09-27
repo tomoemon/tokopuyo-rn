@@ -18,7 +18,7 @@ import {
   VISIBLE_ROWS,
   HIDDEN_ROWS,
 } from '../src/logic/types';
-import { ConfirmDialog, DismissableModal, GameHeader } from '../src/components';
+import { ConfirmDialog, DismissableModal, GameHeader, goBack } from '../src/components';
 import { PUYO_COLORS } from '../src/renderer/constants';
 
 // サムネイルのセルサイズ
@@ -273,9 +273,7 @@ export default function GameHistoryScreen() {
   // お気に入り済みの ID（History タブの各アイテムで参照）
   const favoriteIds = useMemo(() => new Set(favorites.map(e => e.id)), [favorites]);
 
-  const handleBack = () => {
-    router.back();
-  };
+  const handleBack = () => goBack(router, '/');
 
   const handleDeleteConfirm = () => {
     if (deleteConfirmId) {

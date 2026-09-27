@@ -5,7 +5,7 @@ import * as Haptics from 'expo-haptics';
 import { useGameStore } from '../src/store';
 import { ControlArea, FieldInput } from '../src/input';
 import { GameFieldLayout, OperationHistory, useGameLayout, FIELD_BORDER_WIDTH } from '../src/renderer';
-import { ConfirmDialog, GameHeader } from '../src/components';
+import { ConfirmDialog, GameHeader, goBack } from '../src/components';
 import { useConfig } from './_layout';
 
 export default function GameScreen() {
@@ -34,7 +34,7 @@ export default function GameScreen() {
   const handleBackConfirm = useCallback(() => {
     setBackConfirmVisible(false);
     dispatch({ type: 'RESTART_GAME' });
-    router.back();
+    goBack(router, '/');
   }, [dispatch, router]);
 
   // 連鎖消去時のhaptic feedback

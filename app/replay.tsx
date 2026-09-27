@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useConfigStore, useGameHistoryStore, CHAIN_ANIMATION_DELAYS } from '../src/store';
 import { GameFieldLayout, OperationHistory, useGameLayout } from '../src/renderer';
-import { GameHeader } from '../src/components';
+import { GameHeader, goBack } from '../src/components';
 import { ErasingPuyo, Field as FieldType, PuyoColor, Position, GameSnapshot } from '../src/logic/types';
 import { detectErasingPuyos } from '../src/logic/chain';
 import { applyGravity, removePuyos, cloneField, setPuyo, hasFloatingPuyos } from '../src/logic/field';
@@ -52,7 +52,7 @@ export default function GameReplayScreen() {
   if (!entry || entry.operationHistory.length === 0) {
     return (
       <View style={styles.container}>
-        <GameHeader onBack={() => router.back()} title="Replay" showConfig={false} />
+        <GameHeader onBack={() => goBack(router, '/history')} title="Replay" showConfig={false} />
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>Entry not found</Text>
         </View>
@@ -284,9 +284,7 @@ function ReplayContent({ history }: { history: GameSnapshot[] }) {
     }
   }, [history, isAnimating]);
 
-  const handleBack = () => {
-    router.back();
-  };
+  const handleBack = () => goBack(router, '/history');
 
   // ボタンの無効状態
   const isAtStart = currentIndex === 0 && replayPhase === 'idle';

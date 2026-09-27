@@ -26,6 +26,9 @@ Props:
 - `onConfirm`: 確認ボタンを押したとき
 - `onCancel`: Cancel ボタン・背景タップ・Android の戻るボタン
 
+### goBack
+`goBack(router, fallback)`: 前の画面に戻る。戻る先がない場合（Web で画面を直接開いた・リロードした場合）は `fallback` へ移動する。各画面の Back ボタンで使う。
+
 ### DismissableModal
 背景タップで閉じることができるモーダル。
 

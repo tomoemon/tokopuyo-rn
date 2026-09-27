@@ -26,10 +26,11 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       <View style={styles.content}>
         <Text style={styles.title}>{title}</Text>
         <View style={styles.buttons}>
-          <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
+          {/* 閉じるアニメーション中の連打で onConfirm / onCancel が二重に呼ばれないようにする */}
+          <TouchableOpacity style={styles.cancelButton} onPress={visible ? onCancel : undefined}>
             <Text style={styles.cancelText}>Cancel</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.confirmButton} onPress={onConfirm}>
+          <TouchableOpacity style={styles.confirmButton} onPress={visible ? onConfirm : undefined}>
             <Text style={styles.confirmText}>{confirmText}</Text>
           </TouchableOpacity>
         </View>
