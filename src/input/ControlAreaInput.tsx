@@ -3,7 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { useFieldGesture } from './useFieldGesture';
 import { useGestureStore } from './gestureStore';
 import { FIELD_COLS } from '../logic/types';
-import { FIELD_BORDER_WIDTH } from '../renderer/constants';
+import { FIELD_BORDER_WIDTH, CONTROL_AREA_ROWS, CONTROL_AREA_MARGIN_TOP } from '../renderer/constants';
 
 interface ControlAreaProps {
   cellSize: number;
@@ -37,7 +37,7 @@ export const ControlArea: React.FC<ControlAreaProps> = ({ cellSize, sideMargin, 
           styles.controlArea,
           {
             width: controlAreaWidth,
-            height: cellSize * 3,
+            height: cellSize * CONTROL_AREA_ROWS,
           },
         ]}
         {...panResponder.panHandlers}
@@ -91,9 +91,9 @@ const styles = StyleSheet.create({
   },
   controlArea: {
     backgroundColor: 'rgba(26, 26, 46, 0.8)',
-    marginTop: 10,
+    marginTop: CONTROL_AREA_MARGIN_TOP,
     borderRadius: 8,
-    borderWidth: 3,
+    borderWidth: FIELD_BORDER_WIDTH,
     borderColor: '#4a4a6a',
     overflow: 'hidden',
     // 子要素をタッチの対象にしない（タッチ位置 locationX を常にこのエリア基準にするため）

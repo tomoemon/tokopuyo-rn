@@ -4,7 +4,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useConfigStore, useGameHistoryStore, CHAIN_ANIMATION_DELAYS } from '../src/store';
-import { GameFieldLayout, OperationHistory, useGameLayout } from '../src/renderer';
+import { GameFieldLayout, OperationHistory, useGameLayout, HISTORY_MARGIN } from '../src/renderer';
 import { GameHeader, goBack } from '../src/components';
 import { ErasingPuyo, Field as FieldType, PuyoColor, Position, GameSnapshot } from '../src/logic/types';
 import { detectErasingPuyos } from '../src/logic/chain';
@@ -70,7 +70,7 @@ function ReplayContent({ history }: { history: GameSnapshot[] }) {
 
   const {
     onAreaLayout, isLayoutReady, isRightHanded, cellSize, largeMargin,
-    historyWidth, historyMargin, historyCellSize, fieldWidth, fieldHeight, gameAreaWidth,
+    historyWidth, historyCellSize, fieldWidth, fieldHeight, gameAreaWidth,
   } = useGameLayout();
   const chainAnimationSpeed = useConfigStore((state) => state.chainAnimationSpeed);
   const erasingDelay = CHAIN_ANIMATION_DELAYS[chainAnimationSpeed];
@@ -377,10 +377,7 @@ function ReplayContent({ history }: { history: GameSnapshot[] }) {
             {!isRightHanded && renderGameArea('left')}
 
             {/* 履歴エリア */}
-            <View style={[
-              { width: historyWidth, height: historyHeight },
-              isRightHanded ? { marginRight: historyMargin } : { marginLeft: historyMargin }
-            ]}>
+            <View style={{ width: historyWidth, height: historyHeight }}>
               <OperationHistory
                 history={history}
                 cellSize={historyCellSize}
@@ -418,6 +415,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     justifyContent: 'center',
+    columnGap: HISTORY_MARGIN,
   },
   controlsWrapper: {
     marginTop: 12,

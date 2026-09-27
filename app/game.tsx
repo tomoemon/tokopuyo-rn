@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useGameStore } from '../src/store';
 import { ControlArea, FieldInput } from '../src/input';
-import { GameFieldLayout, OperationHistory, useGameLayout } from '../src/renderer';
+import { GameFieldLayout, OperationHistory, useGameLayout, HISTORY_MARGIN } from '../src/renderer';
 import { ConfirmDialog, GameHeader, goBack } from '../src/components';
 import { useConfig } from './_layout';
 
@@ -26,7 +26,7 @@ export default function GameScreen() {
 
   const {
     onAreaLayout, isLayoutReady, isRightHanded, cellSize, largeMargin,
-    historyWidth, historyMargin, historyCellSize, fieldHeight, gameAreaWidth, controlAreaHeight,
+    historyWidth, historyCellSize, fieldHeight, gameAreaWidth, controlAreaHeight,
   } = useGameLayout();
 
   // 履歴枠の高さ = フィールド + 操作エリア
@@ -96,10 +96,7 @@ export default function GameScreen() {
             {!isRightHanded && renderGameArea('left')}
 
             {/* 履歴エリア */}
-            <View style={[
-              { width: historyWidth, height: historyHeight },
-              isRightHanded ? { marginRight: historyMargin } : { marginLeft: historyMargin }
-            ]}>
+            <View style={{ width: historyWidth, height: historyHeight }}>
               <OperationHistory
                 history={history}
                 cellSize={historyCellSize}
@@ -135,6 +132,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     justifyContent: 'center',
+    columnGap: HISTORY_MARGIN,
   },
   controlWrapper: {
     flex: 1,

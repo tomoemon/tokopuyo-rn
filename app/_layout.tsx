@@ -1,7 +1,7 @@
 import { Stack } from 'expo-router';
 import { View, StyleSheet, useWindowDimensions } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { ConfigScreen } from '../src/components';
 import { MAX_APP_WIDTH_RATIO } from '../src/renderer';
 
@@ -32,8 +32,11 @@ export default function RootLayout() {
     setConfigVisible(false);
   }, []);
 
+  // ウィンドウサイズの変更でこのコンポーネントが再描画されても、useConfig() を使う画面まで再描画しないようにする
+  const configContextValue = useMemo(() => ({ openConfig, closeConfig }), [openConfig, closeConfig]);
+
   return (
-    <ConfigContext.Provider value={{ openConfig, closeConfig }}>
+    <ConfigContext.Provider value={configContextValue}>
       <StatusBar style="light" />
       <View style={styles.root}>
         <View style={[styles.app, { maxWidth: windowHeight * MAX_APP_WIDTH_RATIO }]}>
