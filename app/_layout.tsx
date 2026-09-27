@@ -1,9 +1,16 @@
-import { Stack } from 'expo-router';
+import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
 import { View, StyleSheet, useWindowDimensions } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { ConfigScreen } from '../src/components';
 import { MAX_APP_WIDTH_RATIO, MIN_MAX_APP_WIDTH } from '../src/renderer';
+
+// 画面の背景と、画面の後ろにあるコンテナの背景に使われる。
+// コンテナの背景は、スワイプで戻る途中に画面を逆方向へ引っ張ったときに見える
+const NAVIGATION_THEME = {
+  ...DarkTheme,
+  colors: { ...DarkTheme.colors, background: '#0a0a1a' },
+};
 
 // Config モーダルのコンテキスト
 import { createContext, useContext } from 'react';
@@ -40,18 +47,20 @@ export default function RootLayout() {
       <StatusBar style="light" />
       <View style={styles.root}>
         <View style={[styles.app, { maxWidth: Math.max(MIN_MAX_APP_WIDTH, windowHeight * MAX_APP_WIDTH_RATIO) }]}>
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: '#0a0a1a' },
-              animation: 'slide_from_right',
-            }}
-          >
-            <Stack.Screen name="index" />
-            <Stack.Screen name="game" />
-            <Stack.Screen name="history" />
-            <Stack.Screen name="replay" />
-          </Stack>
+          <ThemeProvider value={NAVIGATION_THEME}>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                animation: 'slide_from_right',
+              }}
+            >
+              <Stack.Screen name="index" />
+              {/* スワイプはぷよの操作に使うので、スワイプで前の画面に戻れないようにする（iOS 26 以降は画面全体のスワイプで戻るのがデフォルト） */}
+              <Stack.Screen name="game" options={{ gestureEnabled: false }} />
+              <Stack.Screen name="history" />
+              <Stack.Screen name="replay" />
+            </Stack>
+          </ThemeProvider>
         </View>
       </View>
       <ConfigScreen visible={configVisible} onClose={closeConfig} />
