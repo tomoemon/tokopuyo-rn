@@ -112,8 +112,8 @@ export default function GameScreen() {
 
       <ConfirmDialog
         visible={backConfirmVisible}
-        title="Return to title?"
-        confirmText="Return"
+        title="Leave this game?"
+        confirmText="Leave"
         onConfirm={handleBackConfirm}
         onCancel={() => setBackConfirmVisible(false)}
       />
