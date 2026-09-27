@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { PuyoColor } from '../../logic/types';
+import { PUYO_COLORS } from '../constants';
 
 interface PuyoProps {
   color: PuyoColor;
@@ -8,15 +9,7 @@ interface PuyoProps {
   isGhost?: boolean; // 落下予測表示用
 }
 
-// 色の定義
-const COLOR_MAP: Record<PuyoColor, string> = {
-  red: '#FF4444',
-  blue: '#4444FF',
-  green: '#44FF44',
-  yellow: '#FFFF44',
-  purple: '#AA44FF',
-};
-
+// 枠線の色
 const BORDER_COLOR_MAP: Record<PuyoColor, string> = {
   red: '#CC0000',
   blue: '#0000CC',
@@ -26,7 +19,7 @@ const BORDER_COLOR_MAP: Record<PuyoColor, string> = {
 };
 
 export const Puyo: React.FC<PuyoProps> = ({ color, size, isGhost = false }) => {
-  const backgroundColor = COLOR_MAP[color];
+  const backgroundColor = PUYO_COLORS[color];
   const borderColor = BORDER_COLOR_MAP[color];
 
   return (

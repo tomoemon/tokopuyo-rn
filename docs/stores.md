@@ -14,7 +14,6 @@
 - `HARD_DROP`: ハードドロップ
 - `SET_COLUMN`: 列を直接設定
 - `SET_ROTATION`: 回転状態を直接設定
-- `TICK`: ゲームループのティック処理
 
 ### スナップショット作成タイミング
 スナップショットは**連鎖完了後**に作成される:
@@ -32,12 +31,13 @@
 - ゲームフェーズ
 - 操作履歴
 - スナップショットID
-- pendingSnapshot（連鎖中の一時保存用）
+- ゲームで使用する4色
 
 ### 復元時の処理
-- 最後のスナップショットから乱数状態を復元
-- 進行中だったゲームは ready フェーズに戻す
+- 最後のスナップショットから乱数状態・盤面・NEXT・スコアを復元し、ready フェーズに戻す
 - スナップショットは連鎖完了後の状態なので重力適用不要
+- ゲームオーバーだったゲームは初期状態に戻す
+- ゲーム開始前の状態は、乱数生成器の色を永続化された4色に揃える
 
 ## configStore (src/store/configStore.ts)
 
@@ -58,4 +58,4 @@
 - `addToFavorites`: History から Favorite にコピー
 - `deleteFavorite`: Favorite からエントリ削除
 - `updateFavoriteDetails`: Favorite の Note/Tags を更新
-- `isInFavorites`: 指定IDが Favorite に存在するか確認
+- `findEntry`: History または Favorite から指定IDのエントリを取得

@@ -34,13 +34,6 @@ export class PuyoRng {
   }
 
   /**
-   * 選択された色を取得
-   */
-  getSelectedColors(): PuyoColor[] {
-    return [...this.selectedColors];
-  }
-
-  /**
    * 選択された色を設定
    */
   setSelectedColors(colors: PuyoColor[]): void {

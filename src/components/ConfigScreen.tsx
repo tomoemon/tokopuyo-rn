@@ -1,6 +1,12 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
-import { useConfigStore, Handedness, ChainAnimationSpeed } from '../store';
+import { useConfigStore, ChainAnimationSpeed, CHAIN_ANIMATION_DELAYS } from '../store';
+
+const CHAIN_SPEED_OPTIONS: { speed: ChainAnimationSpeed; label: string }[] = [
+  { speed: 'short', label: 'Short' },
+  { speed: 'middle', label: 'Middle' },
+  { speed: 'long', label: 'Long' },
+];
 
 interface ConfigScreenProps {
   visible: boolean;
@@ -12,14 +18,6 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({ visible, onClose }) 
   const setHandedness = useConfigStore((state) => state.setHandedness);
   const chainAnimationSpeed = useConfigStore((state) => state.chainAnimationSpeed);
   const setChainAnimationSpeed = useConfigStore((state) => state.setChainAnimationSpeed);
-
-  const handleSelectHandedness = (value: Handedness) => {
-    setHandedness(value);
-  };
-
-  const handleSelectChainSpeed = (value: ChainAnimationSpeed) => {
-    setChainAnimationSpeed(value);
-  };
 
   return (
     <Modal
@@ -44,7 +42,7 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({ visible, onClose }) 
                   styles.optionButton,
                   handedness === 'left' && styles.optionButtonSelected,
                 ]}
-                onPress={() => handleSelectHandedness('left')}
+                onPress={() => setHandedness('left')}
               >
                 <View style={styles.optionContent}>
                   <View style={styles.previewContainer}>
@@ -72,7 +70,7 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({ visible, onClose }) 
                   styles.optionButton,
                   handedness === 'right' && styles.optionButtonSelected,
                 ]}
-                onPress={() => handleSelectHandedness('right')}
+                onPress={() => setHandedness('right')}
               >
                 <View style={styles.optionContent}>
                   <View style={styles.previewContainer}>
@@ -104,59 +102,26 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({ visible, onClose }) 
             </Text>
 
             <View style={styles.speedOptionsContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.speedOptionButton,
-                  chainAnimationSpeed === 'short' && styles.optionButtonSelected,
-                ]}
-                onPress={() => handleSelectChainSpeed('short')}
-              >
-                <Text
+              {CHAIN_SPEED_OPTIONS.map(({ speed, label }) => (
+                <TouchableOpacity
+                  key={speed}
                   style={[
-                    styles.optionText,
-                    chainAnimationSpeed === 'short' && styles.optionTextSelected,
+                    styles.speedOptionButton,
+                    chainAnimationSpeed === speed && styles.optionButtonSelected,
                   ]}
+                  onPress={() => setChainAnimationSpeed(speed)}
                 >
-                  Short
-                </Text>
-                <Text style={styles.optionSubtext}>0ms</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.speedOptionButton,
-                  chainAnimationSpeed === 'middle' && styles.optionButtonSelected,
-                ]}
-                onPress={() => handleSelectChainSpeed('middle')}
-              >
-                <Text
-                  style={[
-                    styles.optionText,
-                    chainAnimationSpeed === 'middle' && styles.optionTextSelected,
-                  ]}
-                >
-                  Middle
-                </Text>
-                <Text style={styles.optionSubtext}>300ms</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.speedOptionButton,
-                  chainAnimationSpeed === 'long' && styles.optionButtonSelected,
-                ]}
-                onPress={() => handleSelectChainSpeed('long')}
-              >
-                <Text
-                  style={[
-                    styles.optionText,
-                    chainAnimationSpeed === 'long' && styles.optionTextSelected,
-                  ]}
-                >
-                  Long
-                </Text>
-                <Text style={styles.optionSubtext}>600ms</Text>
-              </TouchableOpacity>
+                  <Text
+                    style={[
+                      styles.optionText,
+                      chainAnimationSpeed === speed && styles.optionTextSelected,
+                    ]}
+                  >
+                    {label}
+                  </Text>
+                  <Text style={styles.optionSubtext}>{CHAIN_ANIMATION_DELAYS[speed]}ms</Text>
+                </TouchableOpacity>
+              ))}
             </View>
           </View>
 

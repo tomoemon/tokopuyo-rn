@@ -9,7 +9,8 @@ import * as Haptics from 'expo-haptics';
 import { useGameStore } from '../store';
 import { Rotation, FIELD_COLS } from '../logic/types';
 import { setColumn } from '../logic/puyo';
-import { useGestureStore } from './gestureStore';
+import { useGestureStore, SwipeDirection } from './gestureStore';
+import { FIELD_BORDER_WIDTH } from '../renderer/constants';
 
 // スワイプ検出の閾値
 const SWIPE_THRESHOLD = 20;
@@ -17,6 +18,30 @@ const SWIPE_THRESHOLD = 20;
 const CANCEL_THRESHOLD = 15;
 
 type ControlState = 'idle' | 'touching' | 'swiped' | 'cancelPending' | 'blocked';
+
+// スワイプ方向ごとのサテライトの回転状態
+// 横方向のスワイプ → 同じ方向にサテライト、縦方向のスワイプ → 逆方向にサテライト
+const ROTATION_BY_SWIPE: Record<SwipeDirection, Rotation> = {
+  right: 1,
+  left: 3,
+  down: 0,
+  up: 2,
+};
+
+// 移動量からスワイプ方向を取得（閾値未満ならスワイプとして認識しない）
+function getSwipeDirection(dx: number, dy: number): SwipeDirection | null {
+  const absDx = Math.abs(dx);
+  const absDy = Math.abs(dy);
+
+  if (absDx < SWIPE_THRESHOLD && absDy < SWIPE_THRESHOLD) {
+    return null;
+  }
+
+  if (absDx > absDy) {
+    return dx > 0 ? 'right' : 'left';
+  }
+  return dy > 0 ? 'down' : 'up';
+}
 
 export interface FieldGestureResult {
   panResponder: PanResponderInstance;
@@ -34,42 +59,7 @@ export function useFieldGesture({
   const dispatch = useGameStore((state) => state.dispatch);
 
   const controlStateRef = useRef<ControlState>('idle');
-  const initialColumnRef = useRef<number | null>(null);
   const cancelFlashTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // スワイプ方向から回転状態を取得
-  const getRotationFromSwipe = useCallback((dx: number, dy: number): Rotation | null => {
-    const absDx = Math.abs(dx);
-    const absDy = Math.abs(dy);
-
-    if (absDx < SWIPE_THRESHOLD && absDy < SWIPE_THRESHOLD) {
-      return null; // スワイプとして認識しない
-    }
-
-    if (absDx > absDy) {
-      // 横方向のスワイプ → 同じ方向にサテライト
-      return dx > 0 ? 1 : 3; // 右スワイプ→右:1, 左スワイプ→左:3
-    } else {
-      // 縦方向のスワイプ → 逆方向にサテライト
-      return dy > 0 ? 0 : 2; // 下スワイプ→上:0, 上スワイプ→下:2
-    }
-  }, []);
-
-  // スワイプ方向を視覚的に表示するための変換
-  const getSwipeDirectionFromDelta = useCallback((dx: number, dy: number): 'up' | 'down' | 'left' | 'right' | null => {
-    const absDx = Math.abs(dx);
-    const absDy = Math.abs(dy);
-
-    if (absDx < SWIPE_THRESHOLD && absDy < SWIPE_THRESHOLD) {
-      return null;
-    }
-
-    if (absDx > absDy) {
-      return dx > 0 ? 'right' : 'left';
-    } else {
-      return dy > 0 ? 'down' : 'up';
-    }
-  }, []);
 
   const handleTouchStart = useCallback(
     (evt: GestureResponderEvent, _gestureState: PanResponderGestureState) => {
@@ -86,12 +76,10 @@ export function useFieldGesture({
 
       // タッチした列を計算して設定
       // pageXからエリアの位置を引いて相対位置を計算
-      const BORDER_WIDTH = 3;
       const areaLayout = getAreaLayout();
-      const relativeX = pageX - areaLayout.x - BORDER_WIDTH;
+      const relativeX = pageX - areaLayout.x - FIELD_BORDER_WIDTH;
       const column = Math.floor(relativeX / cellSize);
       const clampedColumn = Math.max(0, Math.min(FIELD_COLS - 1, column));
-      initialColumnRef.current = clampedColumn;
 
       // その列に配置可能かチェック（回転0で試す）
       const testPuyo = { ...currentFallingPuyo, rotation: 0 as Rotation };
@@ -161,20 +149,20 @@ export function useFieldGesture({
       }
 
       // スワイプとして処理
-      const rotation = getRotationFromSwipe(dx, dy);
-      if (rotation !== null) {
+      const swipeDirection = getSwipeDirection(dx, dy);
+      if (swipeDirection !== null) {
         const wasNotSwiped = controlStateRef.current !== 'swiped';
         controlStateRef.current = 'swiped';
-        dispatch({ type: 'SET_ROTATION', rotation });
+        dispatch({ type: 'SET_ROTATION', rotation: ROTATION_BY_SWIPE[swipeDirection] });
         // 視覚的フィードバック：スワイプ方向を更新
-        gestureStore.setSwipeDirection(getSwipeDirectionFromDelta(dx, dy));
+        gestureStore.setSwipeDirection(swipeDirection);
         // 触覚フィードバック（スワイプ認識時のみ）
         if (wasNotSwiped) {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         }
       }
     },
-    [dispatch, getRotationFromSwipe, getSwipeDirectionFromDelta]
+    [dispatch]
   );
 
   const handleTouchEnd = useCallback(
@@ -209,7 +197,6 @@ export function useFieldGesture({
       }
 
       controlStateRef.current = 'idle';
-      initialColumnRef.current = null;
     },
     [dispatch]
   );

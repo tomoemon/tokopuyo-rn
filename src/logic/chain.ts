@@ -148,17 +148,6 @@ export function flattenGroups(groups: Position[][]): Position[] {
  */
 export function detectErasingPuyos(field: Field): ErasingPuyo[] {
   const groups = findErasableGroups(field);
-  if (groups.length === 0) {
-    return [];
-  }
-  const positions = flattenGroups(groups);
-  return positions
-    .map((pos) => {
-      const color = getPuyo(field, pos);
-      if (color !== null) {
-        return { pos, color };
-      }
-      return null;
-    })
-    .filter((p): p is ErasingPuyo => p !== null);
+  // グループは色のあるマスのみで構成されるため color は非 null
+  return flattenGroups(groups).map((pos) => ({ pos, color: getPuyo(field, pos)! }));
 }

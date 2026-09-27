@@ -1,16 +1,18 @@
 import { create } from 'zustand';
 
+export type SwipeDirection = 'up' | 'down' | 'left' | 'right';
+
 export interface GestureState {
   activeColumn: number | null;
   blockedColumn: number | null;
-  swipeDirection: 'up' | 'down' | 'left' | 'right' | null;
+  swipeDirection: SwipeDirection | null;
   cancelFlash: boolean;
 }
 
 interface GestureStore extends GestureState {
   setActiveColumn: (column: number | null) => void;
   setBlockedColumn: (column: number | null) => void;
-  setSwipeDirection: (direction: 'up' | 'down' | 'left' | 'right' | null) => void;
+  setSwipeDirection: (direction: SwipeDirection | null) => void;
   setCancelFlash: (flash: boolean) => void;
   reset: () => void;
 }
