@@ -18,3 +18,5 @@ export const CONTROL_AREA_MARGIN_TOP = 10;
 
 // アプリ全体の最大幅の、画面の高さに対する比率（PC ブラウザや iPad など横に広い画面で、スマホに近い縦長の幅に中央でまとめるため）
 export const MAX_APP_WIDTH_RATIO = 0.5;
+// 上の比率で絞るときも、この幅までは広げてよい（16:9 のスマホや、ツールバーで高さが減るモバイルブラウザで、画面の幅いっぱいに表示するため）
+export const MIN_MAX_APP_WIDTH = 430;

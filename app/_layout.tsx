@@ -3,7 +3,7 @@ import { View, StyleSheet, useWindowDimensions } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useMemo } from 'react';
 import { ConfigScreen } from '../src/components';
-import { MAX_APP_WIDTH_RATIO } from '../src/renderer';
+import { MAX_APP_WIDTH_RATIO, MIN_MAX_APP_WIDTH } from '../src/renderer';
 
 // Config モーダルのコンテキスト
 import { createContext, useContext } from 'react';
@@ -39,7 +39,7 @@ export default function RootLayout() {
     <ConfigContext.Provider value={configContextValue}>
       <StatusBar style="light" />
       <View style={styles.root}>
-        <View style={[styles.app, { maxWidth: windowHeight * MAX_APP_WIDTH_RATIO }]}>
+        <View style={[styles.app, { maxWidth: Math.max(MIN_MAX_APP_WIDTH, windowHeight * MAX_APP_WIDTH_RATIO) }]}>
           <Stack
             screenOptions={{
               headerShown: false,
@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     // Web でマウスのドラッグ操作によりテキスト選択が起きないようにする（入力欄は影響を受けない）
     userSelect: 'none',
   },
-  // 横に広い画面（PC ブラウザや iPad など）では、画面の高さ × MAX_APP_WIDTH_RATIO の幅で中央にまとめる
+  // 横に広い画面（PC ブラウザや iPad など）では、画面の高さ × MAX_APP_WIDTH_RATIO の幅（MIN_MAX_APP_WIDTH 以上）で中央にまとめる
   app: {
     flex: 1,
     width: '100%',
