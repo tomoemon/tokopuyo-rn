@@ -4,7 +4,7 @@
 
 ### GameHeader
 画面上部のヘッダー。全画面で共通のレイアウトを提供する。
-- 左: Back ボタン（`backDisabled` で無効化）
+- 左: Back ボタン
 - 中央: `title` または `score`
 - 右: Config ボタン（`onConfig` を渡し、`showConfig` が false でない場合に表示）
 - `showBorder`: 下部ボーダーの表示

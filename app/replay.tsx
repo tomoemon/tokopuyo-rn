@@ -363,7 +363,6 @@ function ReplayContent({ history }: { history: GameSnapshot[] }) {
         onBack={handleBack}
         onConfig={openConfig}
         score={displayScore}
-        backDisabled={isAnimating}
         showBorder={false}
       />
 
