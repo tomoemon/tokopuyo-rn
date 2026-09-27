@@ -5,16 +5,19 @@
 ## ファイルアーキテクチャ
 
 ```
+app/                          # 画面（expo-router のファイルベースルーティング）
+
 src/
 ├── input/                    # 入力処理
 ├── logic/                    # ゲームロジック（純粋関数）
 ├── store/                    # 状態管理（Zustand、永続化対応）
 ├── components/               # 共通コンポーネント
 ├── renderer/                 # 描画コンポーネント
-├── types/                    # 外部ライブラリの型定義
-└── screens/                  # 画面
+└── types/                    # 外部ライブラリの型定義
 
 docs/                         # 詳細ドキュメント
+├── SPECIFICATION.md          # ゲーム仕様・アーキテクチャ
+├── control-system.md         # 操作体系
 ├── types.md                  # 型定義
 ├── stores.md                 # ストア詳細
 └── components.md             # コンポーネント詳細
@@ -22,11 +25,11 @@ docs/                         # 詳細ドキュメント
 
 ## 画面構成
 
-- **TitleScreen**: タイトル画面（START/Config）
-- **GameScreen**: ゲーム画面（フィールド、操作エリア、履歴）
-- **ConfigScreen**: 設定画面（モーダル、利き手設定 - 空間対応型配置）
-- **GameHistoryScreen**: ゲーム履歴画面（History/Favorite タブ）
-- **GameReplayScreen**: ゲーム再生画面（過去のゲームを閲覧）
+- **TitleScreen** (`app/index.tsx`): タイトル画面（START/Config/History）
+- **GameScreen** (`app/game.tsx`): ゲーム画面（フィールド、操作エリア、履歴）
+- **ConfigScreen** (`src/components/ConfigScreen.tsx`): 設定画面（モーダル、利き手設定 - 空間対応型配置、連鎖アニメーション速度）
+- **GameHistoryScreen** (`app/history.tsx`): ゲーム履歴画面（History/Favorite タブ）
+- **GameReplayScreen** (`app/replay.tsx`): ゲーム再生画面（過去のゲームを閲覧）
 
 ## 共通コンポーネント
 
@@ -83,6 +86,8 @@ Next ボタンで進む際、連鎖が発生する場合は自動的にアニメ
 npm start        # Expo開発サーバー起動
 npm run android  # Androidで実行
 npm run ios      # iOSで実行
+npm test         # ロジックのテスト（vitest）
+npx tsc --noEmit # 型チェック
 ```
 
 ## 依存パッケージ

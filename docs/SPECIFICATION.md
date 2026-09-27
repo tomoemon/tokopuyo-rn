@@ -2,7 +2,7 @@
 
 ## 概要
 
-同じ色を4つつなげて消すパズルゲームの練習アプリ
+同じ色を4つつなげて消すパズルゲームの練習アプリ。落下速度や対戦の要素はなく、1手ずつ置き場所を考えて連鎖を組む練習に特化している。操作履歴から任意の手に戻したり、過去のゲームを再生・分岐したりできる。
 
 ## ゲーム仕様
 
@@ -10,62 +10,102 @@
 
 | 項目 | 仕様 |
 |------|------|
-| フィールドサイズ | 6列 × 12段 |
-| ぷよの色数 | 4色（赤・青・緑・黄） |
+| フィールドサイズ | 6列 × 12段（可視）+ 隠し1段 |
+| ぷよの色数 | 5色（赤・青・緑・黄・紫）からゲームごとにランダムに4色を選択 |
 | 最初の2手の色制限 | 最大3色まで（ぷよぷよ通準拠） |
-| 消去条件 | 同色4つ以上が繋がると消える |
+| 消去条件 | 同色4つ以上が縦横に繋がると消える（隠し段のぷよは連結判定に含めない） |
 | ゲームモード | エンドレス（ゲームオーバーまで） |
-| ゲームオーバー条件 | フィールド上部（3列目の最上段）にぷよが置けなくなった時 |
+| 自動落下 | なし（操作を確定するとハードドロップで即座に置かれる） |
+| ゲームオーバー条件 | 連鎖終了後、可視最上段の3列目または4列目にぷよがある場合（×印の位置）。または次の操作ぷよを出現位置に置けない場合 |
+
+隠し段より上（フィールド外）にはみ出した子ぷよは、設置時に消滅する。
 
 ### ぷよ生成仕様
 
-ぷよぷよ通の仕様に準拠した乱数生成を行う。
+ぷよぷよ通の仕様に準拠した乱数生成を行う。乱数はシード付き（xorshift）で、状態をスナップショットに保存することで同じぷよ列を再現できる。
+
+#### 使用する色
+ゲーム開始時に5色からランダムに4色を選び、そのゲームではその4色だけを使う。選んだ色はゲーム状態とスナップショットに保存される。
 
 #### 最初の2手の色制限
 ゲーム開始時の最初の2手（4つのぷよ）は、最大3色までに制限される。
 
-**NGパターン（4色）:**
+NGパターン（4色）:
 ```
 1手目: 赤青
 2手目: 緑黄
 ```
 
-**OKパターン（3色）:**
+OKパターン（3色以下）:
 ```
 1手目: 赤青
 2手目: 黄赤
 ```
 
-**OKパターン（2色）:**
-```
-1手目: 赤赤
-2手目: 青青
-```
+`PuyoRng.generateInitialPairs()` で最初の2手を生成する。4色になった場合は、4つ目のぷよの色を最初の3つで使われた色からランダムに選び直す。
 
-**OKパターン（1色）:**
-```
-1手目: 赤赤
-2手目: 赤赤
-```
-
-#### 実装方法
-`PuyoRng.generateInitialPairs()` メソッドで最初の2手を生成。4色になった場合は、4つ目のぷよの色を最初の3つで使われた色からランダムに選び直す。
+#### NEXT
+NEXT キューは常に3組を保持し、画面には2組先まで表示する。新しいぷよペアは、操作ぷよが出現するときにだけ乱数から生成する（連鎖中は乱数を進めない）。
 
 ### 操作方法
 
+フィールドと操作エリアのどちらでも同じタッチ操作ができる。
+
 | 操作 | アクション |
 |------|------------|
-| 左スワイプ | 左に移動 |
-| 右スワイプ | 右に移動 |
-| 下スワイプ | 高速落下 |
-| タップ | 時計回りに回転 |
+| タッチ | タッチした列に軸ぷよを移動（子ぷよは上向き） |
+| スワイプ（指を離さずに） | 子ぷよの向きを変更 |
+| 指を離す | ハードドロップで確定 |
+| スワイプ後に元の位置に戻して離す | キャンセル（子ぷよを上向きに戻す） |
 
-### 画面構成
+詳細は [control-system.md](control-system.md) を参照。
 
-| 画面 | 機能 |
-|------|------|
-| タイトル画面 | ゲーム開始ボタン |
-| ゲーム画面 | フィールド、NEXT表示(2つ)、スコア、連鎖数表示、エフェクト |
+### 連鎖の演出
+
+1. ハードドロップ後、重力を適用して連鎖判定を行う
+2. 消えるぷよがあれば、設定した遅延（Config の Chain Animation Speed）の後に消去エフェクトを表示する
+3. エフェクト完了後にぷよを消して重力を適用し、次の連鎖を判定する
+4. 連鎖が終わったら次のぷよを出す（またはゲームオーバー）
+
+## 画面構成
+
+| 画面 | ファイル | 機能 |
+|------|----------|------|
+| タイトル | `app/index.tsx` | START / Config / History |
+| ゲーム | `app/game.tsx` | フィールド、NEXT、スコア、連鎖数、操作エリア、操作履歴 |
+| ゲーム履歴 | `app/history.tsx` | History / Favorite タブ、各エントリからの Resume / Fork / Replay / Shuffle |
+| 再生 | `app/replay.tsx` | 過去のゲームを1手ずつ再生（連鎖アニメーション付き） |
+| 設定 | `src/components/ConfigScreen.tsx` | モーダル。利き手、連鎖アニメーション速度 |
+
+### ゲーム画面
+
+- フィールドの上に NEXT（右上）と連鎖数（左上、連鎖中のみ）をオーバーレイ表示
+- フィールドの横に操作履歴（スナップショットのサムネイル一覧）を表示
+- サムネイルをタップすると確認の後、その手の直後の状態に戻る（以降の履歴は破棄）
+- 右利きは履歴が左・フィールドが右、左利きはその逆
+
+### ゲーム履歴画面
+
+- History: プレイしたゲームの一覧（最終プレイ日時の新しい順、最大100件）。1手以上置いたゲームだけが記録される
+- Favorite: History からコピーしたお気に入り。メモとタグを編集でき、タグで絞り込める
+- エントリをタップすると次の操作を選べる
+  - Resume: 最後の状態から同じゲームとして続ける
+  - Fork: 最後の状態から新しいゲームとして続ける（同じぷよ列）
+  - Replay: 再生画面で1手ずつ見る
+  - Shuffle: 最後の状態から新しいゲームとして続ける（新しいシードで以降のぷよ列を変える）
+
+### 再生画面
+
+- First / Prev / Next / Last で手を移動する
+- Next は「置く → 重力で落ちる → 連鎖ごとに消える」を段階的に表示する
+- 操作履歴のサムネイルをタップするとその手にジャンプする（アニメーション中は無効）
+
+### 設定
+
+| 項目 | 選択肢 |
+|------|--------|
+| Handedness | Left / Right（フィールドと操作履歴の配置） |
+| Chain Animation Speed | Short（0ms）/ Middle（300ms）/ Long（600ms）: 消去エフェクト開始までの遅延 |
 
 ## スコア計算仕様（ぷよぷよ通準拠）
 
@@ -75,7 +115,9 @@
 スコア = 消したぷよ数 × 10 × (連鎖ボーナス + 連結ボーナス + 色数ボーナス)
 ```
 
-※ ボーナス合計が0の場合は1として計算
+- ボーナス合計が0の場合は1として計算
+- ボーナス合計の上限は999
+- 全消し（消去後にフィールドが空）の場合は 2100 点を加算
 
 ### 連鎖ボーナス
 
@@ -121,128 +163,100 @@
 
 ### 設計方針
 
-- **描画とロジックの完全分離**: 将来的にSkiaへの置き換えを可能にする
-- **入力とViewの分離**: 操作方法の変更を容易にする
-- **純粋関数によるロジック実装**: テスタビリティの確保
+- ゲームロジックは純粋関数で実装し、React / React Native に依存させない（テスト容易性）
+- 入力（ジェスチャー）と描画を分け、ストアのアクションを介してつなぐ
+- 状態は Zustand ストアで管理し、AsyncStorage に永続化する
 
 ### レイヤー構成
 
 ```
 ┌─────────────────────────────────────────┐
-│           UI Layer (Screens)            │
+│        Screens (app/, expo-router)      │
 ├─────────────────────────────────────────┤
-│  Input Adapter    │    Renderer         │  ← 両方とも置換可能
-│  (スワイプ等)      │    (描画)           │
+│  Input (src/input)  │ Renderer          │
+│  ジェスチャー処理     │ (src/renderer)    │
 ├─────────────────────────────────────────┤
-│         Store Layer (Zustand)           │
+│       Store (src/store, Zustand)        │
 ├─────────────────────────────────────────┤
-│         Game Logic Layer (純粋関数)      │
+│   Game Logic (src/logic, 純粋関数)       │
 └─────────────────────────────────────────┘
 ```
 
 ### ディレクトリ構成
 
 ```
+app/                          # 画面（expo-router のファイルベースルーティング）
+├── _layout.tsx               # ルートレイアウト（Config モーダルのコンテキスト）
+├── index.tsx                 # タイトル画面
+├── game.tsx                  # ゲーム画面
+├── history.tsx               # ゲーム履歴画面
+└── replay.tsx                # 再生画面
+
 src/
-├── logic/                 # ゲームロジック（描画・入力非依存）
-│   ├── types.ts           # 型定義
-│   ├── field.ts           # フィールド操作
-│   ├── chain.ts           # 連結・消去判定
-│   ├── score.ts           # スコア計算
-│   ├── puyo.ts            # 操作ぷよの移動・回転計算
-│   └── game.ts            # ゲーム進行管理
-│
-├── store/                 # 状態管理
-│   ├── gameStore.ts       # ゲーム状態
-│   └── actions.ts         # 抽象化されたアクション
-│
-├── input/                 # 入力層（置換可能）
-│   ├── types.ts           # 入力アクション型定義
-│   ├── SwipeInput.tsx     # スワイプ実装
-│   ├── ButtonInput.tsx    # ボタン実装（将来用）
-│   └── KeyboardInput.tsx  # キーボード実装（将来用）
-│
-├── renderer/              # 描画層（置換可能）
-│   ├── components/
-│   │   ├── Field.tsx
-│   │   ├── Puyo.tsx
-│   │   ├── NextDisplay.tsx
-│   │   └── Effects.tsx
-│   └── index.ts
-│
-└── screens/               # 画面（薄いレイヤー）
-    ├── TitleScreen.tsx
-    └── GameScreen.tsx
+├── logic/                    # ゲームロジック（純粋関数）
+│   ├── types.ts              # 型定義・定数
+│   ├── field.ts              # フィールド操作（重力、設置、消去）
+│   ├── chain.ts              # 連結・消去判定
+│   ├── score.ts              # スコア計算
+│   ├── puyo.ts               # 操作ぷよの移動・回転（壁蹴り）
+│   ├── game.ts               # ゲーム進行（フェーズ遷移）
+│   ├── random.ts             # シード付き乱数（PuyoRng）
+│   └── __tests__/            # vitest のテスト
+├── store/                    # 状態管理（Zustand）
+│   ├── gameStore.ts          # ゲーム状態・操作履歴
+│   ├── gameHistoryStore.ts   # ゲーム履歴（History / Favorite）
+│   ├── configStore.ts        # 設定
+│   └── actions.ts            # ゲームアクションの型
+├── input/                    # 入力処理
+│   ├── useFieldGesture.ts    # タッチ・スワイプの判定（PanResponder）
+│   ├── FieldInput.tsx        # フィールド上の入力ラッパー
+│   ├── ControlAreaInput.tsx  # 操作エリア
+│   └── gestureStore.ts       # ハイライト状態の共有
+├── renderer/                 # 描画
+│   ├── components/           # Field, Puyo, NextDisplay, DisappearEffect,
+│   │                         # GameFieldLayout, OperationHistory, HistoryThumbnail
+│   ├── constants.ts          # ぷよの色、フィールドの枠線の太さ
+│   └── useGameLayout.ts      # ゲーム画面・再生画面共通のレイアウト計算
+├── components/               # 共通 UI（GameHeader, ConfigScreen, DismissableModal）
+└── types/                    # 外部ライブラリの型定義（xorshift）
 ```
 
-### レイヤー間の依存ルール
+### レイヤー間の依存
 
-| レイヤー | 依存可能 | 依存禁止 |
-|----------|----------|----------|
-| **logic/** | なし | React, React Native, Zustand, input/, renderer/ |
-| **store/** | logic/ | React Native, input/, renderer/ |
-| **input/** | store/actions | logic/直接, renderer/ |
-| **renderer/** | store/ (状態読取のみ) | logic/直接, input/ |
-| **screens/** | input/, renderer/, store/ | logic/直接 |
+| レイヤー | 依存するもの |
+|----------|--------------|
+| logic/ | なし（React・ストアに依存しない） |
+| store/ | logic/ |
+| input/ | store/（アクションの発行と状態の参照）、logic/（配置可否の判定）、renderer/constants（列の座標計算） |
+| renderer/ | logic/（型、ゴースト表示の計算）、store/（設定の参照） |
+| app/ | すべて |
 
-### 型定義（logic/types.ts）
+入力層は、タッチ位置から列を求めるためにフィールドの枠線の太さ（`FIELD_BORDER_WIDTH`）を描画層と共有している。
 
-```typescript
-// ぷよの色
-export type PuyoColor = 'red' | 'blue' | 'green' | 'yellow';
+### 状態と永続化
 
-// フィールド（6列×12段、nullは空）
-export type Field = (PuyoColor | null)[][];
-
-// 座標
-export type Position = { x: number; y: number };
-
-// 操作中のぷよペア
-export type FallingPuyo = {
-  main: { pos: Position; color: PuyoColor };
-  sub: { pos: Position; color: PuyoColor };
-  rotation: 0 | 1 | 2 | 3;  // 0:上, 1:右, 2:下, 3:左
-};
-
-// ゲーム状態
-export type GameState = {
-  field: Field;
-  fallingPuyo: FallingPuyo | null;
-  nextQueue: [PuyoColor, PuyoColor][];  // 次のぷよペア（最低2つ）
-  score: number;
-  chainCount: number;
-  isGameOver: boolean;
-  phase: 'falling' | 'dropping' | 'chaining' | 'gameover';
-};
-```
-
-### 入力アクション型（input/types.ts）
-
-```typescript
-export type GameAction =
-  | { type: 'MOVE_LEFT' }
-  | { type: 'MOVE_RIGHT' }
-  | { type: 'ROTATE_CW' }      // 時計回り
-  | { type: 'ROTATE_CCW' }     // 反時計回り
-  | { type: 'SOFT_DROP' }      // 加速落下
-  | { type: 'HARD_DROP' };     // 即落下
-```
+- ゲーム状態・ストアの詳細は [stores.md](stores.md)、型は [types.md](types.md) を参照
+- 操作履歴はスナップショット（連鎖完了後の盤面、NEXT、スコア、乱数状態、使用色）の配列で、任意の手に戻したり、同じぷよ列で再開したりできる
 
 ## 技術スタック
 
 | カテゴリ | 選択 |
 |----------|------|
-| フレームワーク | Expo (React Native) |
+| フレームワーク | Expo (React Native)、expo-router |
 | 言語 | TypeScript |
-| 描画 | React Nativeコンポーネント（将来Skia置換可能） |
-| 状態管理 | Zustand |
-| 入力 | スワイプ操作（将来他方式に置換可能） |
+| 描画 | React Native コンポーネント |
+| 状態管理 | Zustand（AsyncStorage で永続化） |
+| 入力 | PanResponder によるタッチ・スワイプ |
+| 乱数 | xorshift |
+| テスト | vitest |
 
-## 定数
+## 定数（src/logic/types.ts）
 
 ```typescript
 export const FIELD_COLS = 6;
-export const FIELD_ROWS = 12;
-export const COLORS: PuyoColor[] = ['red', 'blue', 'green', 'yellow'];
-export const CONNECT_COUNT = 4;  // 消えるのに必要な連結数
+export const FIELD_ROWS = 13;     // 隠し段を含む総段数
+export const VISIBLE_ROWS = 12;   // 画面に表示される段数
+export const HIDDEN_ROWS = 1;     // 見えない段（最上部、y=0）
+export const CONNECT_COUNT = 4;   // 消えるのに必要な連結数
+export const ALL_COLORS: PuyoColor[] = ['red', 'blue', 'green', 'yellow', 'purple'];
 ```
