@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { openTestDatabase, TestDatabase } from './testDatabase';
 import { setupDatabase, migrations } from '../migrations';
 import { initDatabase, enqueue, flushQueue } from '../queue';
@@ -48,6 +48,11 @@ describe('queue', () => {
     initDatabase(db);
   });
 
+  afterEach(() => {
+    // 途中で失敗したテストの console.error のスパイを残さない
+    vi.restoreAllMocks();
+  });
+
   it('積んだ順に1つずつ実行する', async () => {
     const order: string[] = [];
     const slow = enqueue(async () => {
@@ -71,6 +76,5 @@ describe('queue', () => {
     await expect(next).resolves.toBe('ok');
     await flushQueue();
     expect(errorSpy).toHaveBeenCalledTimes(1);
-    errorSpy.mockRestore();
   });
 });

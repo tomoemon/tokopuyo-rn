@@ -935,12 +935,14 @@ const styles = StyleSheet.create({
     borderColor: '#3a3a5a',
   },
   // Resume / Fork / Shuffle の読み込みが長引いたときに、モーダルの上に重ねる
+  // 読み込み中も Cancel で閉じられるようにタッチは下に通す（ほかのボタンは読み込み中は何もしない）
   loadingOverlay: {
     ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(26, 26, 46, 0.7)',
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
+    pointerEvents: 'none',
   },
   editModalContent: {
     backgroundColor: '#1a1a2e',

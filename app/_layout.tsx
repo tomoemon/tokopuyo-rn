@@ -89,10 +89,10 @@ export default function RootLayout() {
             </ThemeProvider>
           )}
           {loadState === 'error' && (
-            // Web では、同じブラウザの別のタブでアプリを開いていると DB を開けない
             <View style={styles.errorContainer}>
               <Text style={styles.errorText}>
-                Could not open the saved data. If the app is open in another tab, close it and reload this page.
+                {/* プラットフォームで分岐させず、1つの文言にする（Web では、別のタブで開いていると DB を開けない） */}
+                Could not open the saved data. Restart the app. In a browser, close the app in any other tab first.
               </Text>
             </View>
           )}

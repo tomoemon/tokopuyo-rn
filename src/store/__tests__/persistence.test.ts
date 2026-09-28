@@ -40,6 +40,8 @@ beforeEach(async () => {
 
 afterEach(() => {
   vi.useRealTimers();
+  // 途中で失敗したテストの console.error のスパイを残さない
+  vi.restoreAllMocks();
 });
 
 function dispatch(action: GameAction) {
@@ -164,7 +166,6 @@ describe('1手ごとの保存', () => {
     expect(dbGames('history')).toEqual([expect.objectContaining({ drop_count: 3 })]);
     expectSavedAsInMemory(id);
     expect(errorSpy).toHaveBeenCalledTimes(1);
-    errorSpy.mockRestore();
   });
 });
 
@@ -195,6 +196,19 @@ describe('過去の手に戻す', () => {
     expect(useGameHistoryStore.getState().entries).toEqual([]);
     expect(dbGames('history')).toEqual([]);
     expect(db.all('SELECT * FROM snapshots')).toEqual([]);
+  });
+
+  it('初手まで戻してから置き直すと、初手のスナップショットも保存し直される', async () => {
+    const id = startGame();
+    drop(0);
+    drop(1);
+    await flushQueue();
+
+    useGameStore.getState().restoreToSnapshot(0);
+    drop(3);
+    await flushQueue();
+    expect(dbGames('history')).toEqual([expect.objectContaining({ id, drop_count: 1 })]);
+    expectSavedAsInMemory(id);
   });
 });
 

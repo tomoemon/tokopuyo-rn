@@ -78,7 +78,7 @@ export function loadSnapshots(list: GameList, gameId: string): Promise<GameSnaps
 // 差分は、前の書き込みが終わってから計算する。積んだ時点で計算すると、続けて積んだ手が同じ基準と比べてしまうため
 export function saveGame(summary: GameSummary, snapshots: GameSnapshot[]): void {
   void enqueue(async (db) => {
-    // 別のゲームを覚えているとき（新しいゲーム、Fork / Shuffle の直後）は全部書き直す
+    // 別のゲームを覚えているとき（新しいゲーム、Fork / Shuffle の直後）や、覚えているゲームを消した後は全部書き直す
     // Resume で読み込んだスナップショットも新しいオブジェクトなので、直後の保存は全部書き直しになる
     // （Favorite から Resume したときに、中身の違う History の行と混ざらない。History から削除済みでも全部書かれる）
     const lastSaved = lastSavedByDatabase.get(db);
@@ -124,6 +124,11 @@ export function deleteGames(list: GameList, gameIds: string[]): void {
       'DELETE FROM games WHERE list = ? AND id IN (SELECT value FROM json_each(?))',
       [list, JSON.stringify(gameIds)]
     );
+    // 覚えているゲームの行を消したら、差分の基準も忘れる（初手まで戻してから置き直したときに、全部書き直すため）
+    const lastSaved = lastSavedByDatabase.get(db);
+    if (list === 'history' && lastSaved && gameIds.includes(lastSaved.gameId)) {
+      lastSavedByDatabase.delete(db);
+    }
   });
 }
 
