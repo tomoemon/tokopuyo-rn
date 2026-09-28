@@ -56,7 +56,7 @@ npm run web
 ## テスト
 
 ```bash
-# ゲームロジックのテスト（vitest）
+# ロジック・ストア・DB のテスト（vitest。Node 22.13 以降が必要）
 npm test
 
 # 型チェック

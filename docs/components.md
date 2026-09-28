@@ -29,6 +29,9 @@ Props:
 ### goBack
 `goBack(fallback)`: 前の画面に戻る。戻る先がない場合（Web で画面を直接開いた・リロードした場合）は `fallback` へ移動する。各画面の Back ボタンで使う。
 
+### useDelayedVisible
+`useDelayedVisible(active, delayMs)`: `active` が `delayMs` 以上続いたときだけ true を返すフック。読み込みが短時間で終わるときにローディング表示を出さない（ちらつかせない）ために使う。History 画面（Resume / Fork / Shuffle）と再生画面で、1000ms を指定して使う。
+
 ### DismissableModal
 背景タップで閉じることができるモーダル。
 

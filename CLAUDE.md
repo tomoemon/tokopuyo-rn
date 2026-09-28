@@ -89,7 +89,7 @@ npm start        # Expo開発サーバー起動
 npm run android  # Androidで実行
 npm run ios      # iOSで実行
 npm run web      # Webブラウザで実行（日常的な動作確認はこれで行う）
-npm test         # ロジックのテスト（vitest）
+npm test         # ロジック・ストア・DB のテスト（vitest。Node 22.13 以降）
 npx tsc --noEmit # 型チェック
 ```
 

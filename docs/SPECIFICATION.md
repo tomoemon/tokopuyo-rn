@@ -178,7 +178,9 @@ NEXT キューは常に3組を保持し、画面には2組先まで表示する�
 ├─────────────────────────────────────────┤
 │       Store (src/store, Zustand)        │
 ├─────────────────────────────────────────┤
-│   Game Logic (src/logic, 純粋関数)       │
+│  Game Logic         │ DB                │
+│  (src/logic,        │ (src/db,          │
+│   純粋関数)          │  expo-sqlite)     │
 └─────────────────────────────────────────┘
 ```
 
@@ -186,7 +188,7 @@ NEXT キューは常に3組を保持し、画面には2組先まで表示する�
 
 ```
 app/                          # 画面（expo-router のファイルベースルーティング）
-├── _layout.tsx               # ルートレイアウト（Config モーダルのコンテキスト）
+├── _layout.tsx               # ルートレイアウト（DB を開いてストアを読み込むまで画面を出さない、Config モーダルのコンテキスト）
 ├── index.tsx                 # タイトル画面
 ├── game.tsx                  # ゲーム画面
 ├── history.tsx               # ゲーム履歴画面
@@ -206,7 +208,17 @@ src/
 │   ├── gameStore.ts          # ゲーム状態・操作履歴
 │   ├── gameHistoryStore.ts   # ゲーム履歴（History / Favorite）
 │   ├── configStore.ts        # 設定
-│   └── actions.ts            # ゲームアクションの型
+│   ├── loadStores.ts         # 起動時に DB からストアへ読み込む
+│   ├── actions.ts            # ゲームアクションの型
+│   └── __tests__/            # 保存の仕組みのシナリオテスト
+├── db/                       # 永続化（expo-sqlite）
+│   ├── database.ts           # リポジトリが使う DB の操作の型
+│   ├── migrations.ts         # テーブル定義とマイグレーション
+│   ├── queue.ts              # DB に触る唯一の待ち行列
+│   ├── gameRepository.ts     # ゲーム履歴の読み書き（1手ごとの差分の保存）
+│   ├── appStateRepository.ts # 設定の読み書き
+│   ├── openDatabase.ts       # expo-sqlite で DB を開く（app/_layout からだけ使う）
+│   └── __tests__/            # node:sqlite を使ったテスト
 ├── input/                    # 入力処理
 │   ├── useFieldGesture.ts    # タッチ・スワイプの判定（PanResponder）
 │   ├── FieldInput.tsx        # フィールド上の入力ラッパー
@@ -217,7 +229,7 @@ src/
 │   │                         # GameFieldLayout, OperationHistory, HistoryThumbnail
 │   ├── constants.ts          # ぷよの色、フィールドの枠線の太さ
 │   └── useGameLayout.ts      # ゲーム画面・再生画面共通のレイアウト計算
-├── components/               # 共通 UI（GameHeader, ConfigScreen, ConfirmDialog, DismissableModal）
+├── components/               # 共通 UI（GameHeader, ConfigScreen, ConfirmDialog, DismissableModal, goBack, useDelayedVisible）
 └── types/                    # 外部ライブラリの型定義（xorshift）
 ```
 
@@ -226,10 +238,11 @@ src/
 | レイヤー | 依存するもの |
 |----------|--------------|
 | logic/ | なし（React・ストアに依存しない） |
-| store/ | logic/ |
+| store/ | logic/、db/（読み込みと書き込み） |
+| db/ | logic/（型だけ） |
 | input/ | store/（アクションの発行と状態の参照）、logic/（配置可否の判定）、renderer/constants（列の座標計算） |
 | renderer/ | logic/（型、ゴースト表示の計算）、store/（設定の参照） |
-| app/ | すべて |
+| app/ | すべて（`app/_layout` は起動時に db/ の `openAppDatabase` と `initDatabase` を直接使う） |
 
 入力層は、タッチ位置から列を求めるためにフィールドの枠線の太さ（`FIELD_BORDER_WIDTH`）を描画層と共有している。
 
