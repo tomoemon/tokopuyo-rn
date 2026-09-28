@@ -165,7 +165,7 @@ NEXT キューは常に3組を保持し、画面には2組先まで表示する�
 
 - ゲームロジックは純粋関数で実装し、React / React Native に依存させない（テスト容易性）
 - 入力（ジェスチャー）と描画を分け、ストアのアクションを介してつなぐ
-- 状態は Zustand ストアで管理し、AsyncStorage に永続化する
+- 状態は Zustand ストアで管理し、設定とゲーム履歴は SQLite（expo-sqlite）に保存する。SQL は `src/db/` のリポジトリ層に閉じ込める
 
 ### レイヤー構成
 
@@ -178,7 +178,9 @@ NEXT キューは常に3組を保持し、画面には2組先まで表示する�
 ├─────────────────────────────────────────┤
 │       Store (src/store, Zustand)        │
 ├─────────────────────────────────────────┤
-│   Game Logic (src/logic, 純粋関数)       │
+│  Game Logic         │ DB                │
+│  (src/logic,        │ (src/db,          │
+│   純粋関数)          │  expo-sqlite)     │
 └─────────────────────────────────────────┘
 ```
 
@@ -186,7 +188,7 @@ NEXT キューは常に3組を保持し、画面には2組先まで表示する�
 
 ```
 app/                          # 画面（expo-router のファイルベースルーティング）
-├── _layout.tsx               # ルートレイアウト（Config モーダルのコンテキスト）
+├── _layout.tsx               # ルートレイアウト（DB を開いてストアを読み込むまで画面を出さない、Config モーダルのコンテキスト）
 ├── index.tsx                 # タイトル画面
 ├── game.tsx                  # ゲーム画面
 ├── history.tsx               # ゲーム履歴画面
@@ -206,7 +208,17 @@ src/
 │   ├── gameStore.ts          # ゲーム状態・操作履歴
 │   ├── gameHistoryStore.ts   # ゲーム履歴（History / Favorite）
 │   ├── configStore.ts        # 設定
-│   └── actions.ts            # ゲームアクションの型
+│   ├── loadStores.ts         # 起動時に DB からストアへ読み込む
+│   ├── actions.ts            # ゲームアクションの型
+│   └── __tests__/            # 保存の仕組みのシナリオテスト
+├── db/                       # 永続化（expo-sqlite）
+│   ├── database.ts           # リポジトリが使う DB の操作の型
+│   ├── migrations.ts         # テーブル定義とマイグレーション
+│   ├── queue.ts              # DB に触る唯一の待ち行列
+│   ├── gameRepository.ts     # ゲーム履歴の読み書き（1手ごとの差分の保存）
+│   ├── appStateRepository.ts # 設定の読み書き
+│   ├── openDatabase.ts       # expo-sqlite で DB を開く（app/_layout からだけ使う）
+│   └── __tests__/            # node:sqlite を使ったテスト
 ├── input/                    # 入力処理
 │   ├── useFieldGesture.ts    # タッチ・スワイプの判定（PanResponder）
 │   ├── FieldInput.tsx        # フィールド上の入力ラッパー
@@ -217,7 +229,7 @@ src/
 │   │                         # GameFieldLayout, OperationHistory, HistoryThumbnail
 │   ├── constants.ts          # ぷよの色、フィールドの枠線の太さ
 │   └── useGameLayout.ts      # ゲーム画面・再生画面共通のレイアウト計算
-├── components/               # 共通 UI（GameHeader, ConfigScreen, ConfirmDialog, DismissableModal）
+├── components/               # 共通 UI（GameHeader, ConfigScreen, ConfirmDialog, DismissableModal, goBack, useDelayedVisible）
 └── types/                    # 外部ライブラリの型定義（xorshift）
 ```
 
@@ -226,10 +238,11 @@ src/
 | レイヤー | 依存するもの |
 |----------|--------------|
 | logic/ | なし（React・ストアに依存しない） |
-| store/ | logic/ |
+| store/ | logic/、db/（読み込みと書き込み） |
+| db/ | logic/（型だけ） |
 | input/ | store/（アクションの発行と状態の参照）、logic/（配置可否の判定）、renderer/constants（列の座標計算） |
 | renderer/ | logic/（型、ゴースト表示の計算）、store/（設定の参照） |
-| app/ | すべて |
+| app/ | すべて（`app/_layout` は起動時に db/ の `openAppDatabase` と `initDatabase` を直接使う） |
 
 入力層は、タッチ位置から列を求めるためにフィールドの枠線の太さ（`FIELD_BORDER_WIDTH`）を描画層と共有している。
 
@@ -237,6 +250,7 @@ src/
 
 - ゲーム状態・ストアの詳細は [stores.md](stores.md)、型は [types.md](types.md) を参照
 - 操作履歴はスナップショット（連鎖完了後の盤面、NEXT、スコア、乱数状態、使用色）の配列で、任意の手に戻したり、同じぷよ列で再開したりできる
+- 保存の仕組みとスキーマは [stores.md](stores.md) の「永続化」を参照
 
 ## 技術スタック
 
@@ -245,7 +259,8 @@ src/
 | フレームワーク | Expo (React Native)、expo-router |
 | 言語 | TypeScript |
 | 描画 | React Native コンポーネント |
-| 状態管理 | Zustand（AsyncStorage で永続化） |
+| 状態管理 | Zustand |
+| 永続化 | SQLite（expo-sqlite） |
 | 入力 | PanResponder によるタッチ・スワイプ |
 | 乱数 | xorshift |
 | テスト | vitest |

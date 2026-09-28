@@ -59,7 +59,7 @@ type RngState = [number, number, number, number];
 
 ### GameSnapshot
 ゲーム状態のスナップショット。連鎖完了後の状態を保存する。
-- `id`: スナップショットID
+- `id`: スナップショットID（配列の位置と同じ）
 - `field`: フィールド状態（連鎖完了後）
 - `nextQueue`: NEXT キュー（先頭が次に操作するぷよ）
 - `score`: スコア（連鎖完了後）
@@ -80,17 +80,15 @@ type RngState = [number, number, number, number];
 - `SOFT_DROP`（1段落下）/ `HARD_DROP`（即落下して確定）
 - `SET_COLUMN`（軸ぷよの列を直接設定）/ `SET_ROTATION`（子ぷよの向きを直接設定）
 
-## ゲーム履歴の型 (src/store/gameHistoryStore.ts)
+## ゲーム履歴の型
 
-### GameHistoryEntry
-ゲーム履歴エントリ。
+### GameSummary (src/db/gameRepository.ts)
+ゲーム履歴の一覧に出す要約（スナップショットは含めない。`loadSnapshots` で必要なときに読み込む）。
 - `id`: エントリID（ゲームID）
 - `field`: 最後のフィールド状態
 - `score`: スコア
 - `maxChainCount`: 最大連鎖数
 - `dropCount`: ツモ数（置いた回数）
 - `lastPlayedAt`: 最終プレイ日時（ISO 8601 文字列）
-- `operationHistory`: 操作履歴（GameSnapshot 配列）
-- `nextSnapshotId`: 次のスナップショットID
 - `note`: メモ（Favorite 用）
 - `tags`: タグ配列（Favorite 用）

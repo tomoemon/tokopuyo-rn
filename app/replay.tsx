@@ -1,11 +1,11 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import * as Haptics from 'expo-haptics';
-import { useConfigStore, useGameHistoryStore, CHAIN_ANIMATION_DELAYS } from '../src/store';
+import { useConfigStore, useGameHistoryStore, CHAIN_ANIMATION_DELAYS, GameList } from '../src/store';
 import { APP_BACKGROUND_COLOR, GameFieldLayout, OperationHistory, useGameLayout, HISTORY_MARGIN } from '../src/renderer';
-import { GameHeader, goBack } from '../src/components';
+import { GameHeader, goBack, useDelayedVisible } from '../src/components';
 import { ErasingPuyo, Field as FieldType, PuyoColor, Position, GameSnapshot } from '../src/logic/types';
 import { detectErasingPuyos } from '../src/logic/chain';
 import { applyGravity, removePuyos, cloneField, setPuyo, hasFloatingPuyos } from '../src/logic/field';
@@ -37,18 +37,50 @@ function chainHaptic(chainCount: number): void {
 }
 
 export default function GameReplayScreen() {
-  const { gameId, fromFavorites } = useLocalSearchParams<{ gameId: string; fromFavorites: string }>();
+  const { gameId, list } = useLocalSearchParams<{ gameId: string; list: GameList }>();
 
-  const findEntry = useGameHistoryStore((state) => state.findEntry);
+  const loadSnapshots = useGameHistoryStore((state) => state.loadSnapshots);
 
-  // エントリーを取得
-  const entry = useMemo(() => {
-    if (!gameId) return null;
-    return findEntry(gameId, fromFavorites === '1');
-  }, [gameId, fromFavorites, findEntry]);
+  // スナップショットを読み込む（null は読み込み中）
+  const [history, setHistory] = useState<GameSnapshot[] | null>(null);
+  useEffect(() => {
+    if (!gameId) {
+      setHistory([]);
+      return;
+    }
+    // 読み込みが終わる前に画面を離れたら、結果を捨てる
+    let cancelled = false;
+    setHistory(null);
+    loadSnapshots(list === 'favorite' ? 'favorite' : 'history', gameId).then(
+      (snapshots) => {
+        if (!cancelled) setHistory(snapshots);
+      },
+      (error) => {
+        console.error('[replay]', error);
+        if (!cancelled) setHistory([]);
+      }
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [gameId, list, loadSnapshots]);
 
-  // エントリーがない場合は戻る
-  if (!entry || entry.operationHistory.length === 0) {
+  // 読み込みが1秒を超えたときだけローディング表示を出す
+  const showLoading = useDelayedVisible(history === null, 1000);
+
+  if (history === null) {
+    return (
+      <View style={styles.container}>
+        <GameHeader onBack={() => goBack('/history')} title="Replay" showConfig={false} />
+        <View style={styles.emptyContainer}>
+          {showLoading && <ActivityIndicator color="#4488ff" />}
+        </View>
+      </View>
+    );
+  }
+
+  // エントリーがない場合
+  if (history.length === 0) {
     return (
       <View style={styles.container}>
         <GameHeader onBack={() => goBack('/history')} title="Replay" showConfig={false} />
@@ -60,7 +92,7 @@ export default function GameReplayScreen() {
   }
 
   // 早期 return の後でフックを呼ばないよう、再生本体は別コンポーネントにする
-  return <ReplayContent history={entry.operationHistory} />;
+  return <ReplayContent history={history} />;
 }
 
 function ReplayContent({ history }: { history: GameSnapshot[] }) {
