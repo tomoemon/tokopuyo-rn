@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,16 +9,18 @@ import {
   TextInput,
   Keyboard,
   TouchableWithoutFeedback,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
-import { useGameStore, useGameHistoryStore, GameHistoryEntry, compareByLastPlayedDesc } from '../src/store';
+import { useGameStore, useGameHistoryStore, GameSummary, compareByLastPlayedDesc } from '../src/store';
 import {
   FIELD_COLS,
   VISIBLE_ROWS,
   HIDDEN_ROWS,
+  GameSnapshot,
 } from '../src/logic/types';
-import { ConfirmDialog, DismissableModal, GameHeader, goBack } from '../src/components';
+import { ConfirmDialog, DismissableModal, GameHeader, goBack, useDelayedVisible } from '../src/components';
 import { APP_BACKGROUND_COLOR, PUYO_COLORS } from '../src/renderer/constants';
 
 // サムネイルのセルサイズ
@@ -36,7 +38,7 @@ function formatDate(isoString: string): string {
 }
 
 // フィールドサムネイルコンポーネント
-const FieldThumbnail: React.FC<{ entry: GameHistoryEntry }> = ({ entry }) => {
+const FieldThumbnail: React.FC<{ entry: GameSummary }> = ({ entry }) => {
   const fieldWidth = FIELD_COLS * CELL_SIZE;
   const fieldHeight = VISIBLE_ROWS * CELL_SIZE;
 
@@ -91,7 +93,7 @@ const FieldThumbnail: React.FC<{ entry: GameHistoryEntry }> = ({ entry }) => {
 };
 
 // 日時・スコア・ツモ数・連鎖数の表示（History / Favorite 共通）
-const EntryStats: React.FC<{ entry: GameHistoryEntry }> = ({ entry }) => (
+const EntryStats: React.FC<{ entry: GameSummary }> = ({ entry }) => (
   <>
     <Text style={styles.dateText}>{formatDate(entry.lastPlayedAt)}</Text>
     <Text style={styles.scoreText}>Score: {entry.score}</Text>
@@ -106,7 +108,7 @@ const EntryStats: React.FC<{ entry: GameHistoryEntry }> = ({ entry }) => (
 
 // ゲーム履歴アイテムコンポーネント（History用）
 const HistoryItem: React.FC<{
-  entry: GameHistoryEntry;
+  entry: GameSummary;
   isInFavorites: boolean;
   onPress: () => void;
   onAddToFavorite: () => void;
@@ -148,7 +150,7 @@ const HistoryItem: React.FC<{
 
 // お気に入りアイテムコンポーネント（Favorite用）
 const FavoriteItem: React.FC<{
-  entry: GameHistoryEntry;
+  entry: GameSummary;
   onPress: () => void;
   onMenuPress: () => void;
   onEdit: () => void;
@@ -159,7 +161,7 @@ const FavoriteItem: React.FC<{
       <FieldThumbnail entry={entry} />
       <View style={styles.itemInfo}>
         <EntryStats entry={entry} />
-        {entry.note && (
+        {entry.note !== '' && (
           <Text style={styles.noteText} numberOfLines={1}>
             {entry.note}
           </Text>
@@ -209,7 +211,7 @@ export default function GameHistoryScreen() {
   const deleteFavorite = useGameHistoryStore((state) => state.deleteFavorite);
   const addToFavorites = useGameHistoryStore((state) => state.addToFavorites);
   const updateFavoriteDetails = useGameHistoryStore((state) => state.updateFavoriteDetails);
-  const findEntry = useGameHistoryStore((state) => state.findEntry);
+  const loadSnapshots = useGameHistoryStore((state) => state.loadSnapshots);
 
   const [activeTab, setActiveTab] = useState<TabType>('history');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -222,6 +224,14 @@ export default function GameHistoryScreen() {
     dropCount: number;
     fromFavorites: boolean;
   } | null>(null);
+  // Resume / Fork / Shuffle でスナップショットを読み込み中か（読み込みが1秒を超えたときだけローディング表示を出す）
+  const [isLoadingSnapshots, setIsLoadingSnapshots] = useState(false);
+  const showLoading = useDelayedVisible(isLoadingSnapshots, 1000);
+  // 読み込みの要求ごとに増やす番号。モーダルを閉じたり画面を離れたりしたら増やし、古い読み込みの結果を捨てる
+  const loadRequestRef = useRef(0);
+  useEffect(() => () => {
+    loadRequestRef.current++;
+  }, []);
   // 編集モーダル用の状態
   const [editId, setEditId] = useState<string | null>(null);
   const [editNote, setEditNote] = useState('');
@@ -287,7 +297,7 @@ export default function GameHistoryScreen() {
     }
   };
 
-  const handleOpenResumeModal = (entry: GameHistoryEntry, fromFavorites: boolean) => {
+  const handleOpenResumeModal = (entry: GameSummary, fromFavorites: boolean) => {
     setResumeEntryCache({
       id: entry.id,
       score: entry.score,
@@ -298,27 +308,41 @@ export default function GameHistoryScreen() {
   };
 
   const handleCloseResumeModal = () => {
+    // 読み込み中なら結果を捨てる
+    loadRequestRef.current++;
+    setIsLoadingSnapshots(false);
     setResumeModalVisible(false);
   };
 
-  // 選択中のエントリからゲームを開始し、成功したらゲーム画面へ
-  const startGameFromEntry = (start: (gameHistoryId: string, fromFavorites: boolean) => boolean) => {
-    if (resumeEntryCache && start(resumeEntryCache.id, resumeEntryCache.fromFavorites)) {
-      setResumeModalVisible(false);
-      router.push('/game');
+  // 選択中のエントリのスナップショットを読み込んでゲームを開始し、成功したらゲーム画面へ
+  const startGameFromEntry = async (start: (gameHistoryId: string, snapshots: GameSnapshot[]) => boolean) => {
+    if (!resumeEntryCache || isLoadingSnapshots) return;
+    const { id, fromFavorites } = resumeEntryCache;
+    const request = ++loadRequestRef.current;
+    setIsLoadingSnapshots(true);
+    try {
+      const snapshots = await loadSnapshots(id, fromFavorites);
+      // 読み込み中にモーダルを閉じた・画面を離れた場合は結果を捨てる
+      if (request !== loadRequestRef.current) return;
+      setIsLoadingSnapshots(false);
+      // スナップショットが空なら何もせず、モーダルを開いたままにする
+      if (start(id, snapshots)) {
+        setResumeModalVisible(false);
+        router.push('/game');
+      }
+    } catch (error) {
+      console.error('[history]', error);
+      if (request === loadRequestRef.current) setIsLoadingSnapshots(false);
     }
   };
 
   const handleReplayConfirm = () => {
-    if (resumeEntryCache) {
-      const entry = findEntry(resumeEntryCache.id, resumeEntryCache.fromFavorites);
-      if (entry && entry.operationHistory.length > 0) {
-        setResumeModalVisible(false);
-        router.push({
-          pathname: '/replay',
-          params: { gameId: resumeEntryCache.id, fromFavorites: resumeEntryCache.fromFavorites ? '1' : '0' },
-        });
-      }
+    if (resumeEntryCache && resumeEntryCache.dropCount > 0 && !isLoadingSnapshots) {
+      setResumeModalVisible(false);
+      router.push({
+        pathname: '/replay',
+        params: { gameId: resumeEntryCache.id, fromFavorites: resumeEntryCache.fromFavorites ? '1' : '0' },
+      });
     }
   };
 
@@ -576,6 +600,11 @@ export default function GameHistoryScreen() {
           >
             <Text style={styles.modalCancelText}>Cancel</Text>
           </TouchableOpacity>
+          {showLoading && (
+            <View style={styles.loadingOverlay}>
+              <ActivityIndicator color="#4488ff" />
+            </View>
+          )}
         </View>
       </DismissableModal>
 
@@ -904,6 +933,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#3a3a5a',
+  },
+  // Resume / Fork / Shuffle の読み込みが長引いたときに、モーダルの上に重ねる
+  loadingOverlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(26, 26, 46, 0.7)',
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   editModalContent: {
     backgroundColor: '#1a1a2e',

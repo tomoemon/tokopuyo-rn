@@ -1,6 +1,5 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { saveAppState } from '../db';
 
 export type Handedness = 'right' | 'left';
 
@@ -13,7 +12,7 @@ export const CHAIN_ANIMATION_DELAYS: Record<ChainAnimationSpeed, number> = {
   long: 600,
 };
 
-interface ConfigState {
+export interface ConfigState {
   handedness: Handedness;
   chainAnimationSpeed: ChainAnimationSpeed;
 }
@@ -25,21 +24,24 @@ interface ConfigActions {
 
 type ConfigStore = ConfigState & ConfigActions;
 
-export const useConfigStore = create<ConfigStore>()(
-  persist(
-    (set) => ({
-      // 初期状態（デフォルトは右利き）
-      handedness: 'right',
-      // 初期状態（デフォルトは中速）
-      chainAnimationSpeed: 'middle',
+export const DEFAULT_CONFIG: ConfigState = {
+  // デフォルトは右利き
+  handedness: 'right',
+  // デフォルトは中速
+  chainAnimationSpeed: 'middle',
+};
 
-      // アクション
-      setHandedness: (handedness: Handedness) => set({ handedness }),
-      setChainAnimationSpeed: (chainAnimationSpeed: ChainAnimationSpeed) => set({ chainAnimationSpeed }),
-    }),
-    {
-      name: 'renren-config',
-      storage: createJSONStorage(() => AsyncStorage),
-    }
-  )
-);
+export const useConfigStore = create<ConfigStore>()((set, get) => {
+  // 設定を変更して保存する
+  const update = (changes: Partial<ConfigState>) => {
+    set(changes);
+    const { handedness, chainAnimationSpeed } = get();
+    saveAppState('config', { handedness, chainAnimationSpeed });
+  };
+
+  return {
+    ...DEFAULT_CONFIG,
+    setHandedness: (handedness: Handedness) => update({ handedness }),
+    setChainAnimationSpeed: (chainAnimationSpeed: ChainAnimationSpeed) => update({ chainAnimationSpeed }),
+  };
+});

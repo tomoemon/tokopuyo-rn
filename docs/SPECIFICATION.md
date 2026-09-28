@@ -165,7 +165,7 @@ NEXT キューは常に3組を保持し、画面には2組先まで表示する�
 
 - ゲームロジックは純粋関数で実装し、React / React Native に依存させない（テスト容易性）
 - 入力（ジェスチャー）と描画を分け、ストアのアクションを介してつなぐ
-- 状態は Zustand ストアで管理し、AsyncStorage に永続化する
+- 状態は Zustand ストアで管理し、設定とゲーム履歴は SQLite（expo-sqlite）に保存する。SQL は `src/db/` のリポジトリ層に閉じ込める
 
 ### レイヤー構成
 
@@ -237,6 +237,7 @@ src/
 
 - ゲーム状態・ストアの詳細は [stores.md](stores.md)、型は [types.md](types.md) を参照
 - 操作履歴はスナップショット（連鎖完了後の盤面、NEXT、スコア、乱数状態、使用色）の配列で、任意の手に戻したり、同じぷよ列で再開したりできる
+- 保存の仕組みとスキーマは [stores.md](stores.md) の「永続化」を参照
 
 ## 技術スタック
 
@@ -245,7 +246,8 @@ src/
 | フレームワーク | Expo (React Native)、expo-router |
 | 言語 | TypeScript |
 | 描画 | React Native コンポーネント |
-| 状態管理 | Zustand（AsyncStorage で永続化） |
+| 状態管理 | Zustand |
+| 永続化 | SQLite（expo-sqlite） |
 | 入力 | PanResponder によるタッチ・スワイプ |
 | 乱数 | xorshift |
 | テスト | vitest |

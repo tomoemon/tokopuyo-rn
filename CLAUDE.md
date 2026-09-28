@@ -10,7 +10,8 @@ app/                          # 画面（expo-router のファイルベースル
 src/
 ├── input/                    # 入力処理
 ├── logic/                    # ゲームロジック（純粋関数）
-├── store/                    # 状態管理（Zustand、永続化対応）
+├── store/                    # 状態管理（Zustand）
+├── db/                       # 永続化（expo-sqlite のリポジトリ層、マイグレーション、書き込みの待ち行列）
 ├── components/               # 共通コンポーネント
 ├── renderer/                 # 描画コンポーネント
 └── types/                    # 外部ライブラリの型定義
@@ -97,13 +98,18 @@ npx tsc --noEmit # 型チェック
 - `react-native`: React Native
 - `react-native-web`: Web 対応（`react-dom`、`@expo/metro-runtime` とセット）
 - `zustand`: 状態管理
-- `@react-native-async-storage/async-storage`: データ永続化
+- `expo-sqlite`: データ永続化（非同期 API だけを使う。詳細は `docs/stores.md` の「永続化」）
 - `expo-haptics`: 触覚フィードバック
 - `xorshift`: 疑似乱数生成
 
 パッケージは `npx expo install` で入れること。理由は `DEPENDENCY_NOTES.md` を参照。
 
 ## コーディング規約
+
+### 永続化
+- SQL は `src/db/` のリポジトリに閉じ込め、DB への読み書きはすべて待ち行列（`enqueue`）を通す
+- テーブル定義を変えるときは `src/db/migrations.ts` を変更する（リリース前は v1 を直接書き換える）
+- `GameSnapshot` の型を変えるときは、保存済みの `snapshots.data`（JSON）のマイグレーションが必要か確認する
 
 ### アイコン
 - アイコンを使用する際は `@react-native-vector-icons/ionicons` の **Ionicons** を使用すること（`@expo/vector-icons` は SDK 56 で非推奨）
