@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { openTestDatabase, TestDatabase } from '../../db/__tests__/testDatabase';
-import { setupDatabase, initDatabase, flushQueue, resetGameRepository, GameList } from '../../db';
+import { setupDatabase, initDatabase, flushQueue, GameList } from '../../db';
 import { useGameStore } from '../gameStore';
+import { GameAction } from '../actions';
 import { useGameHistoryStore } from '../gameHistoryStore';
 import { useConfigStore, DEFAULT_CONFIG } from '../configStore';
 import { loadStores } from '../loadStores';
@@ -24,7 +25,6 @@ function resetStores() {
 // アプリの再起動に相当する：メモリ上の状態を捨てて、同じ DB から読み込み直す
 async function restart() {
   resetStores();
-  resetGameRepository();
   initDatabase(db);
   await loadStores();
 }
@@ -35,7 +35,6 @@ beforeEach(async () => {
   db = openTestDatabase();
   await setupDatabase(db);
   initDatabase(db);
-  resetGameRepository();
   resetStores();
 });
 
@@ -43,7 +42,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-function dispatch(action: Parameters<ReturnType<typeof useGameStore.getState>['dispatch']>[0]) {
+function dispatch(action: GameAction) {
   useGameStore.getState().dispatch(action);
 }
 
@@ -213,7 +212,7 @@ describe('History から再開する', () => {
 
   it('Resume：読み込んだスナップショットから同じゲームとして再開する', async () => {
     const id = await playAndLeave();
-    const snapshots = await useGameHistoryStore.getState().loadSnapshots(id, false);
+    const snapshots = await useGameHistoryStore.getState().loadSnapshots('history', id);
     expect(useGameStore.getState().resumeFromHistory(id, snapshots)).toBe(true);
     expect(useGameHistoryStore.getState().currentGameId).toBe(id);
 
@@ -226,8 +225,8 @@ describe('History から再開する', () => {
 
   it('Fork：同じ手のまま新しいゲームとして保存する', async () => {
     const id = await playAndLeave();
-    const snapshots = await useGameHistoryStore.getState().loadSnapshots(id, false);
-    expect(useGameStore.getState().forkFromHistory(id, snapshots)).toBe(true);
+    const snapshots = await useGameHistoryStore.getState().loadSnapshots('history', id);
+    expect(useGameStore.getState().forkFromHistory(snapshots)).toBe(true);
     const forkedId = useGameHistoryStore.getState().currentGameId!;
     expect(forkedId).not.toBe(id);
 
@@ -238,8 +237,8 @@ describe('History から再開する', () => {
 
   it('Shuffle：最後の NEXT を引き直して、新しいゲームとして保存する', async () => {
     const id = await playAndLeave();
-    const snapshots = await useGameHistoryStore.getState().loadSnapshots(id, false);
-    expect(useGameStore.getState().forkWithNewSeedFromHistory(id, snapshots)).toBe(true);
+    const snapshots = await useGameHistoryStore.getState().loadSnapshots('history', id);
+    expect(useGameStore.getState().forkWithNewSeedFromHistory(snapshots)).toBe(true);
     const shuffledId = useGameHistoryStore.getState().currentGameId!;
 
     await flushQueue();
@@ -269,7 +268,7 @@ describe('History から再開する', () => {
     drop(5);
     await flushQueue();
 
-    const favoriteSnapshots = await useGameHistoryStore.getState().loadSnapshots(id, true);
+    const favoriteSnapshots = await useGameHistoryStore.getState().loadSnapshots('favorite', id);
     expect(favoriteSnapshots).toHaveLength(4);
     useGameStore.getState().resumeFromHistory(id, favoriteSnapshots);
     drop(0);
@@ -288,7 +287,7 @@ describe('History から再開する', () => {
     await flushQueue();
     expect(dbGames('history')).toEqual([]);
 
-    const favoriteSnapshots = await useGameHistoryStore.getState().loadSnapshots(id, true);
+    const favoriteSnapshots = await useGameHistoryStore.getState().loadSnapshots('favorite', id);
     useGameStore.getState().resumeFromHistory(id, favoriteSnapshots);
     drop(3);
     await flushQueue();
@@ -371,7 +370,7 @@ describe('再起動', () => {
     expect(useGameStore.getState()).toMatchObject({ phase: 'ready', history: [] });
 
     // 途中で終了したゲームを Resume できる
-    const snapshots = await useGameHistoryStore.getState().loadSnapshots(id, false);
+    const snapshots = await useGameHistoryStore.getState().loadSnapshots('history', id);
     expect(snapshots).toHaveLength(3);
     useGameStore.getState().resumeFromHistory(id, snapshots);
     drop(3);

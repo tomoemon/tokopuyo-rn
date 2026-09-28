@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
-import { useGameStore, useGameHistoryStore, GameSummary, compareByLastPlayedDesc } from '../src/store';
+import { useGameStore, useGameHistoryStore, GameList, GameSummary, compareByLastPlayedDesc } from '../src/store';
 import {
   FIELD_COLS,
   VISIBLE_ROWS,
@@ -222,7 +222,7 @@ export default function GameHistoryScreen() {
     id: string;
     score: number;
     dropCount: number;
-    fromFavorites: boolean;
+    list: GameList;
   } | null>(null);
   // Resume / Fork / Shuffle でスナップショットを読み込み中か（読み込みが1秒を超えたときだけローディング表示を出す）
   const [isLoadingSnapshots, setIsLoadingSnapshots] = useState(false);
@@ -297,12 +297,12 @@ export default function GameHistoryScreen() {
     }
   };
 
-  const handleOpenResumeModal = (entry: GameSummary, fromFavorites: boolean) => {
+  const handleOpenResumeModal = (entry: GameSummary, list: GameList) => {
     setResumeEntryCache({
       id: entry.id,
       score: entry.score,
       dropCount: entry.dropCount,
-      fromFavorites,
+      list,
     });
     setResumeModalVisible(true);
   };
@@ -315,18 +315,18 @@ export default function GameHistoryScreen() {
   };
 
   // 選択中のエントリのスナップショットを読み込んでゲームを開始し、成功したらゲーム画面へ
-  const startGameFromEntry = async (start: (gameHistoryId: string, snapshots: GameSnapshot[]) => boolean) => {
+  const startGameFromEntry = async (start: (snapshots: GameSnapshot[]) => boolean) => {
     if (!resumeEntryCache || isLoadingSnapshots) return;
-    const { id, fromFavorites } = resumeEntryCache;
+    const { id, list } = resumeEntryCache;
     const request = ++loadRequestRef.current;
     setIsLoadingSnapshots(true);
     try {
-      const snapshots = await loadSnapshots(id, fromFavorites);
+      const snapshots = await loadSnapshots(list, id);
       // 読み込み中にモーダルを閉じた・画面を離れた場合は結果を捨てる
       if (request !== loadRequestRef.current) return;
       setIsLoadingSnapshots(false);
       // スナップショットが空なら何もせず、モーダルを開いたままにする
-      if (start(id, snapshots)) {
+      if (start(snapshots)) {
         setResumeModalVisible(false);
         router.push('/game');
       }
@@ -341,7 +341,7 @@ export default function GameHistoryScreen() {
       setResumeModalVisible(false);
       router.push({
         pathname: '/replay',
-        params: { gameId: resumeEntryCache.id, fromFavorites: resumeEntryCache.fromFavorites ? '1' : '0' },
+        params: { gameId: resumeEntryCache.id, list: resumeEntryCache.list },
       });
     }
   };
@@ -526,7 +526,7 @@ export default function GameHistoryScreen() {
                   key={entry.id}
                   entry={entry}
                   isInFavorites={favoriteIds.has(entry.id)}
-                  onPress={() => handleOpenResumeModal(entry, false)}
+                  onPress={() => handleOpenResumeModal(entry, 'history')}
                   onAddToFavorite={() => addToFavorites(entry.id)}
                   onMenuPress={() => {
                     setDeleteConfirmId(entry.id);
@@ -538,7 +538,7 @@ export default function GameHistoryScreen() {
                 <FavoriteItem
                   key={entry.id}
                   entry={entry}
-                  onPress={() => handleOpenResumeModal(entry, true)}
+                  onPress={() => handleOpenResumeModal(entry, 'favorite')}
                   onMenuPress={() => {
                     setDeleteConfirmId(entry.id);
                     setDeleteFromFavorites(true);
@@ -567,7 +567,7 @@ export default function GameHistoryScreen() {
           <View style={styles.actionButtonsGrid}>
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={() => startGameFromEntry(resumeFromHistory)}
+              onPress={() => startGameFromEntry((snapshots) => resumeFromHistory(resumeEntryCache!.id, snapshots))}
             >
               <Text style={styles.actionButtonText}>Resume</Text>
               <Text style={styles.actionButtonSubtext}>Continue playing</Text>

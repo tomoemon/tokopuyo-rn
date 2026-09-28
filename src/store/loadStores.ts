@@ -11,5 +11,5 @@ export async function loadStores(): Promise<void> {
     loadSummaries('favorite'),
   ]);
   useConfigStore.setState({ ...DEFAULT_CONFIG, ...config });
-  useGameHistoryStore.setState({ entries, favorites, currentGameId: null });
+  useGameHistoryStore.setState({ entries, favorites });
 }

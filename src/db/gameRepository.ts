@@ -1,4 +1,5 @@
 import { Field, GameSnapshot } from '../logic/types';
+import { Database } from './database';
 import { enqueue } from './queue';
 
 // 'history' は History タブ、'favorite' は Favorite タブ（History からコピーした独立したエントリ。id は同じ）
@@ -27,9 +28,9 @@ type GameRow = {
   last_played_at: string;
 };
 
-// 最後に書き込みに成功したプレイ中のゲームのスナップショット（saveGame の差分の基準）
+// DB ごとに、最後に書き込みに成功したプレイ中のゲームのスナップショット（saveGame の差分の基準）
 // 待ち行列の外から変えると、まだ残っている処理と食い違うので、待ち行列の中の処理からだけ読み書きする
-let lastSaved: { gameId: string; snapshots: GameSnapshot[] } | null = null;
+const lastSavedByDatabase = new WeakMap<Database, { gameId: string; snapshots: GameSnapshot[] }>();
 
 // 2つの配列の先頭から、同じ要素（参照が同じもの）が続く数
 export function countCommonPrefix<T>(a: readonly T[], b: readonly T[]): number {
@@ -80,7 +81,9 @@ export function saveGame(summary: GameSummary, snapshots: GameSnapshot[]): void 
     // 別のゲームを覚えているとき（新しいゲーム、Fork / Shuffle の直後）は全部書き直す
     // Resume で読み込んだスナップショットも新しいオブジェクトなので、直後の保存は全部書き直しになる
     // （Favorite から Resume したときに、中身の違う History の行と混ざらない。History から削除済みでも全部書かれる）
-    const base = lastSaved?.gameId === summary.id ? lastSaved.snapshots : [];
+    const lastSaved = lastSavedByDatabase.get(db);
+    const isSameGame = lastSaved?.gameId === summary.id;
+    const base = isSameGame ? lastSaved.snapshots : [];
     const common = countCommonPrefix(base, snapshots);
     await db.withTransactionAsync(async () => {
       // 外部キーはすぐに検査されるので、games の行を snapshots より先に書く
@@ -96,10 +99,13 @@ export function saveGame(summary: GameSummary, snapshots: GameSnapshot[]): void 
            last_played_at = excluded.last_played_at`,
         [summary.id, summary.score, summary.maxChainCount, summary.dropCount, JSON.stringify(summary.field), summary.lastPlayedAt]
       );
-      await db.runAsync(
-        "DELETE FROM snapshots WHERE list = 'history' AND game_id = ? AND seq >= ?",
-        [summary.id, common]
-      );
+      // 1手進めただけ（前回の配列に追加しただけ）なら、消すものはない
+      if (!isSameGame || common < base.length) {
+        await db.runAsync(
+          "DELETE FROM snapshots WHERE list = 'history' AND game_id = ? AND seq >= ?",
+          [summary.id, common]
+        );
+      }
       if (common < snapshots.length) {
         await db.runAsync(
           "INSERT INTO snapshots (list, game_id, seq, data) SELECT 'history', ?, ? + key, value FROM json_each(?)",
@@ -107,7 +113,7 @@ export function saveGame(summary: GameSummary, snapshots: GameSnapshot[]): void 
         );
       }
     });
-    lastSaved = { gameId: summary.id, snapshots };
+    lastSavedByDatabase.set(db, { gameId: summary.id, snapshots });
   });
 }
 
@@ -147,9 +153,4 @@ export function updateFavoriteDetails(gameId: string, note: string, tags: string
       [note, JSON.stringify(tags), gameId]
     )
   );
-}
-
-// テスト用：覚えているスナップショットを忘れる（DB を作り直すときに使う）
-export function resetGameRepository(): void {
-  lastSaved = null;
 }

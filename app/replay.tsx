@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'rea
 import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import * as Haptics from 'expo-haptics';
-import { useConfigStore, useGameHistoryStore, CHAIN_ANIMATION_DELAYS } from '../src/store';
+import { useConfigStore, useGameHistoryStore, CHAIN_ANIMATION_DELAYS, GameList } from '../src/store';
 import { APP_BACKGROUND_COLOR, GameFieldLayout, OperationHistory, useGameLayout, HISTORY_MARGIN } from '../src/renderer';
 import { GameHeader, goBack, useDelayedVisible } from '../src/components';
 import { ErasingPuyo, Field as FieldType, PuyoColor, Position, GameSnapshot } from '../src/logic/types';
@@ -37,7 +37,7 @@ function chainHaptic(chainCount: number): void {
 }
 
 export default function GameReplayScreen() {
-  const { gameId, fromFavorites } = useLocalSearchParams<{ gameId: string; fromFavorites: string }>();
+  const { gameId, list } = useLocalSearchParams<{ gameId: string; list: GameList }>();
 
   const loadSnapshots = useGameHistoryStore((state) => state.loadSnapshots);
 
@@ -51,7 +51,7 @@ export default function GameReplayScreen() {
     // 読み込みが終わる前に画面を離れたら、結果を捨てる
     let cancelled = false;
     setHistory(null);
-    loadSnapshots(gameId, fromFavorites === '1').then(
+    loadSnapshots(list === 'favorite' ? 'favorite' : 'history', gameId).then(
       (snapshots) => {
         if (!cancelled) setHistory(snapshots);
       },
@@ -63,7 +63,7 @@ export default function GameReplayScreen() {
     return () => {
       cancelled = true;
     };
-  }, [gameId, fromFavorites, loadSnapshots]);
+  }, [gameId, list, loadSnapshots]);
 
   // 読み込みが1秒を超えたときだけローディング表示を出す
   const showLoading = useDelayedVisible(history === null, 1000);

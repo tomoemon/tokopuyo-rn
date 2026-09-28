@@ -15,9 +15,9 @@
 ### その他のアクション
 - `clearErasingPuyos`: 消去エフェクト完了時に呼ばれ、連鎖を1段進める
 - `restoreToSnapshot(snapshotId)`: 指定したスナップショットの状態に戻し、それより後の履歴を破棄する
-- `resumeFromHistory(id, fromFavorites)`: ゲーム履歴の最後の状態から同じゲームとして再開する
-- `forkFromHistory(id, fromFavorites)`: ゲーム履歴の最後の状態から新しいゲームとして再開する（同じぷよ列）
-- `forkWithNewSeedFromHistory(id, fromFavorites)`: ゲーム履歴の最後の状態から、新しいシードで新しいゲームとして再開する
+- `resumeFromHistory(id, snapshots)`: ゲーム履歴の最後の状態から同じゲームとして再開する
+- `forkFromHistory(snapshots)`: ゲーム履歴の最後の状態から新しいゲームとして再開する（同じぷよ列）
+- `forkWithNewSeedFromHistory(snapshots)`: ゲーム履歴の最後の状態から、新しいシードで新しいゲームとして再開する
 
 ### 連鎖の進行
 1. `HARD_DROP` で設置後、重力を適用して消えるぷよがあれば `chaining` フェーズへ
@@ -60,7 +60,7 @@ gameStore 自体は保存しない。起動時は常に初期状態から始め�
 - `startNewGame`: 新しいゲームIDを発行して現在のゲームにする
 - `updateCurrentGame`: 現在のゲームのエントリを作成・更新して保存する（1手も置いていないゲームは記録しない。初手まで戻した場合は削除する）
 - `setCurrentGameId`: 現在のゲームIDを設定する（Resume 時）
-- `loadSnapshots(id, fromFavorites)`: History または Favorite から、指定IDのゲームのスナップショットを読み込む（非同期）
+- `loadSnapshots(list, id)`: History（`'history'`）または Favorite（`'favorite'`）から、指定IDのゲームのスナップショットを読み込む（非同期）
 - `deleteEntry`: History からエントリ削除
 - `addToFavorites`: History から Favorite にコピー
 - `deleteFavorite`: Favorite からエントリ削除
@@ -95,6 +95,7 @@ gameStore 自体は保存しない。起動時は常に初期状態から始め�
 - 最後に書き込みに成功したスナップショットの配列を覚えておき、今回の配列と先頭から参照で比べて、同じだった位置を求める（スナップショットは作成後に変更しないため）
 - 1つのトランザクションで、games の行を書き込み（`INSERT ... ON CONFLICT DO UPDATE`。メモとタグは変えない）、同じだった位置より後ろのスナップショットを消し、新しいスナップショットを1文で追加する
 - 別のゲームを覚えているとき（新しいゲーム、Resume / Fork / Shuffle の直後）は全部書き直す
+- 1手進めただけ（前回の配列に追加しただけ）のときは、スナップショットを消す処理を省く
 
 ### スキーマ（最新）
 

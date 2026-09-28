@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { Field, GameSnapshot } from '../logic/types';
 import { cloneField } from '../logic/field';
 import {
+  GameList,
   GameSummary,
   saveGame,
   deleteGames,
@@ -10,7 +11,7 @@ import {
   loadSnapshots,
 } from '../db';
 
-export type { GameSummary };
+export type { GameList, GameSummary };
 
 // 最大保持件数
 const MAX_HISTORY_ENTRIES = 100;
@@ -29,11 +30,11 @@ interface GameHistoryStore {
     field: Field,
     score: number,
     maxChainCount: number,
-    operationHistory: GameSnapshot[]
+    snapshots: GameSnapshot[]
   ) => void;
   deleteEntry: (id: string) => void;
   // History / Favorite のどちらかから、ゲームのスナップショットを読み込む
-  loadSnapshots: (id: string, fromFavorites: boolean) => Promise<GameSnapshot[]>;
+  loadSnapshots: (list: GameList, id: string) => Promise<GameSnapshot[]>;
   setCurrentGameId: (id: string | null) => void;
   updateFavoriteDetails: (id: string, note: string, tags: string[]) => void;
 
@@ -67,14 +68,14 @@ export const useGameHistoryStore = create<GameHistoryStore>()((set, get) => ({
     field: Field,
     score: number,
     maxChainCount: number,
-    operationHistory: GameSnapshot[]
+    snapshots: GameSnapshot[]
   ) => {
     const state = get();
     const currentGameId = state.currentGameId;
     if (!currentGameId) return;
 
     const existing = state.entries.find(e => e.id === currentGameId);
-    const dropCount = Math.max(0, operationHistory.length - 1);
+    const dropCount = Math.max(0, snapshots.length - 1);
 
     // dropCount が 0 の場合は履歴に記録しない（初手まで戻した場合は既存のエントリを削除）
     if (dropCount === 0) {
@@ -109,7 +110,7 @@ export const useGameHistoryStore = create<GameHistoryStore>()((set, get) => ({
     }
 
     set({ entries: newEntries });
-    saveGame(summary, operationHistory);
+    saveGame(summary, snapshots);
     if (removedIds.length > 0) {
       deleteGames('history', removedIds);
     }
@@ -120,8 +121,7 @@ export const useGameHistoryStore = create<GameHistoryStore>()((set, get) => ({
     deleteGames('history', [id]);
   },
 
-  loadSnapshots: (id: string, fromFavorites: boolean) =>
-    loadSnapshots(fromFavorites ? 'favorite' : 'history', id),
+  loadSnapshots: (list: GameList, id: string) => loadSnapshots(list, id),
 
   setCurrentGameId: (id: string | null) => {
     set({ currentGameId: id });

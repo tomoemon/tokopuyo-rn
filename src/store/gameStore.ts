@@ -52,9 +52,9 @@ interface GameStore extends GameState {
   // ゲーム履歴から読み込んだスナップショットで、ゲームを再開する（スナップショットが空なら何もせず false）
   resumeFromHistory: (gameHistoryId: string, snapshots: GameSnapshot[]) => boolean;
   // ゲーム履歴から読み込んだスナップショットの状態を複製して、新しいゲームとして開始
-  forkFromHistory: (gameHistoryId: string, snapshots: GameSnapshot[]) => boolean;
+  forkFromHistory: (snapshots: GameSnapshot[]) => boolean;
   // ゲーム履歴から読み込んだスナップショットの状態を複製して、新しいシードで新しいゲームとして開始
-  forkWithNewSeedFromHistory: (gameHistoryId: string, snapshots: GameSnapshot[]) => boolean;
+  forkWithNewSeedFromHistory: (snapshots: GameSnapshot[]) => boolean;
 }
 
 // 消去アニメーション開始までの遅延タイマーID
@@ -329,7 +329,7 @@ export const useGameStore = create<GameStore>()((set, get) => {
     },
 
     // ゲーム履歴から状態を複製して新しいゲームとして開始
-    forkFromHistory: (_gameHistoryId: string, snapshots: GameSnapshot[]) => {
+    forkFromHistory: (snapshots: GameSnapshot[]) => {
       if (snapshots.length === 0) return false;
 
       // 同じシードで継続
@@ -342,7 +342,7 @@ export const useGameStore = create<GameStore>()((set, get) => {
     },
 
     // ゲーム履歴から新しいシードで状態を複製して新しいゲームとして開始
-    forkWithNewSeedFromHistory: (_gameHistoryId: string, snapshots: GameSnapshot[]) => {
+    forkWithNewSeedFromHistory: (snapshots: GameSnapshot[]) => {
       if (snapshots.length === 0) return false;
 
       const lastSnapshot = snapshots[snapshots.length - 1];
