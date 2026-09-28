@@ -524,9 +524,12 @@ export default function GameHistoryScreen() {
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
           {/* 上限を超えると古いものから消えることを、「最新の N 件」という書き方で伝える */}
           {activeTab === 'history' && (
-            <Text style={styles.historyLimitText}>
-              Keeps your latest {MAX_HISTORY_ENTRIES} games ({entries.length} now)
-            </Text>
+            <View style={styles.historyLimitRow}>
+              <Text style={styles.historyLimitText}>Keeps your latest games</Text>
+              <Text style={styles.historyLimitText}>
+                {entries.length} / {MAX_HISTORY_ENTRIES}
+              </Text>
+            </View>
           )}
           {activeTab === 'history'
             ? sortedList.map((entry) => (
@@ -809,10 +812,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 16,
   },
+  historyLimitRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
   historyLimitText: {
     color: '#666',
     fontSize: 12,
-    marginBottom: 12,
   },
   emptyContainer: {
     flex: 1,
