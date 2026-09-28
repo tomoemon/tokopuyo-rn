@@ -21,7 +21,8 @@ docs/                         # 詳細ドキュメント
 ├── control-system.md         # 操作体系
 ├── types.md                  # 型定義
 ├── stores.md                 # ストア詳細
-└── components.md             # コンポーネント詳細
+├── components.md             # コンポーネント詳細
+└── device-testing.md         # iOS シミュレータでの自動操作による動作確認（agent-device）
 ```
 
 ## 画面構成
@@ -91,6 +92,8 @@ npm run web      # Webブラウザで実行（日常的な動作確認はこれ�
 npm test         # ロジックのテスト（vitest）
 npx tsc --noEmit # 型チェック
 ```
+
+iOS シミュレータでの動作確認は、agent-device で自動操作できる。手順は `docs/device-testing.md` を参照。
 
 ## 依存パッケージ
 

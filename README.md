@@ -111,6 +111,10 @@ npm start
 - iPhone と開発マシンが同じ Wi-Fi ネットワークに接続されている必要があります
 - 初回起動時は JavaScript バンドルのダウンロードに時間がかかることがあります
 
+## iOS シミュレータを自動操作して確認する方法
+
+[agent-device](https://github.com/callstack/agent-device) で、iOS シミュレータの Expo Go 上のアプリをコマンドで操作できます。手順は [docs/device-testing.md](docs/device-testing.md) を参照してください。
+
 ## 詳細仕様
 
 ゲームの詳細仕様については [docs/SPECIFICATION.md](docs/SPECIFICATION.md) を参照してください。操作体系は [docs/control-system.md](docs/control-system.md) にまとめています。
