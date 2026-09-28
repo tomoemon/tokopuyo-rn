@@ -25,6 +25,7 @@ function resetStores() {
 // アプリの再起動に相当する：メモリ上の状態を捨てて、同じ DB から読み込み直す
 async function restart() {
   resetStores();
+  db = db.reopen();
   initDatabase(db);
   await loadStores();
 }
@@ -212,6 +213,44 @@ describe('過去の手に戻す', () => {
   });
 });
 
+describe('最大連鎖数', () => {
+  // 連鎖を1回起こしてから、連鎖しない手を1つ置く
+  async function playWithChain(): Promise<string> {
+    const id = startGame();
+    drop(3);
+    const field = createEmptyField();
+    field[12][0] = 'red';
+    field[11][0] = 'red';
+    useGameStore.setState({ field });
+    drop(0, ['red', 'red']);
+    finishChain();
+    drop(4);
+    await flushQueue();
+    return id;
+  }
+
+  it('Fork した新しいゲームにも、元の手の最大連鎖数が記録される', async () => {
+    const id = await playWithChain();
+    expect(dbGames('history')).toEqual([expect.objectContaining({ id, max_chain: 1 })]);
+    dispatch({ type: 'RESTART_GAME' });
+
+    const snapshots = await useGameHistoryStore.getState().loadSnapshots('history', id);
+    useGameStore.getState().forkFromHistory(snapshots);
+    const forkedId = useGameHistoryStore.getState().currentGameId!;
+    await flushQueue();
+    expect(dbGames('history').find(g => g.id === forkedId)).toMatchObject({ max_chain: 1 });
+  });
+
+  it('連鎖した手より前に戻すと、最大連鎖数も戻る', async () => {
+    const id = await playWithChain();
+    useGameStore.getState().restoreToSnapshot(1);
+    drop(5);
+    await flushQueue();
+    expect(dbGames('history')).toEqual([expect.objectContaining({ id, max_chain: 0 })]);
+    expect(useGameHistoryStore.getState().entries[0]).toMatchObject({ maxChainCount: 0 });
+  });
+});
+
 describe('History から再開する', () => {
   // 3手置いたゲームを作り、タイトル画面に戻る
   async function playAndLeave(): Promise<string> {
@@ -360,6 +399,26 @@ describe('履歴の件数の上限', () => {
     expect(dbGames('history')).toHaveLength(100);
     expect(dbGames('history').map(g => g.id)).not.toContain(ids[0]);
     expect(db.all('SELECT * FROM snapshots WHERE game_id = ?', [ids[0]])).toEqual([]);
+  });
+
+  it('端末の時計が戻っていても、プレイ中のゲームは消さない', async () => {
+    for (let i = 0; i < 100; i++) {
+      vi.setSystemTime(new Date(Date.UTC(2026, 0, 2, 0, 0, i)));
+      dispatch({ type: 'RESTART_GAME' });
+      startGame();
+      drop(0);
+    }
+    // 時計を戻してから新しいゲームを置く
+    vi.setSystemTime(new Date(Date.UTC(2026, 0, 1)));
+    dispatch({ type: 'RESTART_GAME' });
+    const id = startGame();
+    drop(0);
+    drop(1);
+    await flushQueue();
+    expect(useGameHistoryStore.getState().entries).toHaveLength(100);
+    expect(useGameHistoryStore.getState().entries.map(e => e.id)).toContain(id);
+    expect(dbGames('history').map(g => g.id)).toContain(id);
+    expectSavedAsInMemory(id);
   });
 });
 

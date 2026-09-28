@@ -6,11 +6,17 @@ export interface TestDatabase extends Database {
   all<T>(source: string, params?: SqlParam[]): T[];
   // 次に source が pattern に一致する runAsync を1回だけ失敗させる
   failNextRun(pattern: RegExp): void;
+  // 同じ DB を、別の接続として開き直す（アプリの再起動に相当）
+  reopen(): TestDatabase;
 }
 
 // Node の組み込みの SQLite を、expo-sqlite と同じ形の非同期メソッドで包む（テスト用）
 export function openTestDatabase(): TestDatabase {
-  const db = new DatabaseSync(':memory:');
+  // expo-sqlite と同じく外部キーを無効にして開く（setupDatabase が有効にすることを確かめるため）
+  return wrap(new DatabaseSync(':memory:', { enableForeignKeyConstraints: false }));
+}
+
+function wrap(db: DatabaseSync): TestDatabase {
   let failPattern: RegExp | null = null;
 
   return {
@@ -45,6 +51,9 @@ export function openTestDatabase(): TestDatabase {
     },
     failNextRun(pattern) {
       failPattern = pattern;
+    },
+    reopen() {
+      return wrap(db);
     },
   };
 }

@@ -110,7 +110,7 @@ iOS シミュレータでの動作確認は、agent-device で自動操作でき
 ## コーディング規約
 
 ### 永続化
-- SQL は `src/db/` のリポジトリに閉じ込め、DB への読み書きはすべて待ち行列（`enqueue`）を通す
+- SQL は `src/db/` のリポジトリに閉じ込め、DB への読み書きはすべて待ち行列（`enqueue`）を通す（例外は、起動時に待ち行列へ DB を渡す前に行う `setupDatabase` の接続設定とマイグレーション）
 - テーブル定義を変えるときは `src/db/migrations.ts` を変更する（リリース前は v1 を直接書き換える）
 - `GameSnapshot` の型を変えるときは、保存済みの `snapshots.data`（JSON）のマイグレーションが必要か確認する
 

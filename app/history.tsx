@@ -338,6 +338,8 @@ export default function GameHistoryScreen() {
 
   const handleReplayConfirm = () => {
     if (resumeEntryCache && resumeEntryCache.dropCount > 0 && !isLoadingSnapshots) {
+      // 同じフレームで Resume なども押されていたら、その読み込みの結果を捨てる
+      loadRequestRef.current++;
       setResumeModalVisible(false);
       router.push({
         pathname: '/replay',

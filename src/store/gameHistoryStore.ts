@@ -26,12 +26,7 @@ interface GameHistoryStore {
 
   // アクション
   startNewGame: () => string;
-  updateCurrentGame: (
-    field: Field,
-    score: number,
-    maxChainCount: number,
-    snapshots: GameSnapshot[]
-  ) => void;
+  updateCurrentGame: (field: Field, score: number, snapshots: GameSnapshot[]) => void;
   deleteEntry: (id: string) => void;
   // History / Favorite のどちらかから、ゲームのスナップショットを読み込む
   loadSnapshots: (list: GameList, id: string) => Promise<GameSnapshot[]>;
@@ -64,12 +59,7 @@ export const useGameHistoryStore = create<GameHistoryStore>()((set, get) => ({
     return newId;
   },
 
-  updateCurrentGame: (
-    field: Field,
-    score: number,
-    maxChainCount: number,
-    snapshots: GameSnapshot[]
-  ) => {
+  updateCurrentGame: (field: Field, score: number, snapshots: GameSnapshot[]) => {
     const state = get();
     const currentGameId = state.currentGameId;
     if (!currentGameId) return;
@@ -90,7 +80,8 @@ export const useGameHistoryStore = create<GameHistoryStore>()((set, get) => ({
       id: currentGameId,
       field: cloneField(field),
       score,
-      maxChainCount: existing ? Math.max(existing.maxChainCount, maxChainCount) : maxChainCount,
+      // 過去の手に戻したときや Fork / Shuffle でも正しくなるよう、今の手の履歴から求める
+      maxChainCount: Math.max(0, ...snapshots.map(s => s.chainCount)),
       dropCount,
       lastPlayedAt: new Date().toISOString(),
       note: existing?.note ?? '',
@@ -102,11 +93,12 @@ export const useGameHistoryStore = create<GameHistoryStore>()((set, get) => ({
       : [...state.entries, summary];
 
     // 100件を超えたら古いものを削除（消す id はメモリ上で決めて、DB でも同じものを消す）
+    // 端末の時計が戻っていてもプレイ中のゲームは消さないように、先頭に置いてから切り詰める
     let removedIds: string[] = [];
     if (newEntries.length > MAX_HISTORY_ENTRIES) {
-      const sorted = [...newEntries].sort(compareByLastPlayedDesc);
-      removedIds = sorted.slice(MAX_HISTORY_ENTRIES).map(e => e.id);
-      newEntries = sorted.slice(0, MAX_HISTORY_ENTRIES);
+      const others = newEntries.filter(e => e.id !== currentGameId).sort(compareByLastPlayedDesc);
+      removedIds = others.slice(MAX_HISTORY_ENTRIES - 1).map(e => e.id);
+      newEntries = [summary, ...others.slice(0, MAX_HISTORY_ENTRIES - 1)];
     }
 
     set({ entries: newEntries });

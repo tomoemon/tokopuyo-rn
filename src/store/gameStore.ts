@@ -159,12 +159,7 @@ export const useGameStore = create<GameStore>()((set, get) => {
   // 現在のゲーム状態をゲーム履歴に反映
   const syncCurrentGame = () => {
     const s = get();
-    useGameHistoryStore.getState().updateCurrentGame(
-      s.field,
-      s.score,
-      s.chainCount,
-      s.history
-    );
+    useGameHistoryStore.getState().updateCurrentGame(s.field, s.score, s.history);
   };
 
   // 遅延後に消えるぷよを検出して erasing フェーズへ遷移
