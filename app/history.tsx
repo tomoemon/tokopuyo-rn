@@ -522,7 +522,7 @@ export default function GameHistoryScreen() {
         </View>
       ) : (
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-          {/* 上限を超えると古いものから消えることを、「最新の N 件」という書き方で伝える */}
+          {/* 上限を超えると古いものから消えることを、「最新のゲームを残す」という文言と件数 / 上限で伝える */}
           {activeTab === 'history' && (
             <View style={styles.historyLimitRow}>
               <Text style={styles.historyLimitText}>Keeps your latest games</Text>
