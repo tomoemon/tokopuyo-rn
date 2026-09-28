@@ -92,7 +92,7 @@ export const useGameHistoryStore = create<GameHistoryStore>()((set, get) => ({
       ? state.entries.map(e => (e.id === currentGameId ? summary : e))
       : [...state.entries, summary];
 
-    // 100件を超えたら古いものを削除（消す id はメモリ上で決めて、DB でも同じものを消す）
+    // 上限を超えたら古いものを削除（消す id はメモリ上で決めて、DB でも同じものを消す）
     // 端末の時計が戻っていてもプレイ中のゲームは消さないように、先頭に置いてから切り詰める
     let removedIds: string[] = [];
     if (newEntries.length > MAX_HISTORY_ENTRIES) {
