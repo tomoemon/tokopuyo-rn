@@ -13,8 +13,8 @@ import {
 
 export type { GameList, GameSummary };
 
-// 最大保持件数
-const MAX_HISTORY_ENTRIES = 100;
+// History に残す件数の上限（超えたら最終プレイ日時の古いものから削除する）
+export const MAX_HISTORY_ENTRIES = 100;
 
 interface GameHistoryStore {
   // ゲーム履歴一覧（History タブ）
