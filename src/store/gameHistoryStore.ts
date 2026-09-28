@@ -13,8 +13,8 @@ import {
 
 export type { GameList, GameSummary };
 
-// 最大保持件数
-const MAX_HISTORY_ENTRIES = 100;
+// History に残す件数の上限（超えたら最終プレイ日時の古いものから削除する）
+export const MAX_HISTORY_ENTRIES = 100;
 
 interface GameHistoryStore {
   // ゲーム履歴一覧（History タブ）
@@ -92,7 +92,7 @@ export const useGameHistoryStore = create<GameHistoryStore>()((set, get) => ({
       ? state.entries.map(e => (e.id === currentGameId ? summary : e))
       : [...state.entries, summary];
 
-    // 100件を超えたら古いものを削除（消す id はメモリ上で決めて、DB でも同じものを消す）
+    // 上限を超えたら古いものを削除（消す id はメモリ上で決めて、DB でも同じものを消す）
     // 端末の時計が戻っていてもプレイ中のゲームは消さないように、先頭に置いてから切り詰める
     let removedIds: string[] = [];
     if (newEntries.length > MAX_HISTORY_ENTRIES) {

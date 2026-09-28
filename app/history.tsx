@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
-import { useGameStore, useGameHistoryStore, GameList, GameSummary, compareByLastPlayedDesc } from '../src/store';
+import { useGameStore, useGameHistoryStore, GameList, GameSummary, compareByLastPlayedDesc, MAX_HISTORY_ENTRIES } from '../src/store';
 import {
   FIELD_COLS,
   VISIBLE_ROWS,
@@ -522,6 +522,15 @@ export default function GameHistoryScreen() {
         </View>
       ) : (
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+          {/* 上限を超えると古いものから消えることを、「最新のゲームを残す」という文言と件数 / 上限で伝える */}
+          {activeTab === 'history' && (
+            <View style={styles.historyLimitRow}>
+              <Text style={styles.historyLimitText}>Keeps your latest games</Text>
+              <Text style={styles.historyLimitText}>
+                {entries.length} / {MAX_HISTORY_ENTRIES}
+              </Text>
+            </View>
+          )}
           {activeTab === 'history'
             ? sortedList.map((entry) => (
                 <HistoryItem
@@ -802,6 +811,15 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingHorizontal: 16,
     paddingBottom: 16,
+  },
+  historyLimitRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  historyLimitText: {
+    color: '#666',
+    fontSize: 12,
   },
   emptyContainer: {
     flex: 1,
